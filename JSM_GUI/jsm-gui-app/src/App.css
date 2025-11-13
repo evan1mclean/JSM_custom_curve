@@ -31,40 +31,14 @@ header h1 {
   margin: 0;
 }
 
-.status-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.6rem;
-  align-items: center;
-  margin-bottom: 1rem;
-}
-
-.jsm-status-pill {
-  padding: 0.3rem 0.9rem;
-  border-radius: 999px;
-  border: 1px solid #444;
-  background: #1f1f1f;
-  font-weight: 600;
-  color: #ff786f;
-}
-
-.jsm-status-pill.running {
-  color: #64d883;
-  border-color: #64d883;
-}
-
 .calibration-pill {
+  display: inline-flex;
   padding: 0.3rem 0.9rem;
   border-radius: 999px;
   border: 1px solid rgba(255, 182, 128, 0.6);
   background: rgba(255, 182, 128, 0.12);
   color: #ffb680;
   font-weight: 600;
-}
-
-.status-message-inline {
-  font-weight: 600;
-  color: #8ff5cd;
 }
 
 .telemetry-banner {
@@ -78,16 +52,10 @@ header h1 {
   gap: 0.6rem;
 }
 
-.telemetry-status {
+.telemetry-heading {
+  margin: 0;
   font-weight: 600;
-}
-
-.telemetry-connected {
-  color: #64d883;
-}
-
-.telemetry-disconnected {
-  color: #ff786f;
+  color: #9fe5c2;
 }
 
 .telemetry-readouts {
@@ -99,17 +67,6 @@ header h1 {
 
 .telemetry-readouts span strong {
   font-weight: 600;
-}
-
-.telemetry-raw {
-  background: #111;
-  border: 1px solid #333;
-  border-radius: 8px;
-  padding: 0.75rem;
-  max-height: 240px;
-  overflow: auto;
-  font-family: 'JetBrains Mono', Consolas, monospace;
-  font-size: 0.85rem;
 }
 
 .control-panel {
@@ -149,6 +106,21 @@ header h1 {
   background: #222;
   color: #eee;
   font-size: 1rem;
+}
+
+input[type=number]::-webkit-outer-spin-button,
+input[type=number]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type=number] {
+  -moz-appearance: textfield;
+}
+
+.flex-inputs input[type=range] {
+  margin-top: 0.4rem;
+  accent-color: #6a8bff;
 }
 
 .control-panel button,
@@ -201,6 +173,30 @@ header h1 {
 
 .graph-panel h2 {
   margin: 0 0 0.6rem;
+}
+
+.graph-legend {
+  display: flex;
+  gap: 1.5rem;
+  font-size: 0.85rem;
+  color: #bbb;
+  margin-bottom: 0.6rem;
+}
+
+.legend-dot {
+  display: inline-block;
+  width: 14px;
+  height: 4px;
+  border-radius: 2px;
+  margin-right: 0.35rem;
+}
+
+.legend-dot.sensitivity {
+  background: #6a8bff;
+}
+
+.legend-dot.velocity {
+  background: #52c1ff;
 }
 
 .legacy-curve-canvas {
@@ -258,4 +254,31 @@ header h1 {
 .status-message {
   color: #8ff5cd;
   font-weight: 600;
+}
+.calibration-row {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.recalibrate-btn {
+  border-radius: 999px;
+  border: 1px solid #555;
+  padding: 0.45rem 1.2rem;
+  background: #2b2b2b;
+  color: #eee;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.recalibrate-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.recalibrate-btn:not(:disabled):hover {
+  background: #3a3a3a;
 }

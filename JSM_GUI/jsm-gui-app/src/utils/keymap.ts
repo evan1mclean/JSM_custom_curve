@@ -1,5 +1,6 @@
 export interface SensitivityValues {
   inGameSens?: number
+  realWorldCalibration?: number
   minSensX?: number
   minSensY?: number
   maxSensX?: number
@@ -31,6 +32,7 @@ export function parseSensitivityValues(text: string): SensitivityValues {
 
   return {
     inGameSens: single('IN_GAME_SENS'),
+    realWorldCalibration: single('REAL_WORLD_CALIBRATION'),
     minSensX: minSens[0],
     minSensY: minSens[1],
     maxSensX: maxSens[0],

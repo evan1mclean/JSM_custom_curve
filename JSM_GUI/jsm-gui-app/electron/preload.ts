@@ -7,6 +7,7 @@ const electronAPI = {
   loadKeymapFile: () => ipcRenderer.invoke('load-keymap'),
   minimizeTemporarily: () => ipcRenderer.invoke('minimize-temporarily'),
   applyKeymap: (text: string) => ipcRenderer.invoke('apply-keymap', text),
+  recalibrateGyro: () => ipcRenderer.invoke('recalibrate-gyro'),
 }
 
 const telemetryListeners = new Set<(payload: unknown) => void>()

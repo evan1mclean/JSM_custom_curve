@@ -14,6 +14,7 @@ function App() {
   const { sample, isCalibrating, countdown } = useTelemetry()
   const [configText, setConfigText] = useState('')
   const [statusMessage, setStatusMessage] = useState<string | null>(null)
+  const [recalibrating, setRecalibrating] = useState(false)
   const sensitivity = useMemo(() => parseSensitivityValues(configText), [configText])
 
   useEffect(() => {
@@ -53,10 +54,35 @@ function App() {
     })
   }
 
-  const handleInGameSensChange = (value: string) => {
-    const next = parseFloat(value)
-    if (Number.isNaN(next)) return
-    setConfigText(prev => updateKeymapEntry(prev, 'IN_GAME_SENS', [next]))
+const handleInGameSensChange = (value: string) => {
+  const next = parseFloat(value)
+  if (Number.isNaN(next)) return
+  setConfigText(prev => updateKeymapEntry(prev, 'IN_GAME_SENS', [next]))
+}
+
+const handleRealWorldCalibrationChange = (value: string) => {
+  const next = parseFloat(value)
+  if (Number.isNaN(next)) return
+  setConfigText(prev => updateKeymapEntry(prev, 'REAL_WORLD_CALIBRATION', [next]))
+}
+
+  const handleRecalibrate = async () => {
+    if (isCalibrating || recalibrating) return
+    setRecalibrating(true)
+    try {
+      const result = await window.electronAPI?.recalibrateGyro?.()
+      if (result?.success) {
+        setStatusMessage('Recalibration started.')
+      } else {
+        setStatusMessage('Failed to start recalibration.')
+      }
+    } catch (err) {
+      console.error(err)
+      setStatusMessage('Failed to start recalibration.')
+    } finally {
+      setRecalibrating(false)
+      setTimeout(() => setStatusMessage(null), 3000)
+    }
   }
 
   return (
@@ -66,30 +92,21 @@ function App() {
         <h1>JoyShockMapper Gyro UI</h1>
       </header>
 
-        <section className="status-row">
-        <div className={`jsm-status-pill ${sample ? 'running' : ''}`}>
-          {sample ? 'Telemetry Connected' : 'Telemetry Disconnected'}
-        </div>
-        {isCalibrating && (
-          <div className="calibration-pill">
-            Calibrating — hold controller steady ({countdown ?? '...'}s)
-          </div>
-        )}
-        {statusMessage && <div className="status-message-inline">{statusMessage}</div>}
-      </section>
-
-        <section className="telemetry-banner">
-        <div className={`telemetry-status ${sample ? 'telemetry-connected' : 'telemetry-disconnected'}`}>
-          {sample ? 'Live packets streaming' : 'No packets detected'}
-        </div>
-        <div className="telemetry-readouts">
-          <span>ω: <strong>{formatNumber(asNumber(sample?.omega))}°/s</strong></span>
-          <span>t: <strong>{formatNumber(asNumber(sample?.t))}</strong></span>
-          <span>Sens X/Y: <strong>{formatNumber(asNumber(sample?.sensX))}/{formatNumber(asNumber(sample?.sensY))}</strong></span>
-          <span>Timestamp: <strong>{displayValue(sample?.ts)}</strong></span>
-        </div>
-        {sample && <pre className="telemetry-raw">{JSON.stringify(sample, null, 2)}</pre>}
-      </section>
+        <section className="calibration-row">
+          {isCalibrating ? (
+            <div className="calibration-pill">
+              Calibrating — hold controller steady ({countdown ?? '...'}s)
+            </div>
+          ) : (
+            <button
+              className="recalibrate-btn"
+              onClick={handleRecalibrate}
+              disabled={recalibrating}
+            >
+              {recalibrating ? 'Recalibrating...' : 'Recalibrate Gyro'}
+            </button>
+          )}
+        </section>
 
         <section className={`control-panel lockable ${isCalibrating ? 'locked' : ''}`}>
         <div className="locked-overlay">Controls locked while JSM calibrates</div>
@@ -105,11 +122,28 @@ function App() {
             />
           </label>
           <label>
+            Real World Calibration
+            <input
+              type="number"
+              step="0.1"
+              value={sensitivity.realWorldCalibration ?? ''}
+              onChange={(e) => handleRealWorldCalibrationChange(e.target.value)}
+            />
+          </label>
+          <label>
             Min Threshold
             <input
               type="number"
-              step="0.01"
+              step="1"
               value={sensitivity.minThreshold ?? ''}
+              onChange={(e) => handleThresholdChange('MIN_GYRO_THRESHOLD')(e.target.value)}
+            />
+            <input
+              type="range"
+              min="0"
+              max="500"
+              step="1"
+              value={sensitivity.minThreshold ?? 0}
               onChange={(e) => handleThresholdChange('MIN_GYRO_THRESHOLD')(e.target.value)}
             />
           </label>
@@ -117,46 +151,86 @@ function App() {
             Max Threshold
             <input
               type="number"
-              step="0.01"
+              step="1"
               value={sensitivity.maxThreshold ?? ''}
+              onChange={(e) => handleThresholdChange('MAX_GYRO_THRESHOLD')(e.target.value)}
+            />
+            <input
+              type="range"
+              min="0"
+              max="500"
+              step="1"
+              value={sensitivity.maxThreshold ?? 0}
               onChange={(e) => handleThresholdChange('MAX_GYRO_THRESHOLD')(e.target.value)}
             />
           </label>
         </div>
         <div className="flex-inputs">
           <label>
-            Min Sens (Yaw)
+            Min Sens (X)
             <input
               type="number"
-              step="0.01"
+              step="0.1"
               value={sensitivity.minSensX ?? ''}
+              onChange={(e) => handleDualSensChange('MIN_GYRO_SENS', 0)(e.target.value)}
+            />
+            <input
+              type="range"
+              min="0"
+              max="30"
+              step="0.1"
+              value={sensitivity.minSensX ?? 0}
               onChange={(e) => handleDualSensChange('MIN_GYRO_SENS', 0)(e.target.value)}
             />
           </label>
           <label>
-            Min Sens (Pitch)
+            Min Sens (Y)
             <input
               type="number"
-              step="0.01"
+              step="0.1"
               value={sensitivity.minSensY ?? ''}
+              onChange={(e) => handleDualSensChange('MIN_GYRO_SENS', 1)(e.target.value)}
+            />
+            <input
+              type="range"
+              min="0"
+              max="30"
+              step="0.1"
+              value={sensitivity.minSensY ?? 0}
               onChange={(e) => handleDualSensChange('MIN_GYRO_SENS', 1)(e.target.value)}
             />
           </label>
           <label>
-            Max Sens (Yaw)
+            Max Sens (X)
             <input
               type="number"
-              step="0.01"
+              step="0.1"
               value={sensitivity.maxSensX ?? ''}
+              onChange={(e) => handleDualSensChange('MAX_GYRO_SENS', 0)(e.target.value)}
+            />
+            <input
+              type="range"
+              min="0"
+              max="30"
+              step="0.1"
+              value={sensitivity.maxSensX ?? 0}
               onChange={(e) => handleDualSensChange('MAX_GYRO_SENS', 0)(e.target.value)}
             />
           </label>
           <label>
-            Max Sens (Pitch)
+            Max Sens (Y)
             <input
               type="number"
-              step="0.01"
+              step="0.1"
               value={sensitivity.maxSensY ?? ''}
+              onChange={(e) => handleDualSensChange('MAX_GYRO_SENS', 1)(e.target.value)}
+            />
+            <input
+              type="range"
+              min="0"
+              max="30"
+              step="0.1"
+              value={sensitivity.maxSensY ?? 0}
               onChange={(e) => handleDualSensChange('MAX_GYRO_SENS', 1)(e.target.value)}
             />
           </label>
@@ -166,6 +240,10 @@ function App() {
 
         <section className="graph-panel">
         <h2>Curve Preview</h2>
+        <div className="graph-legend">
+          <span><span className="legend-dot sensitivity" /> Sensitivity</span>
+          <span><span className="legend-dot velocity" /> Normalized output velocity</span>
+        </div>
         <SensitivityGraph
           minThreshold={sensitivity.minThreshold}
           maxThreshold={sensitivity.maxThreshold}
@@ -181,6 +259,16 @@ function App() {
         <small>Live dot follows telemetry t-value using yaw sensitivity.</small>
       </section>
 
+        <section className="telemetry-banner">
+        <p className="telemetry-heading">Live packets streaming</p>
+        <div className="telemetry-readouts">
+          <span>ω: <strong>{formatNumber(asNumber(sample?.omega))}°/s</strong></span>
+          <span>t: <strong>{formatNumber(asNumber(sample?.t))}</strong></span>
+          <span>Sens X/Y: <strong>{formatNumber(asNumber(sample?.sensX))}/{formatNumber(asNumber(sample?.sensY))}</strong></span>
+          <span>Timestamp: <strong>{displayValue(sample?.ts)}</strong></span>
+        </div>
+      </section>
+
         <section className="config-panel legacy">
         <label>
           keymap_01.txt
@@ -191,9 +279,6 @@ function App() {
           />
         </label>
         <div className="config-actions">
-          <button onClick={() => window.electronAPI?.loadKeymapFile?.().then(text => setConfigText(text ?? ''))}>
-            Reload from Disk
-          </button>
           <button onClick={applyConfig}>Apply Changes</button>
         </div>
         {statusMessage && <p className="status-message">{statusMessage}</p>}

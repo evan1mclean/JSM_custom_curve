@@ -6,6 +6,7 @@ declare interface Window {
     loadKeymapFile?: () => Promise<string>
     minimizeTemporarily: () => Promise<void>
     applyKeymap?: (text: string) => Promise<{ restarted: boolean }>
+    recalibrateGyro?: () => Promise<{ success: boolean }>
     onCalibrationStatus?: (callback: (payload: { calibrating: boolean; seconds?: number }) => void) => () => void
   }
   telemetry?: {

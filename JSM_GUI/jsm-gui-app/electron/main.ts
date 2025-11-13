@@ -35,6 +35,7 @@ const BIN_DIR = path.join(process.env.APP_ROOT, 'bin')
 const STARTUP_FILE = path.join(BIN_DIR, 'OnStartUp.txt')
 const KEYMAP_FILE = path.join(BIN_DIR, 'keymap_01.txt')
 const KEYMAP_COMMAND = 'keymap_01.txt'
+const STARTUP_COMMAND = 'OnStartUp.txt'
 const JSM_EXECUTABLE = path.join(BIN_DIR, process.platform === 'win32' ? 'JoyShockMapper.exe' : 'JoyShockMapper')
 const CONSOLE_INJECTOR = path.join(BIN_DIR, process.platform === 'win32' ? 'jsm-console-injector.exe' : 'jsm-console-injector')
 const LOG_FILE = path.join(process.env.APP_ROOT, 'jsm-gui.log')
@@ -163,7 +164,7 @@ async function loadKeymapFile() {
   }
 }
 
-async function tryInjectKeymapCommand(command: string) {
+async function tryInjectConsoleCommand(command: string) {
   if (process.platform !== 'win32') {
     return false
   }
@@ -356,12 +357,22 @@ ipcMain.handle('load-keymap', async () => {
 
 ipcMain.handle('apply-keymap', async (_event, content: string) => {
   await saveKeymapFile(content ?? '')
-  const injected = await tryInjectKeymapCommand(KEYMAP_COMMAND)
+  const injected = await tryInjectConsoleCommand(KEYMAP_COMMAND)
   if (injected) {
     return { restarted: false }
   }
   await writeLog('Console injection unavailable; leaving JSM running for debugging.')
   return { restarted: false }
+})
+
+ipcMain.handle('recalibrate-gyro', async () => {
+  const injected = await tryInjectConsoleCommand(STARTUP_COMMAND)
+  if (injected) {
+    startCalibrationCountdown(5)
+    return { success: true }
+  }
+  await writeLog('Failed to inject OnStartUp.txt for recalibration.')
+  return { success: false }
 })
 
 ipcMain.handle('launch-jsm', async (_event, calibrationSeconds = 5) => {

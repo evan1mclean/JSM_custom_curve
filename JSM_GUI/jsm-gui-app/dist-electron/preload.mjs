@@ -6,7 +6,8 @@ const electronAPI = {
   saveKeymapFile: (text) => electron.ipcRenderer.invoke("save-keymap", text),
   loadKeymapFile: () => electron.ipcRenderer.invoke("load-keymap"),
   minimizeTemporarily: () => electron.ipcRenderer.invoke("minimize-temporarily"),
-  applyKeymap: (text) => electron.ipcRenderer.invoke("apply-keymap", text)
+  applyKeymap: (text) => electron.ipcRenderer.invoke("apply-keymap", text),
+  recalibrateGyro: () => electron.ipcRenderer.invoke("recalibrate-gyro")
 };
 const telemetryListeners = /* @__PURE__ */ new Set();
 electron.ipcRenderer.on("telemetry-sample", (_event, payload) => {

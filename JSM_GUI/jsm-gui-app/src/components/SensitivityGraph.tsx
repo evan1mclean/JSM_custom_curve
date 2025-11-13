@@ -4,12 +4,11 @@ interface SensitivityGraphProps {
   minThreshold?: number
   maxThreshold?: number
   minSensX?: number
-  minSensY?: number
   maxSensX?: number
+  minSensY?: number
   maxSensY?: number
   normalized?: number
   currentSensX?: number
-  currentSensY?: number
   omega?: number
 }
 
@@ -59,9 +58,7 @@ export function SensitivityGraph(props: SensitivityGraphProps) {
       minThreshold === undefined ||
       maxThreshold === undefined ||
       minSensX === undefined ||
-      minSensY === undefined ||
-      maxSensX === undefined ||
-      maxSensY === undefined
+      maxSensX === undefined
     ) {
       ctx.fillStyle = '#777'
       ctx.font = '16px sans-serif'
@@ -80,15 +77,15 @@ export function SensitivityGraph(props: SensitivityGraphProps) {
     ctx.fillStyle = '#ddd'
     ctx.font = '14px sans-serif'
     ctx.textAlign = 'center'
-    ctx.fillText('Threshold (°/s)', paddingLeft + graphWidth / 2, baseHeight - 20)
+    ctx.fillText('Threshold (°/s)', paddingLeft + graphWidth / 2, baseHeight - 10)
     ctx.save()
-    ctx.translate(20, paddingTop + graphHeight / 2)
+    ctx.translate(18, paddingTop + graphHeight / 2 + 20)
     ctx.rotate(-Math.PI / 2)
     ctx.fillText('RWS', 0, 0)
     ctx.restore()
 
     const axisMaxX = Math.max(MAX_OMEGA, maxThreshold)
-    const axisMaxY = Math.max(minSensX, minSensY, maxSensX, maxSensY, 2)
+    const axisMaxY = Math.max(minSensX, maxSensX, 2)
 
     const toX = (speed: number) => paddingLeft + (graphWidth * (speed / axisMaxX))
     const toY = (sens: number) => paddingTop + graphHeight - (graphHeight * (sens / axisMaxY))
@@ -105,7 +102,7 @@ export function SensitivityGraph(props: SensitivityGraphProps) {
       ctx.moveTo(paddingLeft, y)
       ctx.lineTo(baseWidth - paddingRight, y)
       ctx.stroke()
-      ctx.fillText(value.toFixed(2), paddingLeft - 7, y + 4)
+      ctx.fillText(value.toFixed(2), paddingLeft - 10, y + 4)
     }
     ctx.textAlign = 'center'
     for (let i = 0; i <= 10; i++) {
@@ -118,75 +115,91 @@ export function SensitivityGraph(props: SensitivityGraphProps) {
       ctx.fillText(value.toFixed(0), x, paddingTop + graphHeight + 30)
     }
 
-    const drawCurve = (minSens: number, maxSens: number, color: string) => {
-      ctx.strokeStyle = color
-      ctx.lineWidth = 2
+    const drawSensitivityCurve = () => {
+      ctx.strokeStyle = '#6a8bff'
+      ctx.lineWidth = 2.2
       ctx.beginPath()
-      ctx.moveTo(toX(0), toY(minSens))
-      ctx.lineTo(toX(minThreshold), toY(minSens))
-      ctx.lineTo(toX(maxThreshold), toY(maxSens))
-      ctx.lineTo(toX(axisMaxX), toY(maxSens))
+      ctx.moveTo(toX(0), toY(minSensX))
+      ctx.lineTo(toX(minThreshold), toY(minSensX))
+      ctx.lineTo(toX(maxThreshold), toY(maxSensX))
+      ctx.lineTo(toX(axisMaxX), toY(maxSensX))
       ctx.stroke()
     }
 
-    drawCurve(minSensX, maxSensX, '#6a8bff')
-    drawCurve(minSensY, maxSensY, '#ff6d6d')
+    drawSensitivityCurve()
+
+    const denom = maxThreshold - minThreshold
+    const sensitivityAt = (speed: number) => {
+      if (denom <= 0) {
+        return speed > minThreshold ? maxSensX : minSensX
+      }
+      const progress = clamp((speed - minThreshold) / denom, 0, 1)
+      return minSensX + progress * (maxSensX - minSensX)
+    }
+
+    const drawVelocityCurve = () => {
+      const points = 250
+      const speeds = Array.from({ length: points }, (_, i) => (axisMaxX / (points - 1)) * i)
+      const outputs = speeds.map(speed => speed * sensitivityAt(speed))
+      const maxOutput = Math.max(...outputs, 1)
+      ctx.strokeStyle = '#52c1ff'
+      ctx.setLineDash([6, 6])
+      ctx.lineWidth = 2
+      ctx.beginPath()
+      outputs.forEach((output, idx) => {
+        const normalized = (output / maxOutput) * axisMaxY
+        const x = toX(speeds[idx])
+        const y = toY(normalized)
+        if (idx === 0) ctx.moveTo(x, y)
+        else ctx.lineTo(x, y)
+      })
+      ctx.stroke()
+      ctx.setLineDash([])
+    }
+
+    drawVelocityCurve()
 
     const resolveLive = () => {
       if (typeof omega === 'number' && Number.isFinite(omega)) {
         return {
           speed: clamp(omega, 0, axisMaxX),
           sensX: typeof currentSensX === 'number' ? currentSensX : undefined,
-          sensY: typeof currentSensY === 'number' ? currentSensY : undefined,
         }
       }
       if (typeof normalized === 'number' && Number.isFinite(normalized)) {
           const t = clamp(normalized, 0, 1)
           const speed = minThreshold + t * (maxThreshold - minThreshold)
           const sensX = minSensX + t * (maxSensX - minSensX)
-          const sensY = minSensY + t * (maxSensY - minSensY)
-          return { speed, sensX, sensY }
+          return { speed, sensX }
       }
       return null
     }
 
     const live = resolveLive()
     if (live) {
-      const getSens = (speed: number, minSens: number, maxSens: number) => {
-        if (speed <= minThreshold) return minSens
-        if (speed >= maxThreshold) return maxSens
-        const progress = (speed - minThreshold) / (maxThreshold - minThreshold || 1)
-        return minSens + progress * (maxSens - minSens)
-      }
       const speed = clamp(live.speed, 0, axisMaxX)
-      const sensX = live.sensX ?? getSens(speed, minSensX, maxSensX)
-      const sensY = live.sensY ?? getSens(speed, minSensY, maxSensY)
+      const sensX = live.sensX ?? sensitivityAt(speed)
+      const output = speed * sensX
+      const maxOutput = axisMaxX * maxSensX
+      const normalizedOutput = (output / maxOutput) * axisMaxY
 
-      const drawDot = (sens: number, color: string) => {
+      const drawDot = (value: number, color: string) => {
         ctx.beginPath()
-        ctx.arc(toX(speed), toY(sens), 5, 0, Math.PI * 2)
+        ctx.arc(toX(speed), toY(value), 5, 0, Math.PI * 2)
         ctx.fillStyle = color
         ctx.fill()
       }
       drawDot(sensX, '#6a8bff')
-      drawDot(sensY, '#ff6d6d')
+      drawDot(normalizedOutput, '#52c1ff')
 
-      ctx.fillStyle = '#ddd'
-      ctx.font = '12px monospace'
-      ctx.textAlign = 'right'
-      ctx.fillText(`LIVE → SPEED: ${speed.toFixed(1)}°/s`, baseWidth - 15, paddingTop + graphHeight - 30)
-      ctx.fillText(`H: ${sensX.toFixed(3)}   V: ${sensY.toFixed(3)}`, baseWidth - 15, paddingTop + graphHeight - 12)
+    ctx.fillStyle = '#ddd'
+    ctx.font = '12px monospace'
+    ctx.textAlign = 'right'
+    ctx.fillText(`LIVE → SPEED: ${speed.toFixed(1)}°/s`, baseWidth - 20, paddingTop + graphHeight - 20)
+    ctx.fillText(`Sensitivity: ${sensX.toFixed(3)}`, baseWidth - 20, paddingTop + graphHeight - 4)
     }
 
-    ctx.textAlign = 'left'
-    ctx.fillStyle = '#6a8bff'
-    ctx.fillRect(paddingLeft, paddingTop - 15, 12, 12)
-    ctx.fillStyle = '#ddd'
-    ctx.fillText('(H)', paddingLeft + 18, paddingTop - 5)
-    ctx.fillStyle = '#ff6d6d'
-    ctx.fillRect(paddingLeft + 55, paddingTop - 15, 12, 12)
-    ctx.fillStyle = '#ddd'
-    ctx.fillText('(V)', paddingLeft + 73, paddingTop - 5)
+    ctx.textAlign = 'center'
   }, [
     props.minThreshold,
     props.maxThreshold,
@@ -196,7 +209,6 @@ export function SensitivityGraph(props: SensitivityGraphProps) {
     props.maxSensY,
     props.normalized,
     props.currentSensX,
-    props.currentSensY,
     props.omega,
   ])
 
