@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-type TelemetrySample = {
+export type TelemetrySample = {
   omega?: number
   t?: number
   u?: number

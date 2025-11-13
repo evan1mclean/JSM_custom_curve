@@ -2,7 +2,11 @@ import './App.css'
 import { useEffect, useMemo, useState } from 'react'
 import { useTelemetry } from './hooks/useTelemetry'
 import { parseSensitivityValues, updateKeymapEntry } from './utils/keymap'
-import { SensitivityGraph } from './components/SensitivityGraph'
+import { SensitivityControls } from './components/SensitivityControls'
+import { CurvePreview } from './components/CurvePreview'
+import { TelemetryBanner } from './components/TelemetryBanner'
+import { ConfigEditor } from './components/ConfigEditor'
+import { CalibrationCard } from './components/CalibrationCard'
 
 const asNumber = (value: unknown) => (typeof value === 'number' ? value : undefined)
 const formatNumber = (value: number | undefined, digits = 2) =>
@@ -91,211 +95,48 @@ const handleRealWorldCalibrationChange = (value: string) => {
 
   const hasPendingChanges = configText !== appliedConfig
 
+  const telemetryValues = {
+    omega: formatNumber(asNumber(sample?.omega)),
+    normalized: formatNumber(asNumber(sample?.t)),
+    sensX: formatNumber(asNumber(sample?.sensX)),
+    sensY: formatNumber(asNumber(sample?.sensY)),
+    timestamp: String(displayValue(sample?.ts)),
+  }
+
   return (
     <div className="app-frame">
       <div className="App legacy-shell">
         <header>
-        <h1>JoyShockMapper Gyro UI</h1>
-      </header>
+          <h1>JoyShockMapper Gyro UI</h1>
+        </header>
 
-        <section className="calibration-row">
-          {isCalibrating ? (
-            <div className="calibration-pill">
-              Calibrating — hold controller steady ({countdown ?? '...'}s)
-            </div>
-          ) : (
-            <button
-              className="recalibrate-btn"
-              onClick={handleRecalibrate}
-              disabled={recalibrating}
-            >
-              {recalibrating ? 'Recalibrating...' : 'Recalibrate Gyro'}
-            </button>
-          )}
-        </section>
-
-        <section className={`control-panel lockable ${isCalibrating ? 'locked' : ''}`}>
-        <div className="locked-overlay">Controls locked while JSM calibrates</div>
-        <h2>Gyro Sensitivity Controls</h2>
-        <div className="flex-inputs">
-          <label>
-            In-Game Sens
-            <input
-              type="number"
-              step="0.1"
-              value={sensitivity.inGameSens ?? ''}
-              onChange={(e) => handleInGameSensChange(e.target.value)}
-            />
-          </label>
-          <label>
-            Real World Calibration
-            <input
-              type="number"
-              step="0.1"
-              value={sensitivity.realWorldCalibration ?? ''}
-              onChange={(e) => handleRealWorldCalibrationChange(e.target.value)}
-            />
-          </label>
-          <label>
-            Min Threshold
-            <input
-              type="number"
-              step="1"
-              value={sensitivity.minThreshold ?? ''}
-              onChange={(e) => handleThresholdChange('MIN_GYRO_THRESHOLD')(e.target.value)}
-            />
-            <input
-              type="range"
-              min="0"
-              max="500"
-              step="1"
-              value={sensitivity.minThreshold ?? 0}
-              onChange={(e) => handleThresholdChange('MIN_GYRO_THRESHOLD')(e.target.value)}
-            />
-          </label>
-          <label>
-            Max Threshold
-            <input
-              type="number"
-              step="1"
-              value={sensitivity.maxThreshold ?? ''}
-              onChange={(e) => handleThresholdChange('MAX_GYRO_THRESHOLD')(e.target.value)}
-            />
-            <input
-              type="range"
-              min="0"
-              max="500"
-              step="1"
-              value={sensitivity.maxThreshold ?? 0}
-              onChange={(e) => handleThresholdChange('MAX_GYRO_THRESHOLD')(e.target.value)}
-            />
-          </label>
-        </div>
-        <div className="flex-inputs">
-          <label>
-            Min Sens (X)
-            <input
-              type="number"
-              step="0.1"
-              value={sensitivity.minSensX ?? ''}
-              onChange={(e) => handleDualSensChange('MIN_GYRO_SENS', 0)(e.target.value)}
-            />
-            <input
-              type="range"
-              min="0"
-              max="30"
-              step="0.1"
-              value={sensitivity.minSensX ?? 0}
-              onChange={(e) => handleDualSensChange('MIN_GYRO_SENS', 0)(e.target.value)}
-            />
-          </label>
-          <label>
-            Min Sens (Y)
-            <input
-              type="number"
-              step="0.1"
-              value={sensitivity.minSensY ?? ''}
-              onChange={(e) => handleDualSensChange('MIN_GYRO_SENS', 1)(e.target.value)}
-            />
-            <input
-              type="range"
-              min="0"
-              max="30"
-              step="0.1"
-              value={sensitivity.minSensY ?? 0}
-              onChange={(e) => handleDualSensChange('MIN_GYRO_SENS', 1)(e.target.value)}
-            />
-          </label>
-          <label>
-            Max Sens (X)
-            <input
-              type="number"
-              step="0.1"
-              value={sensitivity.maxSensX ?? ''}
-              onChange={(e) => handleDualSensChange('MAX_GYRO_SENS', 0)(e.target.value)}
-            />
-            <input
-              type="range"
-              min="0"
-              max="30"
-              step="0.1"
-              value={sensitivity.maxSensX ?? 0}
-              onChange={(e) => handleDualSensChange('MAX_GYRO_SENS', 0)(e.target.value)}
-            />
-          </label>
-          <label>
-            Max Sens (Y)
-            <input
-              type="number"
-              step="0.1"
-              value={sensitivity.maxSensY ?? ''}
-              onChange={(e) => handleDualSensChange('MAX_GYRO_SENS', 1)(e.target.value)}
-            />
-            <input
-              type="range"
-              min="0"
-              max="30"
-              step="0.1"
-              value={sensitivity.maxSensY ?? 0}
-              onChange={(e) => handleDualSensChange('MAX_GYRO_SENS', 1)(e.target.value)}
-            />
-          </label>
-        </div>
-        <div className="control-actions">
-          <button onClick={applyConfig}>Apply Changes</button>
-          {hasPendingChanges && (
-            <span className="pending-banner">Pending changes — click Apply to send to JoyShockMapper.</span>
-          )}
-        </div>
-      </section>
-
-        <section className="graph-panel">
-        <h2>Curve Preview</h2>
-        <div className="graph-legend">
-          <span><span className="legend-dot sensitivity" /> Sensitivity</span>
-          <span><span className="legend-dot velocity" /> Normalized output velocity</span>
-          <span className="legend-curve">Curve: {sample?.curve ?? 'linear'}</span>
-        </div>
-        <SensitivityGraph
-          minThreshold={sensitivity.minThreshold}
-          maxThreshold={sensitivity.maxThreshold}
-          minSensX={sensitivity.minSensX}
-          minSensY={sensitivity.minSensY}
-          maxSensX={sensitivity.maxSensX}
-          maxSensY={sensitivity.maxSensY}
-          normalized={asNumber(sample?.t)}
-          currentSensX={asNumber(sample?.sensX)}
-          currentSensY={asNumber(sample?.sensY)}
-          omega={asNumber(sample?.omega)}
-          disableLiveDot={hasPendingChanges}
+        <CalibrationCard
+          isCalibrating={isCalibrating}
+          countdown={countdown}
+          recalibrating={recalibrating}
+          onRecalibrate={handleRecalibrate}
         />
-        <small>Live dot follows telemetry t-value using yaw sensitivity.</small>
-      </section>
 
-        <section className="telemetry-banner">
-        <p className="telemetry-heading">Live packets streaming</p>
-        <div className="telemetry-readouts">
-          <span>ω: <strong>{formatNumber(asNumber(sample?.omega))}°/s</strong></span>
-          <span>t: <strong>{formatNumber(asNumber(sample?.t))}</strong></span>
-          <span>Sens X/Y: <strong>{formatNumber(asNumber(sample?.sensX))}/{formatNumber(asNumber(sample?.sensY))}</strong></span>
-          <span>Timestamp: <strong>{displayValue(sample?.ts)}</strong></span>
-        </div>
-      </section>
+        <SensitivityControls
+          sensitivity={sensitivity}
+          isCalibrating={isCalibrating}
+          hasPendingChanges={hasPendingChanges}
+          onApply={applyConfig}
+          onInGameSensChange={handleInGameSensChange}
+          onRealWorldCalibrationChange={handleRealWorldCalibrationChange}
+          onMinThresholdChange={handleThresholdChange('MIN_GYRO_THRESHOLD')}
+          onMaxThresholdChange={handleThresholdChange('MAX_GYRO_THRESHOLD')}
+          onMinSensXChange={handleDualSensChange('MIN_GYRO_SENS', 0)}
+          onMinSensYChange={handleDualSensChange('MIN_GYRO_SENS', 1)}
+          onMaxSensXChange={handleDualSensChange('MAX_GYRO_SENS', 0)}
+          onMaxSensYChange={handleDualSensChange('MAX_GYRO_SENS', 1)}
+        />
 
-        <section className="config-panel legacy">
-        <label>
-          keymap_01.txt
-          <textarea
-            value={configText}
-            onChange={(e) => setConfigText(e.target.value)}
-            rows={12}
-          />
-        </label>
-        <div className="config-actions">
-          <button onClick={applyConfig}>Apply Changes</button>
-        </div>
-        {statusMessage && <p className="status-message">{statusMessage}</p>}
-        </section>
+        <CurvePreview sensitivity={sensitivity} sample={sample} hasPendingChanges={hasPendingChanges} />
+
+        <TelemetryBanner {...telemetryValues} />
+
+        <ConfigEditor value={configText} onChange={setConfigText} onApply={applyConfig} statusMessage={statusMessage} />
       </div>
     </div>
   )

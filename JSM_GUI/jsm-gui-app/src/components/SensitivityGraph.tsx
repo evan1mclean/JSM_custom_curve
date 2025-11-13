@@ -25,12 +25,9 @@ export function SensitivityGraph(props: SensitivityGraphProps) {
       minThreshold,
       maxThreshold,
       minSensX,
-      minSensY,
       maxSensX,
-      maxSensY,
       normalized,
       currentSensX,
-      currentSensY,
       omega,
       disableLiveDot,
     } = props
