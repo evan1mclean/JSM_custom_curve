@@ -29,6 +29,7 @@ let telemetrySocket: dgram.Socket | null = null
 let latestTelemetryPacket: Record<string, unknown> | null = null
 let jsmProcess: ChildProcess | null = null
 let calibrationTimer: NodeJS.Timeout | null = null
+let calibrationSecondsSetting = 5
 
 const TELEMETRY_PORT = 8974
 const BIN_DIR = path.join(process.env.APP_ROOT, 'bin')
@@ -191,6 +192,44 @@ async function ensureRequiredFiles() {
   }
   const state = await loadProfilesState()
   await updateStartupProfile(state.activeProfile)
+}
+
+async function loadCalibrationSecondsFromStartup() {
+  try {
+    const data = await fs.readFile(STARTUP_FILE, 'utf8')
+    const match = data.match(/SLEEP\s+(\d+)/i)
+    if (match) {
+      const value = parseInt(match[1], 10)
+      if (Number.isFinite(value) && value >= 0) {
+        calibrationSecondsSetting = value
+        return
+      }
+    }
+  } catch {
+    // ignore
+  }
+  calibrationSecondsSetting = 5
+}
+
+async function writeCalibrationSecondsToStartup(seconds: number) {
+  const safe = Math.max(0, Math.round(seconds))
+  calibrationSecondsSetting = safe
+  try {
+    let data = await fs.readFile(STARTUP_FILE, 'utf8')
+    if (/SLEEP\s+\d+/i.test(data)) {
+      data = data.replace(/SLEEP\s+\d+/i, `SLEEP ${safe}`)
+    } else if (/RESTART_GYRO_CALIBRATION/i.test(data)) {
+      data = data.replace(/RESTART_GYRO_CALIBRATION/i, match => `${match}\nSLEEP ${safe}`)
+    } else if (/FINISH_GYRO_CALIBRATION/i.test(data)) {
+      data = data.replace(/FINISH_GYRO_CALIBRATION/i, match => `SLEEP ${safe}\n${match}`)
+    } else {
+      data += `\nSLEEP ${safe}\nFINISH_GYRO_CALIBRATION`
+    }
+    await fs.writeFile(STARTUP_FILE, data, 'utf8')
+  } catch (err) {
+    console.error('Failed to update calibration seconds', err)
+    throw err
+  }
 }
 
 async function loadWindowState() {
@@ -446,10 +485,11 @@ app.on('activate', () => {
 
 app.whenReady().then(async () => {
   await ensureRequiredFiles()
+  await loadCalibrationSecondsFromStartup()
   startTelemetryListener()
   await createWindow()
   setTimeout(() => {
-    launchJoyShockMapper().catch(err => console.error('Auto-launch failed', err))
+    launchJoyShockMapper(calibrationSecondsSetting).catch(err => console.error('Auto-launch failed', err))
   }, 500)
 })
 
@@ -505,7 +545,7 @@ ipcMain.handle('copy-profile', async (_event, sourceId: number, targetId: number
 ipcMain.handle('recalibrate-gyro', async () => {
   const injected = await tryInjectConsoleCommand(STARTUP_COMMAND)
   if (injected) {
-    startCalibrationCountdown(5)
+    startCalibrationCountdown(calibrationSecondsSetting)
     return { success: true }
   }
   await writeLog('Failed to inject OnStartUp.txt for recalibration.')
@@ -513,7 +553,8 @@ ipcMain.handle('recalibrate-gyro', async () => {
 })
 
 ipcMain.handle('launch-jsm', async (_event, calibrationSeconds = 5) => {
-  await launchJoyShockMapper(calibrationSeconds)
+  calibrationSecondsSetting = calibrationSeconds
+  await launchJoyShockMapper(calibrationSecondsSetting)
 })
 
 ipcMain.handle('terminate-jsm', async () => {
@@ -528,4 +569,11 @@ ipcMain.handle('minimize-temporarily', () => {
     win.restore()
     win.focus()
   }, 2500)
+})
+
+ipcMain.handle('get-calibration-seconds', async () => calibrationSecondsSetting)
+
+ipcMain.handle('set-calibration-seconds', async (_event, seconds: number) => {
+  await writeCalibrationSecondsToStartup(seconds)
+  return calibrationSecondsSetting
 })

@@ -29,6 +29,15 @@ function App() {
   const [profileCopyStatus, setProfileCopyStatus] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'gyro' | 'keymap'>('gyro')
   const sensitivity = useMemo(() => parseSensitivityValues(configText), [configText])
+  const handleCalibrationSecondsInput = (value: number) => {
+    setCalibrationSeconds(value)
+  }
+
+  const handleCalibrationSecondsCommit = async (value: number) => {
+    const safe = Number.isFinite(value) ? Math.max(0, Math.round(value)) : 0
+    setCalibrationSeconds(safe)
+    await window.electronAPI?.setCalibrationSeconds?.(safe)
+  }
 
   const loadProfileContent = useCallback(async (profileId: number) => {
     if (!profileId) return
@@ -408,7 +417,7 @@ const handleRealWorldCalibrationChange = (value: string) => {
               onCutoffRecoveryChange={handleCutoffRecoveryChange}
               onSmoothTimeChange={handleSmoothTimeChange}
               onSmoothThresholdChange={handleSmoothThresholdChange}
-              telemetry={telemetryValues}
+              telemetry={{ omega: telemetryValues.omega, timestamp: telemetryValues.timestamp }}
             />
 
             <ConfigEditor

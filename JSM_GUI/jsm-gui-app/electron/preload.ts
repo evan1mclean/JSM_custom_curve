@@ -11,6 +11,8 @@ const electronAPI = {
   setActiveProfile: (profileId: number) => ipcRenderer.invoke('set-active-profile', profileId),
   renameProfile: (profileId: number, name: string) => ipcRenderer.invoke('rename-profile', profileId, name),
   copyProfile: (sourceId: number, targetId: number) => ipcRenderer.invoke('copy-profile', sourceId, targetId),
+  getCalibrationSeconds: () => ipcRenderer.invoke('get-calibration-seconds'),
+  setCalibrationSeconds: (seconds: number) => ipcRenderer.invoke('set-calibration-seconds', seconds),
 }
 
 const telemetryListeners = new Set<(payload: unknown) => void>()

@@ -10,7 +10,9 @@ const electronAPI = {
   applyProfile: (profileId, text) => electron.ipcRenderer.invoke("apply-profile", profileId, text),
   setActiveProfile: (profileId) => electron.ipcRenderer.invoke("set-active-profile", profileId),
   renameProfile: (profileId, name) => electron.ipcRenderer.invoke("rename-profile", profileId, name),
-  copyProfile: (sourceId, targetId) => electron.ipcRenderer.invoke("copy-profile", sourceId, targetId)
+  copyProfile: (sourceId, targetId) => electron.ipcRenderer.invoke("copy-profile", sourceId, targetId),
+  getCalibrationSeconds: () => electron.ipcRenderer.invoke("get-calibration-seconds"),
+  setCalibrationSeconds: (seconds) => electron.ipcRenderer.invoke("set-calibration-seconds", seconds)
 };
 const telemetryListeners = /* @__PURE__ */ new Set();
 electron.ipcRenderer.on("telemetry-sample", (_event, payload) => {

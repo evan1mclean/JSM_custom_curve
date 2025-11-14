@@ -510,8 +510,16 @@ input[type=number] {
 
 .calibration-card {
   display: flex;
-  justify-content: center;
-  align-items: center;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.calibration-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
 }
 
 .recalibrate-btn {
@@ -532,4 +540,22 @@ input[type=number] {
 
 .recalibrate-btn:not(:disabled):hover {
   background: #3a3a3a;
+}
+
+.calibration-duration {
+  display: flex;
+  flex-direction: column;
+  font-weight: 600;
+  color: #ddd;
+  min-width: 120px;
+}
+
+.calibration-duration input {
+  margin-top: 0.35rem;
+  padding: 0.4rem 0.6rem;
+  border-radius: 8px;
+  border: 1px solid #444;
+  background: #222;
+  color: #eee;
+  width: 120px;
 }
