@@ -126,3 +126,8 @@ export function removeKeymapEntry(text: string, key: string) {
   }
   return lines.join('\n')
 }
+
+export function getKeymapValue(text: string, key: string) {
+  const match = text.match(LINE_REGEX(key))
+  return match?.[1]?.trim()
+}

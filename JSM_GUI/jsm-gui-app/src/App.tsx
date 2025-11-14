@@ -1,20 +1,37 @@
 import './App.css'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTelemetry } from './hooks/useTelemetry'
-import { parseSensitivityValues, updateKeymapEntry, removeKeymapEntry } from './utils/keymap'
+import { parseSensitivityValues, updateKeymapEntry, removeKeymapEntry, getKeymapValue } from './utils/keymap'
 import { SensitivityControls } from './components/SensitivityControls'
 import { ConfigEditor } from './components/ConfigEditor'
 import { CalibrationCard } from './components/CalibrationCard'
 import { ProfileManager } from './components/ProfileManager'
 import { GyroBehaviorControls } from './components/GyroBehaviorControls'
 import { NoiseSteadyingControls } from './components/NoiseSteadyingControls'
-import { Card } from './components/Card'
+import { KeymapControls } from './components/KeymapControls'
 
 const asNumber = (value: unknown) => (typeof value === 'number' ? value : undefined)
 const formatNumber = (value: number | undefined, digits = 2) =>
   typeof value === 'number' && Number.isFinite(value) ? value.toFixed(digits) : '0.00'
 
 type ProfileInfo = { id: number; name: string }
+const TOGGLE_SPECIALS = ['GYRO_ON', 'GYRO_OFF'] as const
+const clearToggleAssignments = (text: string, command: string) => {
+  let next = text
+  TOGGLE_SPECIALS.forEach(toggle => {
+    const assigned = getKeymapValue(next, toggle)
+    if (assigned) {
+      const matches = assigned
+        .split(/\s+/)
+        .filter(Boolean)
+        .some(token => token.toUpperCase() === command.toUpperCase())
+      if (matches) {
+        next = removeKeymapEntry(next, toggle)
+      }
+    }
+  })
+  return next
+}
 
 function App() {
   const { sample, isCalibrating, countdown } = useTelemetry()
@@ -248,6 +265,71 @@ const handleRealWorldCalibrationChange = (value: string) => {
     }
   }
 
+  const handleKeyBindingChange = (command: string, binding: string) => {
+    setConfigText(prev => {
+      const next = clearToggleAssignments(prev, command)
+      const value = binding.trim()
+      if (!value) {
+        const removed = removeKeymapEntry(next, command)
+        return removeTrackballDecayIfUnused(removed)
+      }
+      return updateKeymapEntry(next, command, [value])
+    })
+  }
+
+  const TRACKBALL_SPECIALS = ['GYRO_TRACKBALL', 'GYRO_TRACK_X', 'GYRO_TRACK_Y'] as const
+
+  const removeTrackballDecayIfUnused = (text: string) => {
+    const hasSpecial = TRACKBALL_SPECIALS.some(cmd => Boolean(getKeymapValue(text, cmd)))
+    if (hasSpecial) return text
+    const hasDirect = ['S', 'E', 'N', 'W'].some(command => getKeymapValue(text, command)?.toUpperCase().includes('TRACK'))
+    if (hasDirect) return text
+    return removeKeymapEntry(text, 'TRACKBALL_DECAY')
+  }
+
+  const handleSpecialActionAssignment = (specialCommand: string, buttonCommand: string) => {
+    setConfigText(prev => {
+      let next = removeKeymapEntry(prev, buttonCommand)
+      next = clearToggleAssignments(next, buttonCommand)
+      if (TOGGLE_SPECIALS.includes(specialCommand as (typeof TOGGLE_SPECIALS)[number])) {
+        return removeTrackballDecayIfUnused(updateKeymapEntry(next, specialCommand, [buttonCommand]))
+      }
+      next = updateKeymapEntry(next, buttonCommand, [specialCommand])
+      return removeTrackballDecayIfUnused(next)
+    })
+  }
+
+  const handleClearSpecialAction = (specialCommand: string, buttonCommand: string) => {
+    setConfigText(prev => {
+      const assignment = getKeymapValue(prev, specialCommand)
+      if (assignment) {
+        const matches = assignment
+          .split(/\s+/)
+          .filter(Boolean)
+          .some(token => token.toUpperCase() === buttonCommand.toUpperCase())
+        if (matches) {
+          const updated = removeKeymapEntry(prev, specialCommand)
+          return removeTrackballDecayIfUnused(updated)
+        }
+      }
+      return prev
+    })
+  }
+
+  const handleTrackballDecayChange = (value: string) => {
+    const nextValue = value.trim()
+    setConfigText(prev => {
+      if (!nextValue) {
+        return removeKeymapEntry(prev, 'TRACKBALL_DECAY')
+      }
+      const numeric = Number(nextValue)
+      if (Number.isNaN(numeric)) {
+        return prev
+      }
+      return updateKeymapEntry(prev, 'TRACKBALL_DECAY', [numeric])
+    })
+  }
+
   const handleProfileCopy = async (sourceId: number, targetId: number) => {
     if (sourceId === targetId) return
     try {
@@ -329,6 +411,7 @@ const handleRealWorldCalibrationChange = (value: string) => {
     sensY: formatNumber(asNumber(sample?.sensY)),
     timestamp: formatTimestamp(sample?.ts),
   }
+  const trackballDecayValue = useMemo(() => getKeymapValue(configText, 'TRACKBALL_DECAY') ?? '', [configText])
 
   const currentMode: 'static' | 'accel' = sensitivity.gyroSensX !== undefined ? 'static' : 'accel'
   const activeProfileName = profiles.find(profile => profile.id === activeProfileId)?.name
@@ -443,10 +526,18 @@ const handleRealWorldCalibrationChange = (value: string) => {
 
         {activeTab === 'keymap' && (
           <>
-            <Card className="control-panel">
-              <h2>Keymap</h2>
-              <p>Keymap editing UI is coming soon. Use the config text below in the meantime.</p>
-            </Card>
+            <KeymapControls
+              configText={configText}
+              hasPendingChanges={hasPendingChanges}
+              isCalibrating={isCalibrating}
+              onApply={applyConfig}
+              onCancel={handleCancel}
+              onUpdateBinding={handleKeyBindingChange}
+              onAssignSpecialAction={handleSpecialActionAssignment}
+              onClearSpecialAction={handleClearSpecialAction}
+              trackballDecay={trackballDecayValue}
+              onTrackballDecayChange={handleTrackballDecayChange}
+            />
             <ConfigEditor
               value={configText}
               label={profileFileLabel}
