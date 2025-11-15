@@ -148,13 +148,13 @@ export function ProfileManager({
             }
           }}
         />
-        {!profileApplied && activeProfileId && (
-          <span className="profile-not-applied">Not running in JoyShockMapper yet</span>
-        )}
         {onImportProfile && (
           <button className="primary-btn import-config-btn" onClick={() => fileInputRef.current?.click()}>
             Import Existing Config
           </button>
+        )}
+        {!profileApplied && activeProfileId && (
+          <span className="profile-not-applied">Not running in JoyShockMapper yet</span>
         )}
         <button
           className="primary-btn apply-profile-btn"

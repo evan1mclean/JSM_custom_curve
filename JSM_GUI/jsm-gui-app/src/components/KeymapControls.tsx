@@ -9,6 +9,7 @@ import {
   ManualRowInfo,
 } from '../utils/keymap'
 import { BindingRow } from './BindingRow'
+import { KeymapSection } from './KeymapSection'
 
 type ControllerLayout = 'playstation' | 'xbox'
 
@@ -34,6 +35,12 @@ type KeymapControlsProps = {
     nextModifier: string,
     binding: string | null
   ) => void
+  doublePressWindowSeconds: number
+  doublePressWindowIsCustom: boolean
+  onDoublePressWindowChange: (value: string) => void
+  simPressWindowSeconds: number
+  simPressWindowIsCustom: boolean
+  onSimPressWindowChange: (value: string) => void
 }
 
 type FaceButtonDefinition = {
@@ -123,14 +130,14 @@ const BASE_MODIFIER_OPTIONS: ModifierSelectOption[] = [
   { value: 'MIC', label: 'MIC – DualSense microphone button' },
 ]
 
-const TOUCHPAD_CORE_OPTIONS: ModifierSelectOption[] = [{ value: 'TOUCH', label: 'Touchpad touch' }]
+const TOUCHPAD_CORE_OPTIONS: ModifierSelectOption[] = [{ value: 'TOUCH', label: 'TOUCH – touchpad touch' }]
 
 const TOUCHPAD_STICK_OPTIONS: ModifierSelectOption[] = [
-  { value: 'TUP', label: 'Touch stick up' },
-  { value: 'TDOWN', label: 'Touch stick down' },
-  { value: 'TLEFT', label: 'Touch stick left' },
-  { value: 'TRIGHT', label: 'Touch stick right' },
-  { value: 'TRING', label: 'Touch stick ring' },
+  { value: 'TUP', label: 'TUP – touch stick up' },
+  { value: 'TDOWN', label: 'TDOWN – touch stick down' },
+  { value: 'TLEFT', label: 'TLEFT – touch stick left' },
+  { value: 'TRIGHT', label: 'TRIGHT – touch stick right' },
+  { value: 'TRING', label: 'TRING – touch stick ring' },
 ]
 
 const TOUCHPAD_GRID_PREVIEW_COUNT = 6
@@ -147,29 +154,28 @@ const buildModifierOptions = (
   layout: ControllerLayout,
   gridActive: boolean,
   configuredGridButtons: number
-): { options: ModifierSelectOption[]; hint?: string } => {
+) => {
   const options: ModifierSelectOption[] = [...BASE_MODIFIER_OPTIONS]
-  let hint: string | undefined
   if (layout === 'playstation') {
     options.push(...TOUCHPAD_CORE_OPTIONS)
     if (gridActive) {
       const count = clampGridButtons(configuredGridButtons || 1)
       for (let index = 1; index <= count; index += 1) {
-        options.push({ value: `T${index}`, label: `Touch grid T${index}` })
+        options.push({ value: `T${index}`, label: `T${index} – touch grid region ${index}` })
       }
       options.push(...TOUCHPAD_STICK_OPTIONS)
     } else {
-      for (let index = 1; index <= TOUCHPAD_GRID_PREVIEW_COUNT; index += 1) {
+      const previewCount = Math.min(TOUCHPAD_GRID_PREVIEW_COUNT, Math.max(configuredGridButtons, 2) || 2)
+      for (let index = 1; index <= previewCount; index += 1) {
         options.push({
           value: `T${index}`,
-          label: `Touch grid T${index} (enable grid to use)`,
+          label: `T${index} – touch grid region ${index} (enable GRID_AND_STICK to use)`,
           disabled: true,
         })
       }
-      hint = 'Enable touchpad grid in JoyShockMapper to unlock T1–Tn bindings.'
     }
   }
-  return { options, hint }
+  return options
 }
 
 const getDefaultModifierForButton = (button: string, modifierOptions: ModifierSelectOption[]) => {
@@ -311,6 +317,12 @@ export function KeymapControls({
   holdPressTimeIsCustom,
   holdPressTimeDefault,
   onModifierChange,
+  doublePressWindowSeconds,
+  doublePressWindowIsCustom,
+  onDoublePressWindowChange,
+  simPressWindowSeconds,
+  simPressWindowIsCustom,
+  onSimPressWindowChange,
 }: KeymapControlsProps) {
   const [layout, setLayout] = useState<ControllerLayout>('playstation')
   const [captureTarget, setCaptureTarget] = useState<CaptureTarget | null>(null)
@@ -332,7 +344,7 @@ export function KeymapControls({
     return 2
   }, [gridSizeRaw, touchpadMode])
   const gridActive = touchpadMode === 'GRID_AND_STICK'
-  const { options: modifierOptions, hint: touchpadHint } = useMemo(() => {
+  const modifierOptions = useMemo(() => {
     return buildModifierOptions(layout, gridActive, configuredGridButtons)
   }, [layout, gridActive, configuredGridButtons])
 
@@ -472,6 +484,25 @@ export function KeymapControls({
 
   const trackballSliderValue = trackballDecay && !Number.isNaN(Number(trackballDecay)) ? Number(trackballDecay) : 1
   const holdPressTimeInputValue = Number.isFinite(holdPressTimeSeconds) ? holdPressTimeSeconds : holdPressTimeDefault
+  const doublePressInputValue = Number.isFinite(doublePressWindowSeconds) ? doublePressWindowSeconds : holdPressTimeDefault
+  const simPressInputValue = Number.isFinite(simPressWindowSeconds) ? simPressWindowSeconds : holdPressTimeDefault
+  const renderGlobalRow = (
+    title: string,
+    caption: string,
+    value: number,
+    onChange: (value: string) => void
+  ) => (
+    <div className="global-control-row" data-capture-ignore="true">
+      <div className="global-control-text">
+        <span className="global-control-title">{title}</span>
+        <span className="global-control-caption">{caption}</span>
+      </div>
+      <div className="global-control-input-group">
+        <input type="number" min="0" max="1" step="0.01" value={value} onChange={(event) => onChange(event.target.value)} />
+        <span className="global-control-unit">seconds</span>
+      </div>
+    </div>
+  )
 
   return (
     <Card className="control-panel" lockable locked={isCalibrating} lockMessage="Keymapping locked while JSM calibrates">
@@ -487,37 +518,42 @@ export function KeymapControls({
         </div>
       </div>
 
-      <div className="tap-time-control" data-capture-ignore="true">
-        <div className="tap-time-text">
-          <span className="tap-time-title">Hold press threshold</span>
-          <span className="tap-time-caption">
-            {holdPressTimeIsCustom
+      <KeymapSection
+        title="Global controls"
+        description="Timing windows that apply whenever those binding types are in use."
+      >
+        <div className="global-controls">
+          {renderGlobalRow(
+            'Tap vs hold press threshold',
+            holdPressTimeIsCustom
               ? 'Custom HOLD_PRESS_TIME saved'
-              : `Using default (${Math.round(holdPressTimeDefault * 1000)} ms)`}
-          </span>
+              : `Using default (${Math.round(holdPressTimeDefault * 1000)} ms)`,
+            holdPressTimeInputValue,
+            onHoldPressTimeChange
+          )}
+          {renderGlobalRow(
+            'Double press window',
+            doublePressWindowIsCustom
+              ? 'Custom DBL_PRESS_WINDOW saved'
+              : `Using default (${Math.round(holdPressTimeDefault * 1000)} ms)`,
+            doublePressInputValue,
+            onDoublePressWindowChange
+          )}
+          {renderGlobalRow(
+            'Simultaneous press window',
+            simPressWindowIsCustom
+              ? 'Custom SIM_PRESS_WINDOW saved'
+              : `Using default (${Math.round(holdPressTimeDefault * 1000)} ms)`,
+            simPressInputValue,
+            onSimPressWindowChange
+          )}
         </div>
-        <div className="tap-time-input-group">
-          <input
-            id="tap-time-input"
-            type="number"
-            min="0"
-            max="1"
-            step="0.01"
-            value={holdPressTimeInputValue}
-            onChange={(event) => onHoldPressTimeChange(event.target.value)}
-          />
-          <span className="tap-time-unit">seconds</span>
-        </div>
-      </div>
-      {layout === 'playstation' && touchpadHint && <div className="touchpad-grid-hint">{touchpadHint}</div>}
+      </KeymapSection>
 
-      <div className="keymap-section">
-        <div className="keymap-section-header">
-          <div>
-            <h3>Face Buttons</h3>
-            <p>Tap/hold/double bindings with optional gyro actions.</p>
-          </div>
-        </div>
+      <KeymapSection
+        title="Face Buttons"
+        description="Tap / Hold / Double / Chorded / Simultaneous bindings available via Add Extra Binding."
+      >
         <div className="keymap-grid">
           {FACE_BUTTONS.map(button => {
             const rows = bindingRowsByButton[button.command] ?? []
@@ -711,7 +747,7 @@ export function KeymapControls({
             )
           })}
         </div>
-      </div>
+      </KeymapSection>
 
       <div className="control-actions">
         <button onClick={onApply}>Apply Changes</button>

@@ -29,6 +29,7 @@ const formatNumber = (value: number | undefined, digits = 2) =>
 type ProfileInfo = { id: number; name: string }
 const TOGGLE_SPECIALS = ['GYRO_ON', 'GYRO_OFF'] as const
 const DEFAULT_HOLD_PRESS_TIME = 0.15
+const DEFAULT_WINDOW_SECONDS = 0.15
 const REQUIRED_HEADER_LINES = [
   { pattern: /^RESET_MAPPINGS\b/i, value: 'RESET_MAPPINGS' },
   { pattern: /^TELEMETRY_ENABLED\b/i, value: 'TELEMETRY_ENABLED = ON' },
@@ -129,6 +130,30 @@ function App() {
   }, [configText])
   const holdPressTimeSeconds = holdPressTimeState.value
   const holdPressTimeIsCustom = holdPressTimeState.isCustom
+  const doublePressWindowState = useMemo(() => {
+    const raw = getKeymapValue(configText, 'DBL_PRESS_WINDOW')
+    if (raw) {
+      const parsed = parseFloat(raw)
+      if (Number.isFinite(parsed)) {
+        return { value: parsed / 1000, isCustom: true }
+      }
+    }
+    return { value: DEFAULT_WINDOW_SECONDS, isCustom: false }
+  }, [configText])
+  const doublePressWindowSeconds = doublePressWindowState.value
+  const doublePressWindowIsCustom = doublePressWindowState.isCustom
+  const simPressWindowState = useMemo(() => {
+    const raw = getKeymapValue(configText, 'SIM_PRESS_WINDOW')
+    if (raw) {
+      const parsed = parseFloat(raw)
+      if (Number.isFinite(parsed)) {
+        return { value: parsed / 1000, isCustom: true }
+      }
+    }
+    return { value: DEFAULT_WINDOW_SECONDS, isCustom: false }
+  }, [configText])
+  const simPressWindowSeconds = simPressWindowState.value
+  const simPressWindowIsCustom = simPressWindowState.isCustom
   const loadProfileContent = useCallback(async (profileId: number) => {
     if (!profileId) return
     setIsLoadingProfile(true)
@@ -211,6 +236,18 @@ function App() {
   const handleSmoothThresholdChange = makeScalarHandler('GYRO_SMOOTH_THRESHOLD')
   const handleTickTimeChange = makeScalarHandler('TICK_TIME')
   const handleHoldPressTimeChange = makeScalarHandler('HOLD_PRESS_TIME')
+  const makeWindowHandler = (key: 'DBL_PRESS_WINDOW' | 'SIM_PRESS_WINDOW') => (value: string) => {
+    if (value === '') {
+      setConfigText(prev => removeKeymapEntry(prev, key))
+      return
+    }
+    const seconds = parseFloat(value)
+    if (Number.isNaN(seconds)) return
+    const millis = Math.max(0, Math.round(seconds * 1000))
+    setConfigText(prev => updateKeymapEntry(prev, key, [millis]))
+  }
+  const handleDoublePressWindowChange = makeWindowHandler('DBL_PRESS_WINDOW')
+  const handleSimPressWindowChange = makeWindowHandler('SIM_PRESS_WINDOW')
 
   const makeStringHandler = (key: string) => (value: string) => {
     if (!value) {
@@ -669,6 +706,12 @@ const handleRealWorldCalibrationChange = (value: string) => {
               holdPressTimeIsCustom={holdPressTimeIsCustom}
               holdPressTimeDefault={DEFAULT_HOLD_PRESS_TIME}
               onHoldPressTimeChange={handleHoldPressTimeChange}
+              doublePressWindowSeconds={doublePressWindowSeconds}
+              doublePressWindowIsCustom={doublePressWindowIsCustom}
+              onDoublePressWindowChange={handleDoublePressWindowChange}
+              simPressWindowSeconds={simPressWindowSeconds}
+              simPressWindowIsCustom={simPressWindowIsCustom}
+              onSimPressWindowChange={handleSimPressWindowChange}
               onModifierChange={handleModifierChange}
             />
             <ConfigEditor
