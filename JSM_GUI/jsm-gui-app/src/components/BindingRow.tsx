@@ -1,5 +1,11 @@
 type SpecialOption = { value: string; label: string }
 
+type ModifierOption = {
+  value: string
+  label: string
+  disabled?: boolean
+}
+
 type BindingRowProps = {
   label: string
   showHeader: boolean
@@ -15,6 +21,10 @@ type BindingRowProps = {
   specialOptions?: SpecialOption[]
   specialValue?: string
   onSpecialChange?: (value: string) => void
+  modifierLabel?: string
+  modifierOptions?: ModifierOption[]
+  modifierValue?: string
+  onModifierChange?: (value: string) => void
 }
 
 export function BindingRow({
@@ -32,6 +42,10 @@ export function BindingRow({
   specialOptions,
   specialValue,
   onSpecialChange,
+  modifierLabel,
+  modifierOptions,
+  modifierValue,
+  onModifierChange,
 }: BindingRowProps) {
   const buttonLabel = isCapturing ? captureLabel : displayValue || 'Click to set binding'
   const clearLabel = isManual ? 'Remove Row' : 'Clear'
@@ -46,6 +60,18 @@ export function BindingRow({
       {showHeader && (
         <div className="binding-row-header">
           <span>{label}</span>
+        </div>
+      )}
+      {modifierOptions && modifierOptions.length > 0 && (
+        <div className="row-modifier-select" data-capture-ignore="true">
+          <label>{modifierLabel ?? 'Modifier button'}</label>
+          <select value={modifierValue ?? ''} onChange={(event) => onModifierChange?.(event.target.value)}>
+            {modifierOptions.map(option => (
+              <option key={option.value} value={option.value} disabled={option.disabled}>
+                {option.label}
+              </option>
+            ))}
+          </select>
         </div>
       )}
       {specialOptions && specialOptions.length > 0 && (

@@ -418,6 +418,60 @@ input[type=number] {
   gap: 0.75rem;
 }
 
+.tap-time-control {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.6rem 1rem;
+  border: 1px solid #2a2a2a;
+  border-radius: 12px;
+  background: #121212;
+  margin-bottom: 1rem;
+}
+
+.touchpad-grid-hint {
+  font-size: 0.85rem;
+  color: #b5b5b5;
+  margin: -0.25rem 0 0.75rem;
+}
+
+.tap-time-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.tap-time-title {
+  font-weight: 600;
+  color: #f0f0f0;
+}
+
+.tap-time-caption {
+  font-size: 0.85rem;
+  color: #a0a0a0;
+}
+
+.tap-time-input-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.tap-time-input-group input[type='number'] {
+  width: 5rem;
+  padding: 0.4rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid #3b3b3b;
+  background: #1a1a1a;
+  color: #f5f5f5;
+}
+
+.tap-time-unit {
+  font-size: 0.85rem;
+  color: #bbbbbb;
+}
+
 .keymap-section-header h3 {
   margin: 0;
 }
@@ -496,6 +550,25 @@ input[type=number] {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+.row-modifier-select {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.row-modifier-select label {
+  font-size: 0.85rem;
+  color: #bdbdbd;
+}
+
+.row-modifier-select select {
+  padding: 0.45rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid #3b3b3b;
+  background: #1a1a1a;
+  color: #eee;
 }
 
 .binding-input {

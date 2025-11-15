@@ -9,7 +9,10 @@ import {
   setTapBinding,
   setHoldBinding,
   setDoubleBinding,
+  setChordBinding,
+  setSimultaneousBinding,
   isTrackballBindingPresent,
+  BindingSlot,
 } from './utils/keymap'
 import { SensitivityControls } from './components/SensitivityControls'
 import { ConfigEditor } from './components/ConfigEditor'
@@ -25,6 +28,7 @@ const formatNumber = (value: number | undefined, digits = 2) =>
 
 type ProfileInfo = { id: number; name: string }
 const TOGGLE_SPECIALS = ['GYRO_ON', 'GYRO_OFF'] as const
+const DEFAULT_HOLD_PRESS_TIME = 0.15
 const clearToggleAssignments = (text: string, command: string) => {
   let next = text
   TOGGLE_SPECIALS.forEach(toggle => {
@@ -89,6 +93,18 @@ function App() {
   const [profileCopyStatus, setProfileCopyStatus] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'gyro' | 'keymap'>('gyro')
   const sensitivity = useMemo(() => parseSensitivityValues(configText), [configText])
+  const holdPressTimeState = useMemo(() => {
+    const raw = getKeymapValue(configText, 'HOLD_PRESS_TIME')
+    if (raw) {
+      const parsed = parseFloat(raw)
+      if (Number.isFinite(parsed)) {
+        return { value: parsed, isCustom: true }
+      }
+    }
+    return { value: DEFAULT_HOLD_PRESS_TIME, isCustom: false }
+  }, [configText])
+  const holdPressTimeSeconds = holdPressTimeState.value
+  const holdPressTimeIsCustom = holdPressTimeState.isCustom
   const loadProfileContent = useCallback(async (profileId: number) => {
     if (!profileId) return
     setIsLoadingProfile(true)
@@ -166,6 +182,7 @@ function App() {
   const handleSmoothTimeChange = makeScalarHandler('GYRO_SMOOTH_TIME')
   const handleSmoothThresholdChange = makeScalarHandler('GYRO_SMOOTH_THRESHOLD')
   const handleTickTimeChange = makeScalarHandler('TICK_TIME')
+  const handleHoldPressTimeChange = makeScalarHandler('HOLD_PRESS_TIME')
 
   const makeStringHandler = (key: string) => (value: string) => {
     if (!value) {
@@ -308,7 +325,12 @@ const handleRealWorldCalibrationChange = (value: string) => {
     }
   }
 
-  const handleFaceButtonBindingChange = (button: string, slot: 'tap' | 'hold' | 'double', binding: string | null) => {
+  const handleFaceButtonBindingChange = (
+    button: string,
+    slot: BindingSlot,
+    binding: string | null,
+    options?: { modifier?: string }
+  ) => {
     setConfigText(prev => {
       let next = clearSpecialAssignmentsForButton(prev, button)
       next = clearToggleAssignments(next, button)
@@ -322,10 +344,45 @@ const handleRealWorldCalibrationChange = (value: string) => {
         case 'double':
           next = setDoubleBinding(next, button, binding)
           break
+        case 'chord':
+          next = setChordBinding(next, button, options?.modifier, binding)
+          break
+        case 'simultaneous':
+          next = setSimultaneousBinding(next, button, options?.modifier, binding)
+          break
         default:
           break
       }
       return removeTrackballDecayIfUnused(next)
+    })
+  }
+
+  const handleModifierChange = (
+    button: string,
+    slot: BindingSlot,
+    previousModifier: string | undefined,
+    nextModifier: string,
+    binding: string | null
+  ) => {
+    if (!nextModifier || previousModifier === nextModifier) return
+    setConfigText(prev => {
+      let next = prev
+      if (slot === 'chord') {
+        if (previousModifier) {
+          next = setChordBinding(next, button, previousModifier, null)
+        }
+        if (binding) {
+          next = setChordBinding(next, button, nextModifier, binding)
+        }
+      } else if (slot === 'simultaneous') {
+        if (previousModifier) {
+          next = setSimultaneousBinding(next, button, previousModifier, null)
+        }
+        if (binding) {
+          next = setSimultaneousBinding(next, button, nextModifier, binding)
+        }
+      }
+      return next
     })
   }
 
@@ -580,6 +637,11 @@ const handleRealWorldCalibrationChange = (value: string) => {
               onClearSpecialAction={handleClearSpecialAction}
               trackballDecay={trackballDecayValue}
               onTrackballDecayChange={handleTrackballDecayChange}
+              holdPressTimeSeconds={holdPressTimeSeconds}
+              holdPressTimeIsCustom={holdPressTimeIsCustom}
+              holdPressTimeDefault={DEFAULT_HOLD_PRESS_TIME}
+              onHoldPressTimeChange={handleHoldPressTimeChange}
+              onModifierChange={handleModifierChange}
             />
             <ConfigEditor
               value={configText}

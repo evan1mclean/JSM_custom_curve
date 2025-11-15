@@ -132,7 +132,7 @@ export function getKeymapValue(text: string, key: string) {
   return match?.[1]?.trim()
 }
 
-export type BindingSlot = 'tap' | 'hold' | 'double'
+export type BindingSlot = 'tap' | 'hold' | 'double' | 'chord' | 'simultaneous'
 
 export type ButtonBindingSet = {
   tap?: string
@@ -145,12 +145,21 @@ export type ButtonBindingRow = {
   label: string
   binding: string | null
   isManual: boolean
+  modifierCommand?: string
 }
+
+export type ManualRowInfo = {
+  modifierCommand?: string
+}
+
+export type ManualRowState = Partial<Record<BindingSlot, ManualRowInfo>>
 
 const SLOT_LABELS: Record<BindingSlot, string> = {
   tap: 'Tap',
   hold: 'Hold (press & hold)',
   double: 'Double Press',
+  chord: 'Chorded Press',
+  simultaneous: 'Simultaneous Press',
 }
 
 const FACE_BUTTONS = ['S', 'E', 'N', 'W'] as const
@@ -213,9 +222,62 @@ export function setDoubleBinding(text: string, button: string, value?: string | 
   return updateKeymapEntry(text, target, [trimmed])
 }
 
-export function getButtonBindingRows(text: string, button: string, manualSlots: BindingSlot[] = []): ButtonBindingRow[] {
+type ComboBinding = {
+  modifier: string
+  binding: string
+}
+
+function parseComboBinding(text: string, button: string, separator: '+' | ','): ComboBinding | null {
+  const target = button.toUpperCase()
+  const lines = text.split(/\r?\n/)
+  for (const line of lines) {
+    const trimmed = line.trim()
+    if (!trimmed) continue
+    const [rawKey, rawValue] = trimmed.split('=')
+    if (!rawValue) continue
+    const key = rawKey.trim().toUpperCase()
+    const value = rawValue.trim()
+    const parts = key.split(separator)
+    if (parts.length !== 2) continue
+    const [left, right] = parts.map(part => part.trim())
+    if (right !== target) continue
+    const bindingValue = value.split(/\s+/)[0]
+    if (!bindingValue) continue
+    return { modifier: left, binding: bindingValue }
+  }
+  return null
+}
+
+function setComboBinding(
+  text: string,
+  button: string,
+  modifier: string | undefined,
+  separator: '+' | ',',
+  value?: string | null
+) {
+  if (!modifier) return text
+  const key = `${modifier}${separator}${button}`
+  const trimmed = value?.trim()
+  if (!trimmed) {
+    return removeKeymapEntry(text, key)
+  }
+  return updateKeymapEntry(text, key, [trimmed])
+}
+
+export function setChordBinding(text: string, button: string, modifier: string | undefined, value?: string | null) {
+  return setComboBinding(text, button, modifier, ',', value)
+}
+
+export function setSimultaneousBinding(text: string, button: string, modifier: string | undefined, value?: string | null) {
+  return setComboBinding(text, button, modifier, '+', value)
+}
+
+export function getButtonBindingRows(
+  text: string,
+  button: string,
+  manualState: ManualRowState = {}
+): ButtonBindingRow[] {
   const bindings = getButtonBindingSet(text, button)
-  const manualSet = new Set(manualSlots)
   const rows: ButtonBindingRow[] = [
     {
       slot: 'tap',
@@ -226,15 +288,38 @@ export function getButtonBindingRows(text: string, button: string, manualSlots: 
   ]
   ;(['hold', 'double'] as BindingSlot[]).forEach(slot => {
     const bindingValue = slot === 'hold' ? bindings.hold : bindings.double
-    if (bindingValue || manualSet.has(slot)) {
+    const manualInfo = manualState[slot]
+    if (bindingValue || manualInfo) {
       rows.push({
         slot,
         label: SLOT_LABELS[slot],
         binding: bindingValue ?? null,
-        isManual: manualSet.has(slot),
+        isManual: Boolean(manualInfo),
       })
     }
   })
+const chordBinding = parseComboBinding(text, button, ',')
+  const chordManual = manualState['chord']
+  if (chordBinding || chordManual) {
+    rows.push({
+      slot: 'chord',
+      label: SLOT_LABELS.chord,
+      binding: chordBinding?.binding ?? null,
+      isManual: Boolean(chordManual),
+      modifierCommand: chordBinding?.modifier ?? chordManual?.modifierCommand,
+    })
+  }
+const simultaneousBinding = parseComboBinding(text, button, '+')
+  const simultaneousManual = manualState['simultaneous']
+  if (simultaneousBinding || simultaneousManual) {
+    rows.push({
+      slot: 'simultaneous',
+      label: SLOT_LABELS.simultaneous,
+      binding: simultaneousBinding?.binding ?? null,
+      isManual: Boolean(simultaneousManual),
+      modifierCommand: simultaneousBinding?.modifier ?? simultaneousManual?.modifierCommand,
+    })
+  }
   return rows
 }
 

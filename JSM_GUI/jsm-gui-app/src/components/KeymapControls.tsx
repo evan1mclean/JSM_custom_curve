@@ -1,6 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Card } from './Card'
-import { BindingSlot, ButtonBindingRow, getButtonBindingRows, getKeymapValue } from '../utils/keymap'
+import {
+  BindingSlot,
+  ButtonBindingRow,
+  getButtonBindingRows,
+  getKeymapValue,
+  ManualRowState,
+  ManualRowInfo,
+} from '../utils/keymap'
 import { BindingRow } from './BindingRow'
 
 type ControllerLayout = 'playstation' | 'xbox'
@@ -11,11 +18,22 @@ type KeymapControlsProps = {
   isCalibrating: boolean
   onApply: () => void
   onCancel: () => void
-  onBindingChange: (button: string, slot: BindingSlot, value: string | null) => void
+  onBindingChange: (button: string, slot: BindingSlot, value: string | null, options?: { modifier?: string }) => void
   onAssignSpecialAction: (special: string, buttonCommand: string) => void
   onClearSpecialAction: (special: string, buttonCommand: string) => void
   trackballDecay: string
   onTrackballDecayChange: (value: string) => void
+  holdPressTimeSeconds: number
+  onHoldPressTimeChange: (value: string) => void
+  holdPressTimeIsCustom: boolean
+  holdPressTimeDefault: number
+  onModifierChange: (
+    button: string,
+    slot: BindingSlot,
+    previousModifier: string | undefined,
+    nextModifier: string,
+    binding: string | null
+  ) => void
 }
 
 type FaceButtonDefinition = {
@@ -45,6 +63,7 @@ const SPECIAL_BINDINGS = [
 ]
 
 const SPECIAL_OPTION_LIST = SPECIAL_BINDINGS.filter(option => option.value)
+const SPECIAL_OPTION_MANUAL_LIST = SPECIAL_BINDINGS.filter(option => option.value && !['GYRO_OFF', 'GYRO_ON'].includes(option.value))
 
 const SPECIAL_LABELS: Record<string, string> = {
   GYRO_OFF: 'Disable gyro',
@@ -57,7 +76,110 @@ const SPECIAL_LABELS: Record<string, string> = {
   GYRO_TRACK_Y: 'Trackball mode (Y only)',
 }
 
-type CaptureTarget = { button: string; slot: BindingSlot }
+type ModifierSelectOption = { value: string; label: string; disabled?: boolean }
+
+const BASE_MODIFIER_OPTIONS: ModifierSelectOption[] = [
+  { value: 'UP', label: 'UP – D-pad up' },
+  { value: 'DOWN', label: 'DOWN – D-pad down' },
+  { value: 'LEFT', label: 'LEFT – D-pad left' },
+  { value: 'RIGHT', label: 'RIGHT – D-pad right' },
+  { value: 'L', label: 'L – top-left bumper (L1 / LB)' },
+  { value: 'ZL', label: 'ZL – left trigger soft pull (L2 / LT)' },
+  { value: 'ZLF', label: 'ZLF – left trigger full pull' },
+  { value: 'R', label: 'R – top-right bumper (R1 / RB)' },
+  { value: 'ZR', label: 'ZR – right trigger soft pull (R2 / RT)' },
+  { value: 'ZRF', label: 'ZRF – right trigger full pull' },
+  { value: '-', label: '- – Minus / Share button' },
+  { value: '+', label: '+ – Plus / Options button' },
+  { value: 'HOME', label: 'HOME – PS / Guide button' },
+  { value: 'CAPTURE', label: 'CAPTURE – Touchpad click / Capture' },
+  { value: 'LSL', label: 'LSL – Joy-Con paddle (left side)' },
+  { value: 'LSR', label: 'LSR – Joy-Con paddle (left side)' },
+  { value: 'RSL', label: 'RSL – Joy-Con paddle (right side)' },
+  { value: 'RSR', label: 'RSR – Joy-Con paddle (right side)' },
+  { value: 'L3', label: 'L3 – left stick click' },
+  { value: 'R3', label: 'R3 – right stick click' },
+  { value: 'N', label: 'N – North face button (Triangle / Y)' },
+  { value: 'E', label: 'E – East face button (Circle / B)' },
+  { value: 'S', label: 'S – South face button (Cross / A)' },
+  { value: 'W', label: 'W – West face button (Square / X)' },
+  { value: 'LUP', label: 'LUP – left stick up' },
+  { value: 'LDOWN', label: 'LDOWN – left stick down' },
+  { value: 'LLEFT', label: 'LLEFT – left stick left' },
+  { value: 'LRIGHT', label: 'LRIGHT – left stick right' },
+  { value: 'LRING', label: 'LRING – left stick ring binding' },
+  { value: 'RUP', label: 'RUP – right stick up' },
+  { value: 'RDOWN', label: 'RDOWN – right stick down' },
+  { value: 'RLEFT', label: 'RLEFT – right stick left' },
+  { value: 'RRIGHT', label: 'RRIGHT – right stick right' },
+  { value: 'RRING', label: 'RRING – right stick ring binding' },
+  { value: 'MUP', label: 'MUP – motion stick up' },
+  { value: 'MDOWN', label: 'MDOWN – motion stick down' },
+  { value: 'MLEFT', label: 'MLEFT – motion stick left' },
+  { value: 'MRIGHT', label: 'MRIGHT – motion stick right' },
+  { value: 'MRING', label: 'MRING – motion ring binding' },
+  { value: 'LEAN_LEFT', label: 'LEAN_LEFT – tilt controller left' },
+  { value: 'LEAN_RIGHT', label: 'LEAN_RIGHT – tilt controller right' },
+  { value: 'MIC', label: 'MIC – DualSense microphone button' },
+]
+
+const TOUCHPAD_CORE_OPTIONS: ModifierSelectOption[] = [{ value: 'TOUCH', label: 'Touchpad touch' }]
+
+const TOUCHPAD_STICK_OPTIONS: ModifierSelectOption[] = [
+  { value: 'TUP', label: 'Touch stick up' },
+  { value: 'TDOWN', label: 'Touch stick down' },
+  { value: 'TLEFT', label: 'Touch stick left' },
+  { value: 'TRIGHT', label: 'Touch stick right' },
+  { value: 'TRING', label: 'Touch stick ring' },
+]
+
+const TOUCHPAD_GRID_PREVIEW_COUNT = 6
+
+const EXTRA_BINDING_SLOTS: BindingSlot[] = ['hold', 'double', 'chord', 'simultaneous']
+const MODIFIER_SLOT_TYPES: BindingSlot[] = ['chord', 'simultaneous']
+
+const clampGridButtons = (value: number) => {
+  if (!Number.isFinite(value) || value <= 0) return 1
+  return Math.min(Math.max(Math.floor(value), 1), 25)
+}
+
+const buildModifierOptions = (
+  layout: ControllerLayout,
+  gridActive: boolean,
+  configuredGridButtons: number
+): { options: ModifierSelectOption[]; hint?: string } => {
+  const options: ModifierSelectOption[] = [...BASE_MODIFIER_OPTIONS]
+  let hint: string | undefined
+  if (layout === 'playstation') {
+    options.push(...TOUCHPAD_CORE_OPTIONS)
+    if (gridActive) {
+      const count = clampGridButtons(configuredGridButtons || 1)
+      for (let index = 1; index <= count; index += 1) {
+        options.push({ value: `T${index}`, label: `Touch grid T${index}` })
+      }
+      options.push(...TOUCHPAD_STICK_OPTIONS)
+    } else {
+      for (let index = 1; index <= TOUCHPAD_GRID_PREVIEW_COUNT; index += 1) {
+        options.push({
+          value: `T${index}`,
+          label: `Touch grid T${index} (enable grid to use)`,
+          disabled: true,
+        })
+      }
+      hint = 'Enable touchpad grid in JoyShockMapper to unlock T1–Tn bindings.'
+    }
+  }
+  return { options, hint }
+}
+
+const getDefaultModifierForButton = (button: string, modifierOptions: ModifierSelectOption[]) => {
+  const upper = button.toUpperCase()
+  const fallback = modifierOptions[0]?.value ?? 'L3'
+  const candidate = modifierOptions.find(option => option.value !== upper && !option.disabled)
+  return candidate?.value ?? fallback
+}
+
+type CaptureTarget = { button: string; slot: BindingSlot; modifier?: string }
 
 const KEY_CODE_MAP: Record<string, string> = {
   Escape: 'ESC',
@@ -184,16 +306,40 @@ export function KeymapControls({
   onClearSpecialAction,
   trackballDecay,
   onTrackballDecayChange,
+  holdPressTimeSeconds,
+  onHoldPressTimeChange,
+  holdPressTimeIsCustom,
+  holdPressTimeDefault,
+  onModifierChange,
 }: KeymapControlsProps) {
   const [layout, setLayout] = useState<ControllerLayout>('playstation')
   const [captureTarget, setCaptureTarget] = useState<CaptureTarget | null>(null)
   const [suppressKey, setSuppressKey] = useState<string | null>(null)
-  const [manualRows, setManualRows] = useState<Record<string, BindingSlot[]>>({})
+  const [manualRows, setManualRows] = useState<Record<string, ManualRowState>>({})
+  const touchpadMode = useMemo(
+    () => getKeymapValue(configText, 'TOUCHPAD_MODE')?.trim().toUpperCase() ?? 'MOUSE',
+    [configText]
+  )
+  const gridSizeRaw = useMemo(() => getKeymapValue(configText, 'GRID_SIZE'), [configText])
+  const configuredGridButtons = useMemo(() => {
+    if (touchpadMode !== 'GRID_AND_STICK') return 0
+    if (!gridSizeRaw) return 2
+    const tokens = gridSizeRaw.split(/\s+/).map(token => Number(token))
+    if (tokens.length >= 2) {
+      const product = tokens[0] * tokens[1]
+      return clampGridButtons(product)
+    }
+    return 2
+  }, [gridSizeRaw, touchpadMode])
+  const gridActive = touchpadMode === 'GRID_AND_STICK'
+  const { options: modifierOptions, hint: touchpadHint } = useMemo(() => {
+    return buildModifierOptions(layout, gridActive, configuredGridButtons)
+  }, [layout, gridActive, configuredGridButtons])
 
   const bindingRowsByButton = useMemo(() => {
     const record: Record<string, ButtonBindingRow[]> = {}
     FACE_BUTTONS.forEach(({ command }) => {
-      record[command] = getButtonBindingRows(configText, command, manualRows[command] ?? [])
+      record[command] = getButtonBindingRows(configText, command, manualRows[command] ?? {})
     })
     return record
   }, [configText, manualRows])
@@ -220,7 +366,7 @@ export function KeymapControls({
     if (!captureTarget) return
     const handleBinding = (value: string | null, suppress: boolean) => {
       if (value) {
-        onBindingChange(captureTarget.button, captureTarget.slot, value)
+        onBindingChange(captureTarget.button, captureTarget.slot, value, { modifier: captureTarget.modifier })
         if (suppress) {
           setSuppressKey(`${captureTarget.button}-${captureTarget.slot}`)
         } else {
@@ -266,14 +412,14 @@ export function KeymapControls({
     }
   }, [captureTarget, onBindingChange])
 
-  const beginCapture = (button: string, slot: BindingSlot) => {
+  const beginCapture = (button: string, slot: BindingSlot, modifier?: string) => {
     const key = `${button}-${slot}`
     if (suppressKey === key) {
       setSuppressKey(null)
       return
     }
     setCaptureLabel(slot === 'hold' ? 'Press and hold binding…' : 'Press any key or mouse button…')
-    setCaptureTarget({ button, slot })
+    setCaptureTarget({ button, slot, modifier })
   }
 
   const cancelCapture = () => {
@@ -281,30 +427,51 @@ export function KeymapControls({
     setSuppressKey(null)
   }
 
-  const ensureManualRow = (button: string, slot: BindingSlot) => {
+  const ensureManualRow = (button: string, slot: BindingSlot, defaults?: ManualRowInfo) => {
     setManualRows(prev => {
-      const existing = new Set(prev[button] ?? [])
-      if (existing.has(slot)) return prev
-      existing.add(slot)
-      return { ...prev, [button]: Array.from(existing) }
+      const existing = prev[button] ? { ...prev[button] } : {}
+      if (existing[slot]) return prev
+      existing[slot] = { ...(defaults ?? {}) }
+      return { ...prev, [button]: existing }
+    })
+  }
+
+  const updateManualRow = (button: string, slot: BindingSlot, info: ManualRowInfo) => {
+    setManualRows(prev => {
+      const existing = prev[button] ? { ...prev[button] } : {}
+      existing[slot] = { ...(existing[slot] ?? {}), ...info }
+      return { ...prev, [button]: existing }
     })
   }
 
   const removeManualRow = (button: string, slot: BindingSlot) => {
     setManualRows(prev => {
-      const existing = new Set(prev[button] ?? [])
-      if (!existing.has(slot)) return prev
-      existing.delete(slot)
-      if (existing.size === 0) {
-        const next = { ...prev }
+      const existing = prev[button]
+      if (!existing || !existing[slot]) return prev
+      const nextExisting = { ...existing }
+      delete nextExisting[slot]
+      const next = { ...prev }
+      if (Object.keys(nextExisting).length === 0) {
         delete next[button]
-        return next
+      } else {
+        next[button] = nextExisting
       }
-      return { ...prev, [button]: Array.from(existing) }
+      return next
     })
   }
 
+  const handleModifierSelection = (button: string, slot: BindingSlot, row: ButtonBindingRow, nextModifier: string) => {
+    if (!nextModifier) return
+    if (row.isManual) {
+      updateManualRow(button, slot, { modifierCommand: nextModifier })
+    }
+    if (row.binding) {
+      onModifierChange(button, slot, row.modifierCommand, nextModifier, row.binding)
+    }
+  }
+
   const trackballSliderValue = trackballDecay && !Number.isNaN(Number(trackballDecay)) ? Number(trackballDecay) : 1
+  const holdPressTimeInputValue = Number.isFinite(holdPressTimeSeconds) ? holdPressTimeSeconds : holdPressTimeDefault
 
   return (
     <Card className="control-panel" lockable locked={isCalibrating} lockMessage="Keymapping locked while JSM calibrates">
@@ -319,6 +486,30 @@ export function KeymapControls({
           </button>
         </div>
       </div>
+
+      <div className="tap-time-control" data-capture-ignore="true">
+        <div className="tap-time-text">
+          <span className="tap-time-title">Hold press threshold</span>
+          <span className="tap-time-caption">
+            {holdPressTimeIsCustom
+              ? 'Custom HOLD_PRESS_TIME saved'
+              : `Using default (${Math.round(holdPressTimeDefault * 1000)} ms)`}
+          </span>
+        </div>
+        <div className="tap-time-input-group">
+          <input
+            id="tap-time-input"
+            type="number"
+            min="0"
+            max="1"
+            step="0.01"
+            value={holdPressTimeInputValue}
+            onChange={(event) => onHoldPressTimeChange(event.target.value)}
+          />
+          <span className="tap-time-unit">seconds</span>
+        </div>
+      </div>
+      {layout === 'playstation' && touchpadHint && <div className="touchpad-grid-hint">{touchpadHint}</div>}
 
       <div className="keymap-section">
         <div className="keymap-section-header">
@@ -362,13 +553,30 @@ export function KeymapControls({
                     })()
                     const showHeader = row.slot !== 'tap' || hasExtraRows
                     const headerLabel = row.slot === 'tap' && hasExtraRows ? 'Regular Press' : row.label
-                    const rowSpecialOptions = SPECIAL_OPTION_LIST
+                    const rowSpecialOptions = MODIFIER_SLOT_TYPES.includes(row.slot as BindingSlot)
+                      ? SPECIAL_OPTION_MANUAL_LIST
+                      : SPECIAL_OPTION_LIST
                     const specialValue =
                       row.slot === 'tap'
                         ? specialKey ?? ''
                         : isSpecialValue && row.binding
                           ? row.binding
                           : ''
+                    const needsModifier = MODIFIER_SLOT_TYPES.includes(row.slot as BindingSlot)
+                    const modifierValue = needsModifier
+                      ? row.modifierCommand ??
+                        manualRows[button.command]?.[row.slot]?.modifierCommand ??
+                        getDefaultModifierForButton(button.command, modifierOptions)
+                      : undefined
+                    const modifierLabel = row.slot === 'simultaneous' ? 'Combine with' : 'Modifier button'
+                    let rowModifierOptions = modifierOptions
+                    if (
+                      needsModifier &&
+                      modifierValue &&
+                      !modifierOptions.some(option => option.value === modifierValue)
+                    ) {
+                      rowModifierOptions = [...modifierOptions, { value: modifierValue, label: modifierValue }]
+                    }
                     return (
                       <BindingRow
                         key={`${button.command}-${row.slot}`}
@@ -378,7 +586,7 @@ export function KeymapControls({
                         isManual={row.isManual}
                         isCapturing={isCapturing}
                         captureLabel={captureLabel}
-                        onBeginCapture={() => beginCapture(button.command, row.slot)}
+                        onBeginCapture={() => beginCapture(button.command, row.slot, needsModifier ? modifierValue : undefined)}
                         onCancelCapture={cancelCapture}
                         onClear={() => {
                           if (row.slot === 'tap') {
@@ -388,13 +596,23 @@ export function KeymapControls({
                               onClearSpecialAction(specialKey, button.command)
                             }
                           } else {
-                            onBindingChange(button.command, row.slot, null)
+                            const options = needsModifier ? { modifier: modifierValue } : undefined
+                            onBindingChange(button.command, row.slot, null, options)
                           }
                         }}
                         onRemoveRow={row.isManual ? () => removeManualRow(button.command, row.slot) : undefined}
                         disableClear={!displayValue}
                         specialOptions={rowSpecialOptions}
                         specialValue={specialValue}
+                        modifierOptions={needsModifier ? rowModifierOptions : undefined}
+                        modifierValue={modifierValue}
+                        modifierLabel={needsModifier ? modifierLabel : undefined}
+                        onModifierChange={
+                          needsModifier
+                            ? (selected) =>
+                                handleModifierSelection(button.command, row.slot, row, selected)
+                            : undefined
+                        }
                         onSpecialChange={
                           row.slot === 'tap'
                             ? (selected) => {
@@ -409,11 +627,12 @@ export function KeymapControls({
                             : (selected) => {
                                 if (!selected) {
                                   if (isSpecialValue) {
-                                    onBindingChange(button.command, row.slot, null)
+                                    const options = needsModifier ? { modifier: modifierValue } : undefined
+                                    onBindingChange(button.command, row.slot, null, options)
                                   }
                                   return
                                 }
-                                onBindingChange(button.command, row.slot, selected)
+                                onBindingChange(button.command, row.slot, selected, needsModifier ? { modifier: modifierValue } : undefined)
                                 ensureManualRow(button.command, row.slot)
                               }
                         }
@@ -421,8 +640,12 @@ export function KeymapControls({
                     )
                   })}
                   {(() => {
-                    const availableSlots = (['hold', 'double'] as BindingSlot[]).filter(slot => !existingSlots.has(slot))
-                    if (rows.length > 1 || availableSlots.length === 0) {
+                    const hasExtraRow = rows.length > 1
+                    if (hasExtraRow) {
+                      return null
+                    }
+                    const availableSlots = EXTRA_BINDING_SLOTS.filter(slot => !existingSlots.has(slot))
+                    if (availableSlots.length === 0) {
                       return null
                     }
                     return (
@@ -432,7 +655,13 @@ export function KeymapControls({
                           onChange={(event) => {
                             const selected = event.target.value as BindingSlot
                             if (selected) {
-                              ensureManualRow(button.command, selected)
+                              if (MODIFIER_SLOT_TYPES.includes(selected)) {
+                                ensureManualRow(button.command, selected, {
+                                  modifierCommand: getDefaultModifierForButton(button.command, modifierOptions),
+                                })
+                              } else {
+                                ensureManualRow(button.command, selected)
+                              }
                             }
                             event.target.value = ''
                           }}
@@ -440,7 +669,13 @@ export function KeymapControls({
                           <option value="">Add extra binding</option>
                           {availableSlots.map(slot => (
                             <option key={`${button.command}-${slot}-opt`} value={slot}>
-                              {slot === 'hold' ? 'Hold (press & hold)' : 'Double press'}
+                              {slot === 'hold'
+                                ? 'Hold (press & hold)'
+                                : slot === 'double'
+                                  ? 'Double press'
+                                  : slot === 'chord'
+                                    ? 'Chorded press'
+                                    : 'Simultaneous press'}
                             </option>
                           ))}
                         </select>
