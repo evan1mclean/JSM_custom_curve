@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Card } from './Card'
-import { getKeymapValue } from '../utils/keymap'
+import { BindingSlot, ButtonBindingRow, getButtonBindingRows, getKeymapValue } from '../utils/keymap'
+import { BindingRow } from './BindingRow'
 
 type ControllerLayout = 'playstation' | 'xbox'
 
@@ -10,7 +11,7 @@ type KeymapControlsProps = {
   isCalibrating: boolean
   onApply: () => void
   onCancel: () => void
-  onUpdateBinding: (command: string, binding: string) => void
+  onBindingChange: (button: string, slot: BindingSlot, value: string | null) => void
   onAssignSpecialAction: (special: string, buttonCommand: string) => void
   onClearSpecialAction: (special: string, buttonCommand: string) => void
   trackballDecay: string
@@ -30,6 +31,33 @@ const FACE_BUTTONS: FaceButtonDefinition[] = [
   { command: 'N', description: 'North / Top', playstation: 'Triangle', xbox: 'Y' },
   { command: 'W', description: 'West / Left', playstation: 'Square', xbox: 'X' },
 ]
+
+const SPECIAL_BINDINGS = [
+  { value: '', label: 'Special Binds' },
+  { value: 'GYRO_OFF', label: 'Hold to disable gyro' },
+  { value: 'GYRO_ON', label: 'Hold to enable gyro' },
+  { value: 'GYRO_INVERT', label: 'Invert gyro direction (both axes)' },
+  { value: 'GYRO_INV_X', label: 'Invert gyro X axis' },
+  { value: 'GYRO_INV_Y', label: 'Invert gyro Y axis' },
+  { value: 'GYRO_TRACKBALL', label: 'Trackball mode (hold to engage)' },
+  { value: 'GYRO_TRACK_X', label: 'Trackball mode — X axis' },
+  { value: 'GYRO_TRACK_Y', label: 'Trackball mode — Y axis' },
+]
+
+const SPECIAL_OPTION_LIST = SPECIAL_BINDINGS.filter(option => option.value)
+
+const SPECIAL_LABELS: Record<string, string> = {
+  GYRO_OFF: 'Disable gyro',
+  GYRO_ON: 'Enable gyro',
+  GYRO_INVERT: 'Invert gyro axes',
+  GYRO_INV_X: 'Invert gyro X axis',
+  GYRO_INV_Y: 'Invert gyro Y axis',
+  GYRO_TRACKBALL: 'Trackball mode (XY)',
+  GYRO_TRACK_X: 'Trackball mode (X only)',
+  GYRO_TRACK_Y: 'Trackball mode (Y only)',
+}
+
+type CaptureTarget = { button: string; slot: BindingSlot }
 
 const KEY_CODE_MAP: Record<string, string> = {
   Escape: 'ESC',
@@ -143,30 +171,7 @@ const shouldIgnoreCapture = (event: Event) => {
   return Boolean(target.closest('[data-capture-ignore="true"]'))
 }
 
-const SPECIAL_BINDINGS = [
-  { value: '', label: 'Special actions…' },
-  { value: 'GYRO_OFF', label: 'Hold to disable gyro' },
-  { value: 'GYRO_ON', label: 'Hold to enable gyro' },
-  { value: 'GYRO_INVERT', label: 'Invert gyro direction (both axes)' },
-  { value: 'GYRO_INV_X', label: 'Invert gyro X axis' },
-  { value: 'GYRO_INV_Y', label: 'Invert gyro Y axis' },
-  { value: 'GYRO_TRACKBALL', label: 'Trackball mode (hold to engage)' },
-  { value: 'GYRO_TRACK_X', label: 'Trackball mode — X axis' },
-  { value: 'GYRO_TRACK_Y', label: 'Trackball mode — Y axis' },
-]
-
-const SPECIAL_LABELS: Record<string, string> = {
-  GYRO_OFF: 'Disable gyro',
-  GYRO_ON: 'Enable gyro',
-  GYRO_INVERT: 'Invert gyro axes',
-  GYRO_INV_X: 'Invert gyro X axis',
-  GYRO_INV_Y: 'Invert gyro Y axis',
-  GYRO_TRACKBALL: 'Trackball mode (XY)',
-  GYRO_TRACK_X: 'Trackball mode (X only)',
-  GYRO_TRACK_Y: 'Trackball mode (Y only)',
-}
-const SPECIAL_COMMAND_KEYS = SPECIAL_BINDINGS.map(option => option.value).filter(Boolean) as string[]
-type BindingState = { display: string; source: 'direct' | 'special' | 'none'; specialCommand?: string }
+const TRACKBALL_SPECIALS = new Set(['GYRO_TRACKBALL', 'GYRO_TRACK_X', 'GYRO_TRACK_Y'])
 
 export function KeymapControls({
   configText,
@@ -174,98 +179,79 @@ export function KeymapControls({
   isCalibrating,
   onApply,
   onCancel,
-  onUpdateBinding,
+  onBindingChange,
   onAssignSpecialAction,
   onClearSpecialAction,
   trackballDecay,
   onTrackballDecayChange,
 }: KeymapControlsProps) {
   const [layout, setLayout] = useState<ControllerLayout>('playstation')
-  const [capturingCommand, setCapturingCommand] = useState<string | null>(null)
-  const [suppressClickFor, setSuppressClickFor] = useState<string | null>(null)
+  const [captureTarget, setCaptureTarget] = useState<CaptureTarget | null>(null)
+  const [suppressKey, setSuppressKey] = useState<string | null>(null)
+  const [manualRows, setManualRows] = useState<Record<string, BindingSlot[]>>({})
 
-  const faceBindings = useMemo(() => {
-    const values: Record<string, BindingState> = {}
-    FACE_BUTTONS.forEach(button => {
-      const direct = getKeymapValue(configText, button.command)
-      if (direct) {
-        values[button.command] = { display: direct, source: 'direct' }
-        return
-      }
-      const special = SPECIAL_COMMAND_KEYS.find(key => {
-        const assignment = getKeymapValue(configText, key)
-        if (!assignment) return false
-        return assignment
-          .split(/\s+/)
-          .filter(Boolean)
-          .some(token => token.toUpperCase() === button.command.toUpperCase())
-      })
-      if (special) {
-        values[button.command] = {
-          display: SPECIAL_LABELS[special] ?? special,
-          source: 'special',
-          specialCommand: special,
-        }
-        return
-      }
-      values[button.command] = { display: '', source: 'none' }
+  const bindingRowsByButton = useMemo(() => {
+    const record: Record<string, ButtonBindingRow[]> = {}
+    FACE_BUTTONS.forEach(({ command }) => {
+      record[command] = getButtonBindingRows(configText, command, manualRows[command] ?? [])
     })
-    return values
+    return record
+  }, [configText, manualRows])
+
+  const specialsByButton = useMemo(() => {
+    const assignments: Record<string, string | undefined> = {}
+    SPECIAL_BINDINGS.forEach(binding => {
+      if (!binding.value) return
+      const assignment = getKeymapValue(configText, binding.value)
+      if (!assignment) return
+      assignment
+        .split(/\s+/)
+        .filter(Boolean)
+        .forEach(token => {
+          assignments[token.toUpperCase()] = binding.value
+        })
+    })
+    return assignments
   }, [configText])
 
-  const trackballBinding = useMemo(() => {
-    const special = SPECIAL_COMMAND_KEYS.find(key => key.startsWith('GYRO_TRACK') && getKeymapValue(configText, key))
-    if (special) {
-      return special
-    }
-    return FACE_BUTTONS.find(button => {
-      const direct = getKeymapValue(configText, button.command)
-      return direct?.toUpperCase().includes('TRACK') ?? false
-    })?.command
-  }, [configText])
+  const [captureLabel, setCaptureLabel] = useState<string>('')
 
   useEffect(() => {
-    if (!capturingCommand) {
-      return
-    }
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (shouldIgnoreCapture(event)) {
-        return
+    if (!captureTarget) return
+    const handleBinding = (value: string | null, suppress: boolean) => {
+      if (value) {
+        onBindingChange(captureTarget.button, captureTarget.slot, value)
+        if (suppress) {
+          setSuppressKey(`${captureTarget.button}-${captureTarget.slot}`)
+        } else {
+          setSuppressKey(null)
+        }
+        setCaptureTarget(null)
       }
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (shouldIgnoreCapture(event)) return
       event.preventDefault()
       event.stopPropagation()
       const binding = keyboardEventToBinding(event)
-      if (binding) {
-        onUpdateBinding(capturingCommand, binding)
-        setCapturingCommand(null)
-        setSuppressClickFor(null)
-      }
+      handleBinding(binding, false)
     }
+
     const handleMouseDown = (event: MouseEvent) => {
-      if (shouldIgnoreCapture(event)) {
-        return
-      }
+      if (shouldIgnoreCapture(event)) return
       event.preventDefault()
       event.stopPropagation()
       const binding = mouseButtonToBinding(event.button)
-      if (binding) {
-        onUpdateBinding(capturingCommand, binding)
-        setCapturingCommand(null)
-        setSuppressClickFor(capturingCommand)
-      }
+      handleBinding(binding, true)
     }
+
     const handleWheel = (event: WheelEvent) => {
-      if (shouldIgnoreCapture(event)) {
-        return
-      }
+      if (shouldIgnoreCapture(event)) return
       event.preventDefault()
       event.stopPropagation()
       const binding = wheelEventToBinding(event.deltaY)
-      if (binding) {
-        onUpdateBinding(capturingCommand, binding)
-        setCapturingCommand(null)
-        setSuppressClickFor(null)
-      }
+      handleBinding(binding, false)
     }
 
     window.addEventListener('keydown', handleKeyDown, true)
@@ -278,39 +264,54 @@ export function KeymapControls({
       window.removeEventListener('mousedown', handleMouseDown, true)
       window.removeEventListener('wheel', handleWheel, wheelListenerOptions)
     }
-  }, [capturingCommand, onUpdateBinding])
+  }, [captureTarget, onBindingChange])
 
-  const beginCapture = (command: string) => {
-    if (capturingCommand === command) return
-    setSuppressClickFor(null)
-    setCapturingCommand(command)
+  const beginCapture = (button: string, slot: BindingSlot) => {
+    const key = `${button}-${slot}`
+    if (suppressKey === key) {
+      setSuppressKey(null)
+      return
+    }
+    setCaptureLabel(slot === 'hold' ? 'Press and hold binding…' : 'Press any key or mouse button…')
+    setCaptureTarget({ button, slot })
   }
 
   const cancelCapture = () => {
-    setCapturingCommand(null)
-    setSuppressClickFor(null)
+    setCaptureTarget(null)
+    setSuppressKey(null)
   }
 
-  const handleBindingButtonClick = (command: string) => {
-    if (suppressClickFor === command) {
-      setSuppressClickFor(null)
-      return
-    }
-    beginCapture(command)
+  const ensureManualRow = (button: string, slot: BindingSlot) => {
+    setManualRows(prev => {
+      const existing = new Set(prev[button] ?? [])
+      if (existing.has(slot)) return prev
+      existing.add(slot)
+      return { ...prev, [button]: Array.from(existing) }
+    })
   }
 
-  const trackballSliderValue =
-    trackballDecay && !Number.isNaN(Number(trackballDecay)) ? Number(trackballDecay) : 1
+  const removeManualRow = (button: string, slot: BindingSlot) => {
+    setManualRows(prev => {
+      const existing = new Set(prev[button] ?? [])
+      if (!existing.has(slot)) return prev
+      existing.delete(slot)
+      if (existing.size === 0) {
+        const next = { ...prev }
+        delete next[button]
+        return next
+      }
+      return { ...prev, [button]: Array.from(existing) }
+    })
+  }
+
+  const trackballSliderValue = trackballDecay && !Number.isNaN(Number(trackballDecay)) ? Number(trackballDecay) : 1
 
   return (
     <Card className="control-panel" lockable locked={isCalibrating} lockMessage="Keymapping locked while JSM calibrates">
       <div className="keymap-card-header">
         <h2>Keymap Controls</h2>
         <div className="mode-toggle">
-          <button
-            className={`pill-tab ${layout === 'playstation' ? 'active' : ''}`}
-            onClick={() => setLayout('playstation')}
-          >
+          <button className={`pill-tab ${layout === 'playstation' ? 'active' : ''}`} onClick={() => setLayout('playstation')}>
             PlayStation Labels
           </button>
           <button className={`pill-tab ${layout === 'xbox' ? 'active' : ''}`} onClick={() => setLayout('xbox')}>
@@ -323,85 +324,130 @@ export function KeymapControls({
         <div className="keymap-section-header">
           <div>
             <h3>Face Buttons</h3>
-            <p>Map the primary face buttons to keyboard/mouse bindings.</p>
+            <p>Tap/hold/double bindings with optional gyro actions.</p>
           </div>
         </div>
         <div className="keymap-grid">
           {FACE_BUTTONS.map(button => {
-            const label = layout === 'playstation' ? button.playstation : button.xbox
-            const isCapturing = capturingCommand === button.command
-            const bindingState = faceBindings[button.command] ?? { display: '', source: 'none' }
-            const value = bindingState.display
-            const hasBinding = bindingState.source !== 'none'
-            const showTrackballControls = Boolean(
-              (trackballBinding &&
-                bindingState.source === 'special' &&
-                bindingState.specialCommand?.startsWith('GYRO_TRACK')) ||
-                trackballBinding === button.command
+            const rows = bindingRowsByButton[button.command] ?? []
+            const specialKey = specialsByButton[button.command] as keyof typeof SPECIAL_LABELS | undefined
+            const tapSpecialLabel = specialKey ? SPECIAL_LABELS[specialKey] ?? '' : ''
+            const buttonHasTrackball = Boolean(
+              rows.some(row => {
+                const binding = row.binding?.toUpperCase()
+                return binding ? binding.includes('TRACK') : false
+              }) || (specialKey && TRACKBALL_SPECIALS.has(specialKey))
             )
+            const existingSlots = new Set(rows.map(row => row.slot))
             return (
-              <div className={`keymap-row ${isCapturing ? 'capturing' : ''}`} key={button.command}>
+              <div className="keymap-row" key={button.command}>
                 <div className="keymap-label">
-                  <span className="button-name">{label}</span>
+                  <span className="button-name">{layout === 'playstation' ? button.playstation : button.xbox}</span>
                   <span className="button-meta">{button.description} · Command {button.command}</span>
                 </div>
                 <div className="keymap-binding-controls">
-                  <div className="binding-actions" data-capture-ignore="true">
-                    <div className="binding-actions-group">
-                      <select
-                        value=""
-                        onChange={(event) => {
-                          const select = event.target as HTMLSelectElement
-                          const special = select.value
-                          if (special) {
-                            onAssignSpecialAction(special, button.command)
+                  {rows.map(row => {
+                    const isCapturing = captureTarget?.button === button.command && captureTarget.slot === row.slot
+                    const hasExtraRows = rows.length > 1
+                    const isSpecialValue = Boolean(row.binding && SPECIAL_LABELS[row.binding])
+                    const displayValue = (() => {
+                      if (row.slot === 'tap') {
+                        if (row.binding) return row.binding
+                        return tapSpecialLabel
+                      }
+                      if (isSpecialValue && row.binding) {
+                        return SPECIAL_LABELS[row.binding]
+                      }
+                      return row.binding || ''
+                    })()
+                    const showHeader = row.slot !== 'tap' || hasExtraRows
+                    const headerLabel = row.slot === 'tap' && hasExtraRows ? 'Regular Press' : row.label
+                    const rowSpecialOptions = SPECIAL_OPTION_LIST
+                    const specialValue =
+                      row.slot === 'tap'
+                        ? specialKey ?? ''
+                        : isSpecialValue && row.binding
+                          ? row.binding
+                          : ''
+                    return (
+                      <BindingRow
+                        key={`${button.command}-${row.slot}`}
+                        label={headerLabel}
+                        showHeader={showHeader}
+                        displayValue={displayValue}
+                        isManual={row.isManual}
+                        isCapturing={isCapturing}
+                        captureLabel={captureLabel}
+                        onBeginCapture={() => beginCapture(button.command, row.slot)}
+                        onCancelCapture={cancelCapture}
+                        onClear={() => {
+                          if (row.slot === 'tap') {
+                            if (row.binding) {
+                              onBindingChange(button.command, row.slot, null)
+                            } else if (specialKey) {
+                              onClearSpecialAction(specialKey, button.command)
+                            }
+                          } else {
+                            onBindingChange(button.command, row.slot, null)
                           }
-                          select.value = ''
                         }}
-                      >
-                        {SPECIAL_BINDINGS.map(option => (
-                          <option key={option.value || 'placeholder'} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
-                      {isCapturing && (
-                        <button
-                          type="button"
-                          className="link-btn"
-                          onClick={cancelCapture}
-                          data-capture-ignore="true"
-                        >
-                          Cancel
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                  <div className="primary-binding-row">
-                    <button
-                      type="button"
-                      className={`binding-input ${isCapturing ? 'recording' : ''}`}
-                      onClick={() => handleBindingButtonClick(button.command)}
-                    >
-                      {isCapturing ? 'Press any key or mouse button…' : value || 'Click to set binding'}
-                    </button>
-                    <button
-                      type="button"
-                      className="clear-binding-btn"
-                      onClick={() => {
-                        if (bindingState.source === 'special' && bindingState.specialCommand) {
-                          onClearSpecialAction(bindingState.specialCommand, button.command)
-                        } else {
-                          onUpdateBinding(button.command, '')
+                        onRemoveRow={row.isManual ? () => removeManualRow(button.command, row.slot) : undefined}
+                        disableClear={!displayValue}
+                        specialOptions={rowSpecialOptions}
+                        specialValue={specialValue}
+                        onSpecialChange={
+                          row.slot === 'tap'
+                            ? (selected) => {
+                                if (!selected) {
+                                  if (specialKey) {
+                                    onClearSpecialAction(specialKey, button.command)
+                                  }
+                                  return
+                                }
+                                onAssignSpecialAction(selected, button.command)
+                              }
+                            : (selected) => {
+                                if (!selected) {
+                                  if (isSpecialValue) {
+                                    onBindingChange(button.command, row.slot, null)
+                                  }
+                                  return
+                                }
+                                onBindingChange(button.command, row.slot, selected)
+                                ensureManualRow(button.command, row.slot)
+                              }
                         }
-                      }}
-                      disabled={!hasBinding}
-                      data-capture-ignore="true"
-                    >
-                      Clear Binding
-                    </button>
-                  </div>
-                  {showTrackballControls && (
+                      />
+                    )
+                  })}
+                  {(() => {
+                    const availableSlots = (['hold', 'double'] as BindingSlot[]).filter(slot => !existingSlots.has(slot))
+                    if (rows.length > 1 || availableSlots.length === 0) {
+                      return null
+                    }
+                    return (
+                      <div className="binding-row add-binding-row" data-capture-ignore="true">
+                        <select
+                          value=""
+                          onChange={(event) => {
+                            const selected = event.target.value as BindingSlot
+                            if (selected) {
+                              ensureManualRow(button.command, selected)
+                            }
+                            event.target.value = ''
+                          }}
+                        >
+                          <option value="">Add extra binding</option>
+                          {availableSlots.map(slot => (
+                            <option key={`${button.command}-${slot}-opt`} value={slot}>
+                              {slot === 'hold' ? 'Hold (press & hold)' : 'Double press'}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )
+                  })()}
+                  {buttonHasTrackball && (
                     <div className="trackball-inline" data-capture-ignore="true">
                       <label>
                         Trackball decay
@@ -428,7 +474,7 @@ export function KeymapControls({
                 </div>
               </div>
             )
-         })}
+          })}
         </div>
       </div>
 

@@ -131,3 +131,119 @@ export function getKeymapValue(text: string, key: string) {
   const match = text.match(LINE_REGEX(key))
   return match?.[1]?.trim()
 }
+
+export type BindingSlot = 'tap' | 'hold' | 'double'
+
+export type ButtonBindingSet = {
+  tap?: string
+  hold?: string
+  double?: string
+}
+
+export type ButtonBindingRow = {
+  slot: BindingSlot
+  label: string
+  binding: string | null
+  isManual: boolean
+}
+
+const SLOT_LABELS: Record<BindingSlot, string> = {
+  tap: 'Tap',
+  hold: 'Hold (press & hold)',
+  double: 'Double Press',
+}
+
+const FACE_BUTTONS = ['S', 'E', 'N', 'W'] as const
+
+function parseBaseBinding(value?: string) {
+  const tapHold: { tap?: string; hold?: string } = {}
+  if (!value) return tapHold
+  const parts = value.trim().split(/\s+/)
+  if (parts[0] && parts[0].toUpperCase() !== 'NONE') {
+    tapHold.tap = parts[0]
+  }
+  if (parts[1]) {
+    tapHold.hold = parts[1]
+  }
+  return tapHold
+}
+
+function writeBaseBinding(text: string, button: string, tap?: string, hold?: string) {
+  const values: string[] = []
+  if (tap) {
+    values.push(tap)
+  } else if (hold) {
+    values.push('NONE')
+  }
+  if (hold) values.push(hold)
+  if (values.length === 0) {
+    return removeKeymapEntry(text, button)
+  }
+  return updateKeymapEntry(text, button, values)
+}
+
+export function getButtonBindingSet(text: string, button: string): ButtonBindingSet {
+  const base = parseBaseBinding(getKeymapValue(text, button))
+  const doubleValue = getKeymapValue(text, `${button},${button}`)?.split(/\s+/)[0]
+  return {
+    tap: base.tap,
+    hold: base.hold,
+    double: doubleValue,
+  }
+}
+
+export function setTapBinding(text: string, button: string, value?: string | null) {
+  const current = getButtonBindingSet(text, button)
+  const tapValue = value?.trim() ? value.trim() : undefined
+  return writeBaseBinding(text, button, tapValue, current.hold)
+}
+
+export function setHoldBinding(text: string, button: string, value?: string | null) {
+  const current = getButtonBindingSet(text, button)
+  const holdValue = value?.trim() ? value.trim() : undefined
+  return writeBaseBinding(text, button, current.tap, holdValue)
+}
+
+export function setDoubleBinding(text: string, button: string, value?: string | null) {
+  const target = `${button},${button}`
+  const trimmed = value?.trim()
+  if (!trimmed) {
+    return removeKeymapEntry(text, target)
+  }
+  return updateKeymapEntry(text, target, [trimmed])
+}
+
+export function getButtonBindingRows(text: string, button: string, manualSlots: BindingSlot[] = []): ButtonBindingRow[] {
+  const bindings = getButtonBindingSet(text, button)
+  const manualSet = new Set(manualSlots)
+  const rows: ButtonBindingRow[] = [
+    {
+      slot: 'tap',
+      label: SLOT_LABELS.tap,
+      binding: bindings.tap ?? null,
+      isManual: false,
+    },
+  ]
+  ;(['hold', 'double'] as BindingSlot[]).forEach(slot => {
+    const bindingValue = slot === 'hold' ? bindings.hold : bindings.double
+    if (bindingValue || manualSet.has(slot)) {
+      rows.push({
+        slot,
+        label: SLOT_LABELS[slot],
+        binding: bindingValue ?? null,
+        isManual: manualSet.has(slot),
+      })
+    }
+  })
+  return rows
+}
+
+export function isTrackballBindingPresent(text: string) {
+  const trackballSpecials = ['GYRO_TRACKBALL', 'GYRO_TRACK_X', 'GYRO_TRACK_Y']
+  const hasSpecial = trackballSpecials.some(cmd => Boolean(getKeymapValue(text, cmd)))
+  if (hasSpecial) return true
+  return FACE_BUTTONS.some(button => {
+    const bindings = getButtonBindingSet(text, button)
+    return Boolean(bindings.tap?.toUpperCase().includes('TRACK') || bindings.hold?.toUpperCase().includes('TRACK') || bindings.double?.toUpperCase().includes('TRACK'))
+  })
+}

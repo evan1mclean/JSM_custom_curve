@@ -472,7 +472,30 @@ input[type=number] {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 1rem;
+}
+
+.binding-row + .binding-row {
+  margin-top: 0;
+}
+
+.binding-row > *:not(:last-child) {
+  margin-bottom: 0.6rem;
+}
+
+.binding-row-header {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #bdbdbd;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.row-special-select-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .binding-input {
@@ -494,14 +517,6 @@ input[type=number] {
   background: #20223b;
 }
 
-.binding-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  align-items: center;
-  justify-content: space-between;
-}
-
 .primary-binding-row {
   display: flex;
   gap: 0.5rem;
@@ -516,21 +531,6 @@ input[type=number] {
 .primary-binding-row .clear-binding-btn {
   flex-shrink: 0;
   margin-left: auto;
-}
-
-.binding-actions-group {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.binding-actions select {
-  padding: 0.45rem 0.75rem;
-  border-radius: 999px;
-  border: 1px solid #3b3b3b;
-  background: #1a1a1a;
-  color: #eee;
 }
 
 .trackball-inline {
@@ -748,4 +748,26 @@ input[type=number] {
   background: #222;
   color: #eee;
   width: 120px;
+}
+.add-binding-row {
+  padding-top: 0.2rem;
+  align-self: flex-end;
+  margin-left: auto;
+}
+
+.add-binding-row select {
+  padding: 0.45rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid #3b3b3b;
+  background: #1a1a1a;
+  color: #eee;
+}
+
+.row-special-select {
+  margin-top: 0.2rem;
+  padding: 0.45rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid #3b3b3b;
+  background: #1a1a1a;
+  color: #eee;
 }

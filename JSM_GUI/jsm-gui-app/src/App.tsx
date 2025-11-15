@@ -1,7 +1,16 @@
 import './App.css'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTelemetry } from './hooks/useTelemetry'
-import { parseSensitivityValues, updateKeymapEntry, removeKeymapEntry, getKeymapValue } from './utils/keymap'
+import {
+  parseSensitivityValues,
+  updateKeymapEntry,
+  removeKeymapEntry,
+  getKeymapValue,
+  setTapBinding,
+  setHoldBinding,
+  setDoubleBinding,
+  isTrackballBindingPresent,
+} from './utils/keymap'
 import { SensitivityControls } from './components/SensitivityControls'
 import { ConfigEditor } from './components/ConfigEditor'
 import { CalibrationCard } from './components/CalibrationCard'
@@ -28,6 +37,40 @@ const clearToggleAssignments = (text: string, command: string) => {
       if (matches) {
         next = removeKeymapEntry(next, toggle)
       }
+    }
+  })
+  return next
+}
+
+const removeTrackballDecayIfUnused = (text: string) => {
+  return isTrackballBindingPresent(text) ? text : removeKeymapEntry(text, 'TRACKBALL_DECAY')
+}
+
+const SPECIAL_COMMANDS = [
+  'GYRO_OFF',
+  'GYRO_ON',
+  'GYRO_INVERT',
+  'GYRO_INV_X',
+  'GYRO_INV_Y',
+  'GYRO_TRACKBALL',
+  'GYRO_TRACK_X',
+  'GYRO_TRACK_Y',
+]
+
+const clearSpecialAssignmentsForButton = (text: string, button: string) => {
+  let next = text
+  SPECIAL_COMMANDS.forEach(cmd => {
+    const assignment = getKeymapValue(next, cmd)
+    if (!assignment) return
+    const tokens = assignment.split(/\s+/).filter(Boolean)
+    const remaining = tokens.filter(token => token.toUpperCase() !== button.toUpperCase())
+    if (remaining.length === tokens.length) {
+      return
+    }
+    if (remaining.length === 0) {
+      next = removeKeymapEntry(next, cmd)
+    } else {
+      next = updateKeymapEntry(next, cmd, remaining)
     }
   })
   return next
@@ -265,31 +308,31 @@ const handleRealWorldCalibrationChange = (value: string) => {
     }
   }
 
-  const handleKeyBindingChange = (command: string, binding: string) => {
+  const handleFaceButtonBindingChange = (button: string, slot: 'tap' | 'hold' | 'double', binding: string | null) => {
     setConfigText(prev => {
-      const next = clearToggleAssignments(prev, command)
-      const value = binding.trim()
-      if (!value) {
-        const removed = removeKeymapEntry(next, command)
-        return removeTrackballDecayIfUnused(removed)
+      let next = clearSpecialAssignmentsForButton(prev, button)
+      next = clearToggleAssignments(next, button)
+      switch (slot) {
+        case 'tap':
+          next = setTapBinding(next, button, binding)
+          break
+        case 'hold':
+          next = setHoldBinding(next, button, binding)
+          break
+        case 'double':
+          next = setDoubleBinding(next, button, binding)
+          break
+        default:
+          break
       }
-      return updateKeymapEntry(next, command, [value])
+      return removeTrackballDecayIfUnused(next)
     })
-  }
-
-  const TRACKBALL_SPECIALS = ['GYRO_TRACKBALL', 'GYRO_TRACK_X', 'GYRO_TRACK_Y'] as const
-
-  const removeTrackballDecayIfUnused = (text: string) => {
-    const hasSpecial = TRACKBALL_SPECIALS.some(cmd => Boolean(getKeymapValue(text, cmd)))
-    if (hasSpecial) return text
-    const hasDirect = ['S', 'E', 'N', 'W'].some(command => getKeymapValue(text, command)?.toUpperCase().includes('TRACK'))
-    if (hasDirect) return text
-    return removeKeymapEntry(text, 'TRACKBALL_DECAY')
   }
 
   const handleSpecialActionAssignment = (specialCommand: string, buttonCommand: string) => {
     setConfigText(prev => {
-      let next = removeKeymapEntry(prev, buttonCommand)
+      let next = clearSpecialAssignmentsForButton(prev, buttonCommand)
+      next = removeKeymapEntry(next, buttonCommand)
       next = clearToggleAssignments(next, buttonCommand)
       if (TOGGLE_SPECIALS.includes(specialCommand as (typeof TOGGLE_SPECIALS)[number])) {
         return removeTrackballDecayIfUnused(updateKeymapEntry(next, specialCommand, [buttonCommand]))
@@ -532,7 +575,7 @@ const handleRealWorldCalibrationChange = (value: string) => {
               isCalibrating={isCalibrating}
               onApply={applyConfig}
               onCancel={handleCancel}
-              onUpdateBinding={handleKeyBindingChange}
+              onBindingChange={handleFaceButtonBindingChange}
               onAssignSpecialAction={handleSpecialActionAssignment}
               onClearSpecialAction={handleClearSpecialAction}
               trackballDecay={trackballDecayValue}
