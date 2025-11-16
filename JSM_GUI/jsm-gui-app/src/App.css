@@ -615,7 +615,7 @@ input[type=number] {
 .keymap-row {
   display: flex;
   gap: 1rem;
-  align-items: center;
+  align-items: flex-start;
   padding: 0.75rem 1rem;
   border: 1px solid #2a2a2a;
   border-radius: 12px;
@@ -653,12 +653,14 @@ input[type=number] {
   gap: 1rem;
 }
 
-.binding-row + .binding-row {
-  margin-top: 0;
+.binding-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
 }
 
-.binding-row > *:not(:last-child) {
-  margin-bottom: 0.6rem;
+.binding-row + .binding-row {
+  margin-top: 0;
 }
 
 .binding-row-header {
@@ -680,6 +682,7 @@ input[type=number] {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+  width: 100%;
 }
 
 .row-modifier-select label {
@@ -688,11 +691,13 @@ input[type=number] {
 }
 
 .row-modifier-select select {
+  width: 100%;
   padding: 0.45rem 0.75rem;
   border-radius: 999px;
   border: 1px solid #3b3b3b;
   background: #1a1a1a;
   color: #eee;
+  box-sizing: border-box;
 }
 
 .binding-input {
@@ -723,6 +728,15 @@ input[type=number] {
   gap: 0.5rem;
   align-items: center;
   flex-wrap: nowrap;
+}
+
+.row-special-select-wrapper + .primary-binding-row {
+  margin-top: -0.25rem;
+}
+
+.row-modifier-select + .row-special-select-wrapper,
+.row-modifier-select + .primary-binding-row {
+  margin-top: -0.25rem;
 }
 
 .primary-binding-row .binding-input {
@@ -964,13 +978,19 @@ input[type=number] {
   color: #eee;
 }
 
+.row-special-select-wrapper {
+  width: 100%;
+}
+
 .row-special-select {
-  margin-top: 0.2rem;
+  width: 100%;
+  margin-top: 0;
   padding: 0.45rem 0.75rem;
   border-radius: 999px;
   border: 1px solid #3b3b3b;
   background: #1a1a1a;
   color: #eee;
+  box-sizing: border-box;
 }
 .profile-actions.condensed {
   justify-content: flex-end;
