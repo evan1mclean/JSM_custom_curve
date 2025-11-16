@@ -174,24 +174,41 @@ header h1 {
   color: #ddd;
 }
 
-.flex-inputs input {
+.flex-inputs input:not([type='range']) {
   margin-top: 0.35rem;
-  padding: 0.55rem;
+  padding: 0.45rem 0.75rem;
   border-radius: 8px;
-  border: 1px solid #444;
-  background: #222;
-  color: #eee;
+  border: 1px solid #3a3a3a;
+  background: #0f0f0f;
+  color: #f5f5f5;
   font-size: 1rem;
+  font-weight: 600;
+  box-sizing: border-box;
+}
+
+.flex-inputs input:not([type='range']):focus {
+  border-color: #6a8bff;
+  box-shadow: 0 0 0 1px rgba(106, 139, 255, 0.35);
+  outline: none;
 }
 
 .flex-inputs select {
   margin-top: 0.35rem;
-  padding: 0.55rem;
+  padding: 0.45rem 0.75rem;
   border-radius: 8px;
-  border: 1px solid #444;
-  background: #222;
-  color: #eee;
+  border: 1px solid #3a3a3a;
+  background: #0f0f0f;
+  color: #f5f5f5;
   font-size: 1rem;
+  font-weight: 600;
+  box-sizing: border-box;
+  appearance: none;
+}
+
+.flex-inputs select:focus {
+  border-color: #6a8bff;
+  box-shadow: 0 0 0 1px rgba(106, 139, 255, 0.35);
+  outline: none;
 }
 
 input[type=number]::-webkit-outer-spin-button,
@@ -456,25 +473,6 @@ input[type=number] {
   font-weight: 600;
 }
 
-.control-panel input[type='number'],
-.control-panel select,
-.global-control-input-group input[type='number'] {
-  padding: 0.5rem 0.75rem;
-  border-radius: 8px;
-  border: 1px solid #3a3a3a;
-  background: #0f0f0f;
-  color: #f5f5f5;
-  font-size: 1rem;
-  box-sizing: border-box;
-}
-
-.control-panel input[type='number']:focus,
-.control-panel select:focus,
-.global-control-input-group input[type='number']:focus {
-  border-color: rgba(255, 255, 255, 0.45);
-  outline: none;
-}
-
 .profile-library-buttons {
   display: flex;
   gap: 0.5rem;
@@ -577,7 +575,20 @@ input[type=number] {
 
 .global-control-input-group input[type='number'] {
   width: 5rem;
+  padding: 0.45rem 0.75rem;
   border-radius: 8px;
+  border: 1px solid #3a3a3a;
+  background: #0f0f0f;
+  color: #f5f5f5;
+  font-size: 1rem;
+  font-weight: 600;
+  box-sizing: border-box;
+}
+
+.global-control-input-group input[type='number']:focus {
+  border-color: #6a8bff;
+  box-shadow: 0 0 0 1px rgba(106, 139, 255, 0.35);
+  outline: none;
 }
 
 .global-control-unit {
