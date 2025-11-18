@@ -113,7 +113,8 @@ export function updateKeymapEntry(text: string, key: string, values: Array<numbe
 
 export function removeKeymapEntry(text: string, key: string) {
   const lines = text.split(/\r?\n/)
-  const index = lines.findIndex(line => line.trim().toUpperCase().startsWith(`${key.toUpperCase()} =`))
+  const pattern = new RegExp(`^\\s*${escapeKey(key)}\\s*=`, 'i')
+  const index = lines.findIndex(line => pattern.test(line))
   if (index >= 0) {
     lines.splice(index, 1)
   }
