@@ -21,7 +21,6 @@ import { ProfileManager } from './components/ProfileManager'
 import { GyroBehaviorControls } from './components/GyroBehaviorControls'
 import { NoiseSteadyingControls } from './components/NoiseSteadyingControls'
 import { KeymapControls } from './components/KeymapControls'
-import { MODESHIFT_BUTTON_OPTIONS } from './constants/modeshiftButtons'
 
 const asNumber = (value: unknown) => (typeof value === 'number' ? value : undefined)
 const formatNumber = (value: number | undefined, digits = 2) =>
@@ -979,6 +978,8 @@ const handleDeleteLibraryProfile = async (name: string) => {
               hasPendingChanges={hasPendingChanges}
               sample={sample}
               telemetry={telemetryValues}
+              touchpadMode={touchpadModeValue}
+              touchpadGridCells={touchpadModeValue === 'GRID_AND_STICK' ? Math.min(25, gridSizeValue.columns * gridSizeValue.rows) : 0}
               onModeChange={(mode) =>
                 mode === 'static'
                   ? switchToStaticMode(activeSensitivityPrefix)
@@ -1049,6 +1050,9 @@ const handleDeleteLibraryProfile = async (name: string) => {
               triggerThreshold={triggerThresholdValue}
               onTriggerThresholdChange={handleTriggerThresholdChange}
               onModifierChange={handleModifierChange}
+              touchpadMode={touchpadModeValue}
+              gridColumns={gridSizeValue.columns}
+              gridRows={gridSizeValue.rows}
             />
             <ConfigEditor
               value={configText}

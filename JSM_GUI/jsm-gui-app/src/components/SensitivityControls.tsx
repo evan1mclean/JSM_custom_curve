@@ -1,10 +1,10 @@
 import { SensitivityValues } from '../utils/keymap'
+import { buildModifierOptions } from '../utils/modifierOptions'
 import { StaticSensForm } from './StaticSensForm'
 import { AccelSensForm } from './AccelSensForm'
 import { Card } from './Card'
 import { TelemetrySample } from '../hooks/useTelemetry'
 import { CurvePreview } from './CurvePreview'
-import { MODESHIFT_BUTTON_OPTIONS } from '../constants/modeshiftButtons'
 
 type SensitivityControlsProps = {
   sensitivity: SensitivityValues
@@ -20,6 +20,8 @@ type SensitivityControlsProps = {
     sensY: string
     timestamp: string
   }
+  touchpadMode: string
+  touchpadGridCells: number
   onModeChange: (mode: 'static' | 'accel') => void
   onSensitivityViewChange: (view: 'base' | 'modeshift') => void
   onApply: () => void
@@ -45,6 +47,8 @@ export function SensitivityControls({
   hasPendingChanges,
   sample,
   telemetry,
+  touchpadMode,
+  touchpadGridCells,
   onModeChange,
   onSensitivityViewChange,
   onApply,
@@ -62,6 +66,10 @@ export function SensitivityControls({
 }: SensitivityControlsProps) {
   const displaySensitivity =
     sensitivityView === 'base' || !modeshiftButton ? sensitivity : modeshiftSensitivity ?? sensitivity
+
+  const isTouchpadGridActive = touchpadMode === 'GRID_AND_STICK'
+  const modifierOptions = buildModifierOptions('playstation', isTouchpadGridActive, isTouchpadGridActive ? touchpadGridCells : 0)
+  const modeshiftOptions = [{ value: '', label: 'No mode shift' }, ...modifierOptions]
 
   return (
     <Card
@@ -86,8 +94,8 @@ export function SensitivityControls({
           onChange={(event) => onModeshiftButtonChange(event.target.value)}
           data-testid="sensitivity-shift-select"
         >
-          {MODESHIFT_BUTTON_OPTIONS.map(option => (
-            <option key={option.value || 'none'} value={option.value}>
+          {modeshiftOptions.map(option => (
+            <option key={option.value || 'none'} value={option.value} disabled={option.disabled}>
               {option.label}
             </option>
           ))}
