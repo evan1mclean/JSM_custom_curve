@@ -191,6 +191,27 @@ const simPressWindowIsCustom = simPressWindowState.isCustom
     }
     return 0
   }, [configText])
+  const touchpadModeValue = (getKeymapValue(configText, 'TOUCHPAD_MODE') ?? 'GRID_AND_STICK').toUpperCase()
+  const gridSizeValue = useMemo(() => {
+    const raw = getKeymapValue(configText, 'GRID_SIZE')
+    if (raw) {
+      const [colToken, rowToken] = raw.split(/\s+/)
+      const cols = Number.parseInt(colToken ?? '2', 10)
+      const rows = Number.parseInt(rowToken ?? '1', 10)
+      return {
+        columns: Number.isFinite(cols) ? cols : 2,
+        rows: Number.isFinite(rows) ? rows : 1,
+      }
+    }
+    return { columns: 2, rows: 1 }
+  }, [configText])
+  const touchpadSensitivityValue = useMemo(() => {
+    const raw = getKeymapValue(configText, 'TOUCHPAD_SENS')
+    if (!raw) return undefined
+    const parsed = parseFloat(raw)
+    return Number.isFinite(parsed) ? parsed : undefined
+  }, [configText])
+  const touchpadDualStageModeValue = getKeymapValue(configText, 'TOUCHPAD_DUAL_STAGE_MODE') ?? ''
   const sensitivityModeshiftButton = useMemo(() => {
     const regex = /^\s*([A-Z0-9+\-_]+)\s*,\s*(GYRO_SENS|MIN_GYRO_SENS|MAX_GYRO_SENS|MIN_GYRO_THRESHOLD|MAX_GYRO_THRESHOLD)\s*=/im
     const match = configText.match(regex)
@@ -452,6 +473,28 @@ const applyConfig = useCallback(async (options?: { profileNameOverride?: string;
       return updateKeymapEntry(prev, resolveSensitivityKey('GYRO_SENS'), current)
     })
   }
+
+  const handleTouchpadModeChange = useCallback((value: string) => {
+    const sanitized = value?.toUpperCase() === 'MOUSE' ? 'MOUSE' : 'GRID_AND_STICK'
+    setConfigText(prev => updateKeymapEntry(prev, 'TOUCHPAD_MODE', [sanitized]))
+  }, [])
+
+  const handleGridSizeChange = useCallback((columns: number, rows: number) => {
+    const cols = Math.max(1, Math.min(5, Math.round(columns)))
+    const rws = Math.max(1, Math.min(5, Math.round(rows)))
+    setConfigText(prev => updateKeymapEntry(prev, 'GRID_SIZE', [cols, rws]))
+  }, [])
+
+  const handleTouchpadSensitivityChange = useCallback((value: string) => {
+    if (value === '') {
+      setConfigText(prev => removeKeymapEntry(prev, 'TOUCHPAD_SENS'))
+      return
+    }
+    const parsed = parseFloat(value)
+    if (Number.isNaN(parsed)) return
+    setConfigText(prev => updateKeymapEntry(prev, 'TOUCHPAD_SENS', [parsed]))
+  }, [])
+
 
 const handleInGameSensChange = (value: string) => {
   if (value === '') {
@@ -1009,10 +1052,49 @@ const handleDeleteLibraryProfile = async (name: string) => {
           </>
         )}
         {activeTab === 'touchpad' && (
-          <div className="tab-placeholder">
-            <h2>Touchpad controls</h2>
-            <p>Placeholder card – we&apos;ll build the touchpad editor here soon.</p>
-          </div>
+          <>
+            <KeymapControls
+              view="touchpad"
+              configText={configText}
+              hasPendingChanges={hasPendingChanges}
+              isCalibrating={isCalibrating}
+              onApply={applyConfig}
+              onCancel={handleCancel}
+              onBindingChange={handleFaceButtonBindingChange}
+              onAssignSpecialAction={handleSpecialActionAssignment}
+              onClearSpecialAction={handleClearSpecialAction}
+              trackballDecay={trackballDecayValue}
+              onTrackballDecayChange={handleTrackballDecayChange}
+              holdPressTimeSeconds={holdPressTimeSeconds}
+              holdPressTimeIsCustom={holdPressTimeIsCustom}
+              holdPressTimeDefault={DEFAULT_HOLD_PRESS_TIME}
+              onHoldPressTimeChange={handleHoldPressTimeChange}
+              doublePressWindowSeconds={doublePressWindowSeconds}
+              doublePressWindowIsCustom={doublePressWindowIsCustom}
+              onDoublePressWindowChange={handleDoublePressWindowChange}
+              simPressWindowSeconds={simPressWindowSeconds}
+              simPressWindowIsCustom={simPressWindowIsCustom}
+              onSimPressWindowChange={handleSimPressWindowChange}
+              triggerThreshold={triggerThresholdValue}
+              onTriggerThresholdChange={handleTriggerThresholdChange}
+              onModifierChange={handleModifierChange}
+              touchpadMode={touchpadModeValue}
+              onTouchpadModeChange={handleTouchpadModeChange}
+              gridColumns={gridSizeValue.columns}
+              gridRows={gridSizeValue.rows}
+              onGridSizeChange={handleGridSizeChange}
+              touchpadSensitivity={touchpadSensitivityValue}
+              onTouchpadSensitivityChange={handleTouchpadSensitivityChange}
+            />
+            <ConfigEditor
+              value={configText}
+              label={profileFileLabel}
+              disabled={isCalibrating}
+              onChange={setConfigText}
+              onApply={applyConfig}
+              statusMessage={statusMessage}
+            />
+          </>
         )}
         {activeTab === 'sticks' && (
           <div className="tab-placeholder">

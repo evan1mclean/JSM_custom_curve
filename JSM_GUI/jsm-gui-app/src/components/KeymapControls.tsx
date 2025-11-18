@@ -43,6 +43,16 @@ type KeymapControlsProps = {
   onSimPressWindowChange: (value: string) => void
   triggerThreshold: number
   onTriggerThresholdChange: (value: string) => void
+  view?: 'full' | 'touchpad'
+  touchpadMode?: string
+  onTouchpadModeChange?: (value: string) => void
+  gridColumns?: number
+  gridRows?: number
+  onGridSizeChange?: (cols: number, rows: number) => void
+  touchpadSensitivity?: number
+  onTouchpadSensitivityChange?: (value: string) => void
+  touchpadDualStageMode?: string
+  onTouchpadDualStageModeChange?: (value: string) => void
 }
 
 type ButtonDefinition = {
@@ -82,6 +92,11 @@ const CENTER_BUTTONS: ButtonDefinition[] = [
   { command: '+', description: 'Options / Menu (plus)', playstation: 'Options', xbox: 'Options' },
   { command: '-', description: 'Share / View (minus)', playstation: 'Share', xbox: 'View' },
   { command: 'MIC', description: 'Microphone button', playstation: 'Mic', xbox: 'Mic' },
+]
+
+const TOUCH_BUTTONS: ButtonDefinition[] = [
+  { command: 'TOUCH', description: 'Touch contact', playstation: 'Touch', xbox: 'Touch' },
+  { command: 'CAPTURE', description: 'Touchpad click', playstation: 'Click', xbox: 'Click' },
 ]
 
 const SPECIAL_BINDINGS = [
@@ -352,30 +367,43 @@ export function KeymapControls({
   onSimPressWindowChange,
   triggerThreshold,
   onTriggerThresholdChange,
+  view = 'full',
+  touchpadMode: touchpadModeProp = 'GRID_AND_STICK',
+  onTouchpadModeChange,
+  gridColumns = 2,
+  gridRows = 2,
+  onGridSizeChange,
+  touchpadSensitivity,
+  onTouchpadSensitivityChange,
+  touchpadDualStageMode,
+  onTouchpadDualStageModeChange,
 }: KeymapControlsProps) {
   const [layout, setLayout] = useState<ControllerLayout>('playstation')
   const [captureTarget, setCaptureTarget] = useState<CaptureTarget | null>(null)
   const [suppressKey, setSuppressKey] = useState<string | null>(null)
   const [manualRows, setManualRows] = useState<Record<string, ManualRowState>>({})
-  const touchpadMode = useMemo(
-    () => getKeymapValue(configText, 'TOUCHPAD_MODE')?.trim().toUpperCase() ?? 'MOUSE',
-    [configText]
-  )
-  const gridSizeRaw = useMemo(() => getKeymapValue(configText, 'GRID_SIZE'), [configText])
-  const configuredGridButtons = useMemo(() => {
-    if (touchpadMode !== 'GRID_AND_STICK') return 0
-    if (!gridSizeRaw) return 2
-    const tokens = gridSizeRaw.split(/\s+/).map(token => Number(token))
-    if (tokens.length >= 2) {
-      const product = tokens[0] * tokens[1]
-      return clampGridButtons(product)
-    }
-    return 2
-  }, [gridSizeRaw, touchpadMode])
+  const touchpadMode = useMemo(() => touchpadModeProp?.toUpperCase() ?? 'GRID_AND_STICK', [touchpadModeProp])
   const gridActive = touchpadMode === 'GRID_AND_STICK'
+  const clampedGridCols = Math.max(1, Math.min(5, gridColumns || 1))
+  const clampedGridRows = Math.max(1, Math.min(5, gridRows || 1))
+  const clampedGridCells = Math.min(25, clampedGridCols * clampedGridRows)
+  const configuredGridButtons = gridActive ? clampedGridCells : 0
   const modifierOptions = useMemo(() => {
     return buildModifierOptions(layout, gridActive, configuredGridButtons)
   }, [layout, gridActive, configuredGridButtons])
+
+  const touchpadGridButtons = useMemo<ButtonDefinition[]>(() => {
+    return Array.from({ length: clampedGridCells }, (_, index) => {
+      const rowIndex = Math.floor(index / clampedGridCols)
+      const colIndex = index % clampedGridCols
+      return {
+        command: `T${index + 1}`,
+        description: `Row ${rowIndex + 1}, Col ${colIndex + 1}`,
+        playstation: `T${index + 1}`,
+        xbox: `T${index + 1}`,
+      }
+    })
+  }, [clampedGridCells, clampedGridCols])
 
   const bindingRowsByButton = useMemo(() => {
     const record: Record<string, ButtonBindingRow[]> = {}
@@ -385,11 +413,13 @@ export function KeymapControls({
       ...BUMPER_BUTTONS,
       ...TRIGGER_BUTTONS,
       ...CENTER_BUTTONS,
+      ...TOUCH_BUTTONS,
+      ...touchpadGridButtons,
     ].forEach(({ command }) => {
       record[command] = getButtonBindingRows(configText, command, manualRows[command] ?? {})
     })
     return record
-  }, [configText, manualRows])
+  }, [configText, manualRows, touchpadGridButtons])
 
   const specialsByButton = useMemo(() => {
     const assignments: Record<string, string | undefined> = {}
@@ -408,6 +438,7 @@ export function KeymapControls({
   }, [configText])
 
   const [captureLabel, setCaptureLabel] = useState<string>('')
+  const showFullLayout = view !== 'touchpad'
 
   useEffect(() => {
     if (!captureTarget) return
@@ -757,83 +788,182 @@ export function KeymapControls({
   return (
     <Card className="control-panel" lockable locked={isCalibrating} lockMessage="Keymapping locked while JSM calibrates">
       <div className="keymap-card-header">
-        <h2>Keymap Controls</h2>
-        <div className="mode-toggle">
-          <button className={`pill-tab ${layout === 'playstation' ? 'active' : ''}`} onClick={() => setLayout('playstation')}>
-            PlayStation Labels
-          </button>
-          <button className={`pill-tab ${layout === 'xbox' ? 'active' : ''}`} onClick={() => setLayout('xbox')}>
-            Xbox Labels
-          </button>
-        </div>
+        <h2>{view === 'touchpad' ? 'Touchpad Controls' : 'Keymap Controls'}</h2>
+        {showFullLayout && (
+          <div className="mode-toggle">
+            <button className={`pill-tab ${layout === 'playstation' ? 'active' : ''}`} onClick={() => setLayout('playstation')}>
+              PlayStation Labels
+            </button>
+            <button className={`pill-tab ${layout === 'xbox' ? 'active' : ''}`} onClick={() => setLayout('xbox')}>
+              Xbox Labels
+            </button>
+          </div>
+        )}
       </div>
 
-      <KeymapSection
-        title="Global controls"
-        description="Timing windows that apply whenever those binding types are in use."
-      >
-        <div className="global-controls">
-          {renderGlobalRow(
-            'Tap vs hold press threshold',
-            holdPressTimeIsCustom
-              ? 'Custom HOLD_PRESS_TIME saved'
-              : `Using default (${Math.round(holdPressTimeDefault * 1000)} ms)`,
-            holdPressTimeInputValue,
-            onHoldPressTimeChange
+      {showFullLayout && (
+        <>
+          <KeymapSection
+            title="Global controls"
+            description="Timing windows that apply whenever those binding types are in use."
+          >
+            <div className="global-controls">
+              {renderGlobalRow(
+                'Tap vs hold press threshold',
+                holdPressTimeIsCustom
+                  ? 'Custom HOLD_PRESS_TIME saved'
+                  : `Using default (${Math.round(holdPressTimeDefault * 1000)} ms)`,
+                holdPressTimeInputValue,
+                onHoldPressTimeChange
+              )}
+              {renderGlobalRow(
+                'Double press window',
+                doublePressWindowIsCustom
+                  ? 'Custom DBL_PRESS_WINDOW saved'
+                  : `Using default (${Math.round(holdPressTimeDefault * 1000)} ms)`,
+                doublePressInputValue,
+                onDoublePressWindowChange
+              )}
+              {renderGlobalRow(
+                'Simultaneous press window',
+                simPressWindowIsCustom
+                  ? 'Custom SIM_PRESS_WINDOW saved'
+                  : `Using default (${Math.round(holdPressTimeDefault * 1000)} ms)`,
+                simPressInputValue,
+                onSimPressWindowChange
+              )}
+              {renderGlobalRow(
+                'Trigger threshold',
+                triggerThreshold > 0 ? `Custom TRIGGER_THRESHOLD = ${triggerThreshold.toFixed(2)}` : 'Default (0.00)',
+                triggerThreshold,
+                onTriggerThresholdChange
+              )}
+            </div>
+          </KeymapSection>
+          {renderSectionActions()}
+
+          <KeymapSection
+            title="Face Buttons"
+            description="Tap / Hold / Double / Chorded / Simultaneous bindings available via Add Extra Binding."
+          >
+            <div className="keymap-grid">{FACE_BUTTONS.map(renderButtonCard)}</div>
+          </KeymapSection>
+          {renderSectionActions()}
+
+          <KeymapSection
+            title="D-pad"
+            description="Directional pad bindings with the same extra slots and special actions."
+          >
+            <div className="keymap-grid">{DPAD_BUTTONS.map(renderButtonCard)}</div>
+          </KeymapSection>
+          {renderSectionActions()}
+
+          <KeymapSection title="Bumpers" description="L1/R1 bindings with the usual specials and extra slots.">
+            <div className="keymap-grid">{BUMPER_BUTTONS.map(renderButtonCard)}</div>
+          </KeymapSection>
+          {renderSectionActions()}
+
+          <KeymapSection title="Triggers" description="Soft/full pulls and threshold toggles for L2/R2.">
+            <div className="keymap-grid">{TRIGGER_BUTTONS.map(renderButtonCard)}</div>
+          </KeymapSection>
+          {renderSectionActions()}
+        </>
+      )}
+      {showFullLayout && (
+        <>
+          <KeymapSection title="Center buttons" description="Options, Share, and Mic bindings.">
+            <div className="keymap-grid">{CENTER_BUTTONS.map(renderButtonCard)}</div>
+          </KeymapSection>
+          {renderSectionActions()}
+        </>
+      )}
+
+      {view === 'touchpad' && (
+        <>
+          <KeymapSection title="Touch and click buttons" description="Bindings for touch contact and pad click.">
+            <div className="keymap-grid">{TOUCH_BUTTONS.map(renderButtonCard)}</div>
+          </KeymapSection>
+          {renderSectionActions()}
+          <KeymapSection title="Touchpad mode and grid" description="Adjust mode, grid size, and sensitivity for the touchpad.">
+            <div className="touchpad-settings">
+              <label>
+                Mode
+                <select value={touchpadMode} onChange={(event) => onTouchpadModeChange?.(event.target.value)}>
+                  <option value="GRID_AND_STICK">Grid and Stick</option>
+                  <option value="MOUSE">Mouse</option>
+                </select>
+              </label>
+              {touchpadMode === 'GRID_AND_STICK' && (
+                <>
+                  <div className="grid-size-inputs">
+                    <label>
+                      Columns
+                      <input
+                        type="number"
+                        min={1}
+                        max={5}
+                        value={gridColumns}
+                        onChange={(event) => onGridSizeChange?.(Number(event.target.value) || 1, gridRows)}
+                      />
+                    </label>
+                    <label>
+                      Rows
+                      <input
+                        type="number"
+                        min={1}
+                        max={5}
+                        value={gridRows}
+                        onChange={(event) => onGridSizeChange?.(gridColumns, Number(event.target.value) || 1)}
+                      />
+                    </label>
+                  </div>
+                  <small className="grid-limit-hint">Columns × Rows cannot exceed 25 total regions.</small>
+                </>
+              )}
+              {touchpadMode === 'MOUSE' && (
+                <label>
+                  Touchpad sensitivity
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={touchpadSensitivity ?? ''}
+                    onChange={(event) => onTouchpadSensitivityChange?.(event.target.value)}
+                    placeholder="Default"
+                  />
+                </label>
+              )}
+            </div>
+          </KeymapSection>
+          {touchpadMode === 'GRID_AND_STICK' && (
+            <KeymapSection
+              title="Touchpad grid"
+              description="This preview mirrors the touchpad. Configure each region using the rows below."
+            >
+              <div className="touchpad-grid-preview" style={{ gridTemplateColumns: `repeat(${clampedGridCols}, 1fr)` }}>
+                {Array.from({ length: clampedGridCells }).map((_, index) => {
+                  const rowIndex = Math.floor(index / clampedGridCols)
+                  const colIndex = index % clampedGridCols
+                  return (
+                    <div className="touchpad-grid-cell" key={`cell-${index}`}>
+                      <span>T{index + 1}</span>
+                      <small>
+                        Row {rowIndex + 1}, Col {colIndex + 1}
+                      </small>
+                    </div>
+                  )
+                })}
+              </div>
+              <div
+                className="touchpad-binding-list"
+                data-touchpad-binding-list
+              >
+                <div className="keymap-grid">{touchpadGridButtons.map(renderButtonCard)}</div>
+              </div>
+            </KeymapSection>
           )}
-          {renderGlobalRow(
-            'Double press window',
-            doublePressWindowIsCustom
-              ? 'Custom DBL_PRESS_WINDOW saved'
-              : `Using default (${Math.round(holdPressTimeDefault * 1000)} ms)`,
-            doublePressInputValue,
-            onDoublePressWindowChange
-          )}
-          {renderGlobalRow(
-            'Simultaneous press window',
-            simPressWindowIsCustom
-              ? 'Custom SIM_PRESS_WINDOW saved'
-              : `Using default (${Math.round(holdPressTimeDefault * 1000)} ms)`,
-            simPressInputValue,
-            onSimPressWindowChange
-          )}
-          {renderGlobalRow(
-            'Trigger threshold',
-            triggerThreshold > 0 ? `Custom TRIGGER_THRESHOLD = ${triggerThreshold.toFixed(2)}` : 'Default (0.00)',
-            triggerThreshold,
-            onTriggerThresholdChange
-          )}
-        </div>
-      </KeymapSection>
-      {renderSectionActions()}
-
-      <KeymapSection
-        title="Face Buttons"
-        description="Tap / Hold / Double / Chorded / Simultaneous bindings available via Add Extra Binding."
-      >
-        <div className="keymap-grid">{FACE_BUTTONS.map(renderButtonCard)}</div>
-      </KeymapSection>
-      {renderSectionActions()}
-
-      <KeymapSection title="D-pad" description="Directional pad bindings with the same extra slots and special actions.">
-        <div className="keymap-grid">{DPAD_BUTTONS.map(renderButtonCard)}</div>
-      </KeymapSection>
-      {renderSectionActions()}
-
-      <KeymapSection title="Bumpers" description="L1/R1 bindings with the usual specials and extra slots.">
-        <div className="keymap-grid">{BUMPER_BUTTONS.map(renderButtonCard)}</div>
-      </KeymapSection>
-      {renderSectionActions()}
-
-      <KeymapSection title="Triggers" description="Soft/full pulls and threshold toggles for L2/R2.">
-        <div className="keymap-grid">{TRIGGER_BUTTONS.map(renderButtonCard)}</div>
-      </KeymapSection>
-      {renderSectionActions()}
-
-      <KeymapSection title="Center buttons" description="Options, Share, and Mic bindings.">
-        <div className="keymap-grid">{CENTER_BUTTONS.map(renderButtonCard)}</div>
-      </KeymapSection>
-      {renderSectionActions()}
+          {renderSectionActions()}
+        </>
+      )}
 
     </Card>
   )

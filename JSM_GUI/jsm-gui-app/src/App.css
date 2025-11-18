@@ -97,6 +97,85 @@ body {
   font-size: 0.85rem;
 }
 
+.touchpad-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.touchpad-settings label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-weight: 600;
+  color: #ddd;
+}
+
+.touchpad-settings select,
+.touchpad-settings input {
+  border-radius: 999px;
+  border: 1px solid #2a2a2a;
+  background: #111;
+  color: #eee;
+  padding: 0.45rem 0.8rem;
+}
+
+.grid-size-inputs {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.grid-limit-hint {
+  font-size: 0.8rem;
+  color: #bbb;
+}
+
+.touchpad-grid-preview {
+  display: grid;
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
+  width: 100%;
+  min-height: 220px;
+  border-radius: 16px;
+  border: 1px solid #2c2c2c;
+  padding: 0.4rem;
+  background: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.05), rgba(0, 0, 0, 0)) #121212;
+}
+
+.touchpad-grid-cell {
+  border: 1px solid #2f2f2f;
+  border-radius: 10px;
+  padding: 0.6rem;
+  background: #151515;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+}
+
+.touchpad-grid-cell span {
+  font-weight: 700;
+  color: #f0f0f0;
+}
+
+.touchpad-grid-cell small {
+  color: #b0b0b0;
+  font-size: 0.8rem;
+}
+
+.touchpad-grid-hint {
+  color: #cfcfcf;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  margin-bottom: 0.8rem;
+}
+
+.touchpad-binding-list .keymap-grid {
+  margin-top: 0.5rem;
+}
+
 header {
   text-align: center;
   margin-bottom: 1rem;
