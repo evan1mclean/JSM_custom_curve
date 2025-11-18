@@ -1124,10 +1124,48 @@ const handleDeleteLibraryProfile = async (name: string) => {
           </>
         )}
         {activeTab === 'sticks' && (
-          <div className="tab-placeholder">
-            <h2>Stick controls & modes</h2>
-            <p>Placeholder card – stick bindings, flick/aim modes, and ring settings will live here.</p>
-          </div>
+          <>
+            <KeymapControls
+              view="sticks"
+              configText={configText}
+              hasPendingChanges={hasPendingChanges}
+              isCalibrating={isCalibrating}
+              statusMessage={statusMessage}
+              onApply={applyConfig}
+              onCancel={handleCancel}
+              onBindingChange={handleFaceButtonBindingChange}
+              onAssignSpecialAction={handleSpecialActionAssignment}
+              onClearSpecialAction={handleClearSpecialAction}
+              trackballDecay={trackballDecayValue}
+              onTrackballDecayChange={handleTrackballDecayChange}
+              holdPressTimeSeconds={holdPressTimeSeconds}
+              holdPressTimeIsCustom={holdPressTimeIsCustom}
+              holdPressTimeDefault={DEFAULT_HOLD_PRESS_TIME}
+              onHoldPressTimeChange={handleHoldPressTimeChange}
+              doublePressWindowSeconds={doublePressWindowSeconds}
+              doublePressWindowIsCustom={doublePressWindowIsCustom}
+              onDoublePressWindowChange={handleDoublePressWindowChange}
+              simPressWindowSeconds={simPressWindowSeconds}
+              simPressWindowIsCustom={simPressWindowIsCustom}
+              onSimPressWindowChange={handleSimPressWindowChange}
+              triggerThreshold={triggerThresholdValue}
+              onTriggerThresholdChange={handleTriggerThresholdChange}
+              onModifierChange={handleModifierChange}
+              touchpadMode={touchpadModeValue}
+              gridColumns={gridSizeValue.columns}
+              gridRows={gridSizeValue.rows}
+            />
+            <ConfigEditor
+              value={configText}
+              label={profileFileLabel}
+              disabled={isCalibrating}
+              hasPendingChanges={hasPendingChanges}
+              statusMessage={statusMessage}
+              onChange={setConfigText}
+              onApply={applyConfig}
+              onCancel={handleCancel}
+            />
+          </>
         )}
       </div>
     </div>

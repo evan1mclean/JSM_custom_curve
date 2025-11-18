@@ -235,6 +235,7 @@ function parseComboBinding(text: string, button: string, separator: '+' | ','): 
     if (parts.length !== 2) continue
     const [left, right] = parts.map(part => part.trim())
     if (right !== target) continue
+    if (left.toUpperCase() === target) continue
     const bindingValue = value.split(/\s+/)[0]
     if (!bindingValue) continue
     return { modifier: left, binding: bindingValue }

@@ -40,7 +40,13 @@ export function NoiseSteadyingControls({
       locked={isCalibrating}
       lockMessage="Controls locked while JSM calibrates"
     >
-      <h2>Noise & Steadying</h2>
+      <div className="section-header">
+        <h2 className="section-title">Noise & Steadying</h2>
+        <p className="section-caption compact">
+          Increase deadzone/steadying to damp the live gyro noise shown below; higher values reduce tiny movements when the
+          controller is at rest.
+        </p>
+      </div>
       <div className="telemetry-inline">
         <TelemetryBanner {...telemetry} />
       </div>

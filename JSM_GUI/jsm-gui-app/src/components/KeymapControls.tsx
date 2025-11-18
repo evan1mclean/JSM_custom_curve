@@ -44,7 +44,7 @@ type KeymapControlsProps = {
   onSimPressWindowChange: (value: string) => void
   triggerThreshold: number
   onTriggerThresholdChange: (value: string) => void
-  view?: 'full' | 'touchpad'
+  view?: 'full' | 'touchpad' | 'sticks'
   touchpadMode?: string
   onTouchpadModeChange?: (value: string) => void
   gridColumns?: number
@@ -96,6 +96,24 @@ const CENTER_BUTTONS: ButtonDefinition[] = [
 const TOUCH_BUTTONS: ButtonDefinition[] = [
   { command: 'TOUCH', description: 'Touch contact', playstation: 'Touch', xbox: 'Touch' },
   { command: 'CAPTURE', description: 'Touchpad click', playstation: 'Click', xbox: 'Click' },
+]
+
+const LEFT_STICK_BUTTONS: ButtonDefinition[] = [
+  { command: 'LUP', description: 'Left stick up direction', playstation: 'LS Up', xbox: 'LS Up' },
+  { command: 'LDOWN', description: 'Left stick down direction', playstation: 'LS Down', xbox: 'LS Down' },
+  { command: 'LLEFT', description: 'Left stick left direction', playstation: 'LS Left', xbox: 'LS Left' },
+  { command: 'LRIGHT', description: 'Left stick right direction', playstation: 'LS Right', xbox: 'LS Right' },
+  { command: 'L3', description: 'Left stick click', playstation: 'L3', xbox: 'LS Click' },
+  { command: 'LRING', description: 'Left stick ring binding', playstation: 'L-Ring', xbox: 'L-Ring' },
+]
+
+const RIGHT_STICK_BUTTONS: ButtonDefinition[] = [
+  { command: 'RUP', description: 'Right stick up direction', playstation: 'RS Up', xbox: 'RS Up' },
+  { command: 'RDOWN', description: 'Right stick down direction', playstation: 'RS Down', xbox: 'RS Down' },
+  { command: 'RLEFT', description: 'Right stick left direction', playstation: 'RS Left', xbox: 'RS Left' },
+  { command: 'RRIGHT', description: 'Right stick right direction', playstation: 'RS Right', xbox: 'RS Right' },
+  { command: 'R3', description: 'Right stick click', playstation: 'R3', xbox: 'RS Click' },
+  { command: 'RRING', description: 'Right stick ring binding', playstation: 'R-Ring', xbox: 'R-Ring' },
 ]
 
 const SPECIAL_BINDINGS = [
@@ -284,7 +302,8 @@ export function KeymapControls({
   touchpadSensitivity,
   onTouchpadSensitivityChange,
 }: KeymapControlsProps) {
-  const [layout, setLayout] = useState<ControllerLayout>('playstation')
+  const layout: ControllerLayout = 'playstation'
+  const [stickView, setStickView] = useState<'bindings' | 'modes'>('bindings')
   const [captureTarget, setCaptureTarget] = useState<CaptureTarget | null>(null)
   const [suppressKey, setSuppressKey] = useState<string | null>(null)
   const [manualRows, setManualRows] = useState<Record<string, ManualRowState>>({})
@@ -323,6 +342,8 @@ export function KeymapControls({
       ...BUMPER_BUTTONS,
       ...TRIGGER_BUTTONS,
       ...CENTER_BUTTONS,
+      ...LEFT_STICK_BUTTONS,
+      ...RIGHT_STICK_BUTTONS,
       ...TOUCH_BUTTONS,
       ...touchpadGridButtons,
     ].forEach(({ command }) => {
@@ -348,7 +369,8 @@ export function KeymapControls({
   }, [configText])
 
   const [captureLabel, setCaptureLabel] = useState<string>('')
-  const showFullLayout = view !== 'touchpad'
+  const showFullLayout = view === 'full'
+  const showStickLayout = view === 'sticks'
 
   useEffect(() => {
     if (!captureTarget) return
@@ -693,17 +715,9 @@ export function KeymapControls({
   return (
     <Card className="control-panel" lockable locked={isCalibrating} lockMessage="Keymapping locked while JSM calibrates">
       <div className="keymap-card-header">
-        <h2>{view === 'touchpad' ? 'Touchpad Controls' : 'Keymap Controls'}</h2>
-        {showFullLayout && (
-          <div className="mode-toggle">
-            <button className={`pill-tab ${layout === 'playstation' ? 'active' : ''}`} onClick={() => setLayout('playstation')}>
-              PlayStation Labels
-            </button>
-            <button className={`pill-tab ${layout === 'xbox' ? 'active' : ''}`} onClick={() => setLayout('xbox')}>
-              Xbox Labels
-            </button>
-          </div>
-        )}
+        <h2>
+          {view === 'touchpad' ? 'Touchpad Controls' : view === 'sticks' ? 'Stick Bindings' : 'Keymap Controls'}
+        </h2>
       </div>
 
       {showFullLayout && (
@@ -780,6 +794,39 @@ export function KeymapControls({
             <div className="keymap-grid">{CENTER_BUTTONS.map(renderButtonCard)}</div>
           </KeymapSection>
           {renderSectionActions()}
+        </>
+      )}
+
+      {showStickLayout && (
+        <>
+          <div className="mode-toggle stick-subtabs">
+            <button className={`pill-tab ${stickView === 'bindings' ? 'active' : ''}`} onClick={() => setStickView('bindings')}>
+              Bindings
+            </button>
+            <button className={`pill-tab ${stickView === 'modes' ? 'active' : ''}`} onClick={() => setStickView('modes')}>
+              Modes & Settings
+            </button>
+          </div>
+          {stickView === 'bindings' ? (
+            <>
+              <KeymapSection
+                title="Left stick"
+                description="Bind directions, ring, or stick click with the same extra slots available elsewhere."
+              >
+                <div className="keymap-grid">{LEFT_STICK_BUTTONS.map(renderButtonCard)}</div>
+              </KeymapSection>
+              {renderSectionActions()}
+              <KeymapSection title="Right stick" description="Configure the right stick directions, ring binding, or stick click.">
+                <div className="keymap-grid">{RIGHT_STICK_BUTTONS.map(renderButtonCard)}</div>
+              </KeymapSection>
+              {renderSectionActions()}
+            </>
+          ) : (
+            <Card className="stick-modes-placeholder">
+              <h3>Coming soon</h3>
+              <p>Stick mode selection (AIM, Flick, Mouse area, etc.), deadzones, and ring settings will live here.</p>
+            </Card>
+          )}
         </>
       )}
 

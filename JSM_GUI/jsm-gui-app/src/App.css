@@ -244,9 +244,16 @@ header h1 {
   color: #f2f2f2;
 }
 
+.telemetry-inline {
+  background: #111;
+  border: 1px solid #333;
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+}
+
 .telemetry-inline .telemetry-banner {
   margin: 0;
-  padding: 0.4rem 0 0.6rem;
+  padding: 0;
   border: none;
   border-radius: 0;
   background: transparent;
@@ -552,10 +559,30 @@ input[type=number] {
   font-size: 0.9rem;
 }
 
+.section-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.section-caption {
+  margin: 0 0 0.75rem;
+  color: #b5b5b5;
+  font-size: 0.9rem;
+}
+
+.section-caption.compact {
+  margin-bottom: 0.35rem;
+}
+
 .profile-library-empty {
   margin: 0;
   color: #b5b5b5;
   font-size: 0.9rem;
+}
+
+.section-title {
+  margin: 0;
 }
 
 .profile-library-list {
