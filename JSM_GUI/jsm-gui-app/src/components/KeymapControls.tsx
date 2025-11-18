@@ -597,13 +597,15 @@ export function KeymapControls({
             ) {
               rowModifierOptions = [...modifierOptions, { value: modifierValue, label: modifierValue }]
             }
+            const isLegacyFileCall = Boolean(row.binding && /"\s*[^"]+\.(txt|cfg|ini)"/i.test(row.binding))
             return (
-              <BindingRow
-                key={`${button.command}-${row.slot}`}
-                label={headerLabel}
-                showHeader={showHeader}
-                displayValue={displayValue}
-                isManual={row.isManual}
+              <>
+                <BindingRow
+                  key={`${button.command}-${row.slot}`}
+                  label={headerLabel}
+                  showHeader={showHeader}
+                  displayValue={displayValue}
+                  isManual={row.isManual}
                 isCapturing={isCapturing}
                 captureLabel={captureLabel}
                 onBeginCapture={() => beginCapture(button.command, row.slot, needsModifier ? modifierValue : undefined)}
@@ -655,7 +657,13 @@ export function KeymapControls({
                         ensureManualRow(button.command, row.slot)
                       }
                 }
-              />
+                />
+                {isLegacyFileCall && (
+                  <div className="legacy-binding-warning">
+                    Legacy script detected — place the referenced file inside <code>JSM_GUI/bin/</code> or clear this row.
+                  </div>
+                )}
+              </>
             )
           })}
           {(() => {

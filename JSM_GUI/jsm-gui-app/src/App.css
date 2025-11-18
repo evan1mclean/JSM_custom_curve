@@ -87,6 +87,16 @@ body {
   color: #b8b8b8;
 }
 
+.legacy-binding-warning {
+  margin: 0.3rem 0 0.8rem 0;
+  padding: 0.45rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 196, 80, 0.4);
+  background: rgba(255, 196, 80, 0.08);
+  color: #ffc450;
+  font-size: 0.85rem;
+}
+
 header {
   text-align: center;
   margin-bottom: 1rem;
