@@ -21,6 +21,7 @@ import { ProfileManager } from './components/ProfileManager'
 import { GyroBehaviorControls } from './components/GyroBehaviorControls'
 import { NoiseSteadyingControls } from './components/NoiseSteadyingControls'
 import { KeymapControls } from './components/KeymapControls'
+import { SectionActions } from './components/SectionActions'
 
 const asNumber = (value: unknown) => (typeof value === 'number' ? value : undefined)
 const formatNumber = (value: number | undefined, digits = 2) =>
@@ -1063,7 +1064,11 @@ const handleDeleteLibraryProfile = async (name: string) => {
 
   const [isCalibrationModalOpen, setCalibrationModalOpen] = useState(false)
   const [calibrationRestorePath, setCalibrationRestorePath] = useState<string | null>(null)
+  const [calibrationCounterOs, setCalibrationCounterOs] = useState<boolean>(counterOsMouseSpeedEnabled)
+  const [calibrationInGameSens, setCalibrationInGameSens] = useState<string>(sensitivity.inGameSens?.toString() ?? '')
   const handleOpenCalibration = useCallback(async () => {
+    setCalibrationCounterOs(counterOsMouseSpeedEnabled)
+    setCalibrationInGameSens(sensitivity.inGameSens?.toString() ?? '')
     setCalibrationModalOpen(true)
     try {
       const result = await window.electronAPI?.loadCalibrationPreset?.()
@@ -1073,7 +1078,7 @@ const handleDeleteLibraryProfile = async (name: string) => {
     } catch (err) {
       console.error('Failed to load calibration preset', err)
     }
-  }, [])
+  }, [counterOsMouseSpeedEnabled, sensitivity.inGameSens])
   const handleCloseCalibration = useCallback(async () => {
     setCalibrationModalOpen(false)
     if (calibrationRestorePath) {
@@ -1086,6 +1091,19 @@ const handleDeleteLibraryProfile = async (name: string) => {
       }
     }
   }, [calibrationRestorePath, configText])
+
+  const handleApplyCalibrationOptions = useCallback(() => {
+    handleCounterOsMouseSpeedChange(calibrationCounterOs)
+    setConfigText(prev => {
+      const trimmed = calibrationInGameSens.trim()
+      if (!trimmed) {
+        return removeKeymapEntry(prev, 'IN_GAME_SENS')
+      }
+      const parsed = Number(trimmed)
+      if (!Number.isFinite(parsed)) return prev
+      return updateKeymapEntry(prev, 'IN_GAME_SENS', [parsed])
+    })
+  }, [calibrationCounterOs, calibrationInGameSens, handleCounterOsMouseSpeedChange])
 
   const scrollSensValue = useMemo(() => {
     const raw = getKeymapValue(configText, 'SCROLL_SENS')
@@ -1589,11 +1607,40 @@ const handleDeleteLibraryProfile = async (name: string) => {
             <p className="modal-description">
               Loaded the calibration preset. In-game, rotate the stick for a full turn, return here, and run the calculation.
             </p>
-            <div className="modal-actions">
-              <button type="button" className="secondary-btn" onClick={handleCloseCalibration}>
-                Close
-              </button>
+            <div className="flex-inputs">
+              <label>
+                In-Game Sensitivity
+                <input
+                  type="number"
+                  step="0.1"
+                  value={calibrationInGameSens}
+                  onChange={(event) => setCalibrationInGameSens(event.target.value)}
+                />
+              </label>
             </div>
+            <div className="flex-inputs">
+              <label>
+                Counter OS mouse speed
+                <select
+                  className="app-select"
+                  value={calibrationCounterOs ? 'ON' : 'OFF'}
+                  onChange={(event) => setCalibrationCounterOs(event.target.value === 'ON')}
+                >
+                  <option value="OFF">Off (default)</option>
+                  <option value="ON">On</option>
+                </select>
+              </label>
+            </div>
+            <SectionActions
+              hasPendingChanges={hasPendingChanges}
+              statusMessage={statusMessage}
+              onApply={() => {
+                handleApplyCalibrationOptions()
+                applyConfig()
+              }}
+              onCancel={handleCloseCalibration}
+              applyDisabled={isCalibrating}
+            />
           </div>
         </div>
       )}
