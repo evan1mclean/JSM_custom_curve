@@ -1,4 +1,4 @@
-type SpecialOption = { value: string; label: string }
+type SpecialOption = { value: string; label: string; disabled?: boolean }
 
 type ModifierOption = {
   value: string
@@ -83,7 +83,7 @@ export function BindingRow({
           >
             <option value="">Special Binds</option>
             {specialOptions.map(option => (
-              <option key={option.value || 'placeholder'} value={option.value}>
+              <option key={option.value || 'placeholder'} value={option.value} disabled={option.disabled}>
                 {option.label}
               </option>
             ))}

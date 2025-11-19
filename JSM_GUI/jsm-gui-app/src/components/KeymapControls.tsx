@@ -79,6 +79,8 @@ type KeymapControlsProps = {
     onAccelerationRateChange: (value: string) => void
     onAccelerationCapChange: (value: string) => void
   }
+  stickModeShiftAssignments?: Record<string, { target: 'LEFT' | 'RIGHT'; mode: string }[]>
+  onStickModeShiftChange?: (button: string, target: 'LEFT' | 'RIGHT', mode?: string) => void
 }
 
 type ButtonDefinition = {
@@ -142,6 +144,60 @@ const RIGHT_STICK_BUTTONS: ButtonDefinition[] = [
   { command: 'R3', description: 'Right stick click', playstation: 'R3', xbox: 'RS Click' },
   { command: 'RRING', description: 'Right stick ring binding', playstation: 'R-Ring', xbox: 'R-Ring' },
 ]
+
+const STICK_MODE_VALUES = [
+  'NO_MOUSE',
+  'AIM',
+  'FLICK',
+  'FLICK_ONLY',
+  'ROTATE_ONLY',
+  'MOUSE_RING',
+  'MOUSE_AREA',
+  'SCROLL_WHEEL',
+  'HYBRID_AIM',
+  'INNER_RING',
+  'OUTER_RING',
+] as const
+
+const STICK_MODE_LABELS: Record<string, string> = {
+  NO_MOUSE: 'No Mouse',
+  AIM: 'Aim',
+  FLICK: 'Flick Stick',
+  FLICK_ONLY: 'Flick Only',
+  ROTATE_ONLY: 'Rotate Only',
+  MOUSE_RING: 'Mouse Ring',
+  MOUSE_AREA: 'Mouse Area',
+  SCROLL_WHEEL: 'Scroll Wheel',
+  HYBRID_AIM: 'Hybrid Aim',
+  INNER_RING: 'Inner Ring',
+  OUTER_RING: 'Outer Ring',
+}
+
+const formatStickModeLabel = (mode: string) => {
+  const upper = mode?.toUpperCase()
+  if (STICK_MODE_LABELS[upper]) return STICK_MODE_LABELS[upper]
+  return upper.replace(/_/g, ' ')
+}
+
+const buildStickShiftValue = (target: 'LEFT' | 'RIGHT', mode: string) => `STICK_SHIFT:${target}:${mode}`
+
+const STICK_SHIFT_SPECIAL_OPTIONS = STICK_MODE_VALUES.flatMap(mode => [
+  {
+    value: buildStickShiftValue('LEFT', mode),
+    label: `Stick shift — Left → ${formatStickModeLabel(mode)}`,
+  },
+  {
+    value: buildStickShiftValue('RIGHT', mode),
+    label: `Stick shift — Right → ${formatStickModeLabel(mode)}`,
+  },
+])
+const STICK_SHIFT_HEADER_OPTION = { value: 'STICK_SHIFT_HEADER', label: '── Stick mode shifts ──', disabled: true }
+
+const parseStickShiftSelection = (value: string) => {
+  const match = /^STICK_SHIFT:(LEFT|RIGHT):([A-Z_]+)$/i.exec(value)
+  if (!match) return null
+  return { target: match[1].toUpperCase() as 'LEFT' | 'RIGHT', mode: match[2].toUpperCase() }
+}
 
 const STICK_AIM_DEFAULTS = {
   sens: '360',
@@ -419,6 +475,8 @@ export function KeymapControls({
   stickModeSettings,
   onStickModeChange,
   onRingModeChange,
+  stickModeShiftAssignments,
+  onStickModeShiftChange,
   stickAimSettings,
   stickAimHandlers,
   adaptiveTriggerValue = '',
@@ -429,6 +487,7 @@ export function KeymapControls({
   const [captureTarget, setCaptureTarget] = useState<CaptureTarget | null>(null)
   const [suppressKey, setSuppressKey] = useState<string | null>(null)
   const [manualRows, setManualRows] = useState<Record<string, ManualRowState>>({})
+  const [stickShiftDisplayModes, setStickShiftDisplayModes] = useState<Record<string, 'tap' | 'extra'>>({})
   const touchpadMode = useMemo(() => {
     const upper = touchpadModeProp?.toUpperCase()
     if (upper === 'GRID_AND_STICK' || upper === 'MOUSE') return upper
@@ -501,6 +560,24 @@ export function KeymapControls({
   const rightDeadzoneValues = stickDeadzoneSettings?.right ?? { inner: '', outer: '' }
   const leftStickModes = stickModeSettings?.left ?? { mode: '', ring: '' }
   const rightStickModes = stickModeSettings?.right ?? { mode: '', ring: '' }
+
+  useEffect(() => {
+    setStickShiftDisplayModes(prev => {
+      if (!stickModeShiftAssignments) return {}
+      const next: Record<string, 'tap' | 'extra'> = {}
+      Object.keys(prev).forEach(button => {
+        if (stickModeShiftAssignments[button]?.length) {
+          next[button] = prev[button]
+        }
+      })
+      Object.keys(stickModeShiftAssignments).forEach(button => {
+        if (stickModeShiftAssignments[button]?.length && !next[button]) {
+          next[button] = 'tap'
+        }
+      })
+      return next
+    })
+  }, [stickModeShiftAssignments])
 
   useEffect(() => {
     if (!captureTarget) return
@@ -600,6 +677,19 @@ export function KeymapControls({
     })
   }
 
+  const updateStickShiftDisplayMode = (buttonKey: string, mode?: 'tap' | 'extra') => {
+    setStickShiftDisplayModes(prev => {
+      if (!mode) {
+        if (!prev[buttonKey]) return prev
+        const next = { ...prev }
+        delete next[buttonKey]
+        return next
+      }
+      if (prev[buttonKey] === mode) return prev
+      return { ...prev, [buttonKey]: mode }
+    })
+  }
+
   const handleModifierSelection = (button: string, slot: BindingSlot, row: ButtonBindingRow, nextModifier: string) => {
     if (!nextModifier) return
     if (row.isManual) {
@@ -633,9 +723,13 @@ export function KeymapControls({
   )
 
   const renderButtonCard = (button: ButtonDefinition) => {
+    const buttonKey = button.command.toUpperCase()
     const rows = bindingRowsByButton[button.command] ?? []
     const specialKey = specialsByButton[button.command] as keyof typeof SPECIAL_LABELS | undefined
     const tapSpecialLabel = specialKey ? SPECIAL_LABELS[specialKey] ?? '' : ''
+    const stickShiftEntries = stickModeShiftAssignments?.[buttonKey] ?? []
+    const shiftDisplayMode = stickShiftDisplayModes[buttonKey] ?? 'tap'
+    const tapStickShiftEntry = shiftDisplayMode === 'tap' ? stickShiftEntries[0] : undefined
     const buttonHasTrackball = Boolean(
       rows.some(row => {
         const binding = row.binding?.toUpperCase()
@@ -657,7 +751,11 @@ export function KeymapControls({
             const displayValue = (() => {
               if (row.slot === 'tap') {
                 if (row.binding) return row.binding
-                return tapSpecialLabel
+                if (tapSpecialLabel) return tapSpecialLabel
+                if (tapStickShiftEntry) {
+                  return `${tapStickShiftEntry.target === 'LEFT' ? 'Left stick' : 'Right stick'} → ${formatStickModeLabel(tapStickShiftEntry.mode)}`
+                }
+                return ''
               }
               if (isSpecialValue && row.binding) {
                 return SPECIAL_LABELS[row.binding]
@@ -666,15 +764,42 @@ export function KeymapControls({
             })()
             const showHeader = row.slot !== 'tap' || hasExtraRows
             const headerLabel = row.slot === 'tap' && hasExtraRows ? 'Regular Press' : row.label
-            const rowSpecialOptions = MODIFIER_SLOT_TYPES.includes(row.slot as BindingSlot)
+            let rowSpecialOptions = MODIFIER_SLOT_TYPES.includes(row.slot as BindingSlot)
               ? SPECIAL_OPTION_MANUAL_LIST
               : SPECIAL_OPTION_LIST
-            const specialValue =
-              row.slot === 'tap'
-                ? specialKey ?? ''
-                : isSpecialValue && row.binding
-                  ? row.binding
-                  : ''
+            if (row.slot === 'tap' && onStickModeShiftChange) {
+              rowSpecialOptions = [
+                ...rowSpecialOptions,
+                STICK_SHIFT_HEADER_OPTION,
+                ...STICK_SHIFT_SPECIAL_OPTIONS,
+              ]
+            }
+            const specialValue = (() => {
+              if (row.slot === 'tap') {
+                if (tapStickShiftEntry) {
+                  return buildStickShiftValue(tapStickShiftEntry.target, tapStickShiftEntry.mode)
+                }
+                if (row.binding && SPECIAL_LABELS[row.binding]) {
+                  return row.binding
+                }
+                return specialKey ?? ''
+              }
+              if (isSpecialValue && row.binding) {
+                return row.binding
+              }
+              return ''
+            })()
+            const clearTapSpecialBinding = () => {
+              if (row.slot !== 'tap') return
+              if (row.binding && SPECIAL_LABELS[row.binding]) {
+                onBindingChange(button.command, row.slot, null)
+              }
+            }
+            const clearAllStickShiftAssignments = () => {
+              if (!stickShiftEntries.length || !onStickModeShiftChange) return
+              stickShiftEntries.forEach(entry => onStickModeShiftChange(button.command, entry.target))
+              updateStickShiftDisplayMode(buttonKey, undefined)
+            }
             const needsModifier = MODIFIER_SLOT_TYPES.includes(row.slot as BindingSlot)
             const modifierValue = needsModifier
               ? row.modifierCommand ??
@@ -709,6 +834,8 @@ export function KeymapControls({
                       onBindingChange(button.command, row.slot, null)
                     } else if (specialKey) {
                       onClearSpecialAction(specialKey, button.command)
+                    } else if (tapStickShiftEntry) {
+                      onStickModeShiftChange?.(button.command, tapStickShiftEntry.target)
                     }
                   } else {
                     const options = needsModifier ? { modifier: modifierValue } : undefined
@@ -734,7 +861,28 @@ export function KeymapControls({
                           if (specialKey) {
                             onClearSpecialAction(specialKey, button.command)
                           }
+                          if (tapStickShiftEntry) {
+                            clearAllStickShiftAssignments()
+                          }
+                          clearTapSpecialBinding()
                           return
+                        }
+                        if (selected === STICK_SHIFT_HEADER_OPTION.value) {
+                          return
+                        }
+                        const parsedShift = parseStickShiftSelection(selected)
+                        if (parsedShift && onStickModeShiftChange) {
+                          if (specialKey) {
+                            onClearSpecialAction(specialKey, button.command)
+                          }
+                          clearTapSpecialBinding()
+                          stickShiftEntries.forEach(entry => onStickModeShiftChange(button.command, entry.target))
+                          onStickModeShiftChange(button.command, parsedShift.target, parsedShift.mode)
+                          updateStickShiftDisplayMode(buttonKey, 'tap')
+                          return
+                        }
+                        if (tapStickShiftEntry) {
+                          clearAllStickShiftAssignments()
                         }
                         onAssignSpecialAction(selected, button.command)
                       }
@@ -774,7 +922,19 @@ export function KeymapControls({
                   className="app-select"
                   value=""
                   onChange={(event) => {
-                    const selected = event.target.value as BindingSlot
+                    const selectedValue = event.target.value
+                    if (selectedValue === STICK_SHIFT_HEADER_OPTION.value) {
+                      event.target.value = ''
+                      return
+                    }
+                    const parsedShift = parseStickShiftSelection(selectedValue)
+                    if (parsedShift && onStickModeShiftChange) {
+                      onStickModeShiftChange(button.command, parsedShift.target, parsedShift.mode)
+                      updateStickShiftDisplayMode(buttonKey, 'extra')
+                      event.target.value = ''
+                      return
+                    }
+                    const selected = selectedValue as BindingSlot
                     if (selected) {
                       if (MODIFIER_SLOT_TYPES.includes(selected)) {
                         ensureManualRow(button.command, selected, {
@@ -799,10 +959,65 @@ export function KeymapControls({
                             : 'Simultaneous press'}
                     </option>
                   ))}
+                  {onStickModeShiftChange && (
+                    <>
+                      <option value={STICK_SHIFT_HEADER_OPTION.value} disabled>
+                        Stick mode shifts
+                      </option>
+                      {STICK_SHIFT_SPECIAL_OPTIONS.map(option => (
+                        <option key={`${button.command}-${option.value}`} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </>
+                  )}
                 </select>
               </div>
             )
           })()}
+          {stickShiftEntries.length > 0 && (
+            <div className="stick-shift-rows">
+              {stickShiftEntries.map(entry => {
+                const tapDisplaysShift =
+                  rows.length === 1 &&
+                  rows[0].slot === 'tap' &&
+                  !rows[0].binding &&
+                  !tapSpecialLabel &&
+                  stickShiftEntries.length === 1 &&
+                  shiftDisplayMode !== 'extra'
+                if (tapDisplaysShift) {
+                  return null
+                }
+                const label = entry.target === 'LEFT' ? 'Left stick mode shift' : 'Right stick mode shift'
+                const buttonLabel = `${entry.target === 'LEFT' ? 'Left stick' : 'Right stick'} → ${formatStickModeLabel(entry.mode)}`
+                return (
+                  <div className="binding-row manual-stick-shift" key={`${button.command}-${entry.target}`}>
+                    <div className="binding-row-header">
+                      <span>{label}</span>
+                    </div>
+                    <div className="primary-binding-row">
+                      <button type="button" className="binding-input" disabled>
+                        {buttonLabel}
+                      </button>
+                      <button
+                        type="button"
+                        className="clear-binding-btn"
+                        onClick={() => {
+                          onStickModeShiftChange?.(button.command, entry.target)
+                          if (stickShiftEntries.length === 1) {
+                            updateStickShiftDisplayMode(buttonKey, undefined)
+                          }
+                        }}
+                        data-capture-ignore="true"
+                      >
+                        Clear
+                      </button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
           {buttonHasTrackball && (
             <div className="trackball-inline" data-capture-ignore="true">
               <label>

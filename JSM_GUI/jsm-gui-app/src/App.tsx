@@ -874,6 +874,16 @@ const handleDeleteLibraryProfile = async (name: string) => {
     })
   }, [])
 
+  const handleStickModeShiftChange = useCallback((button: string, target: 'LEFT' | 'RIGHT', mode?: string) => {
+    const key = `${button.toUpperCase()},${target}_STICK_MODE`
+    setConfigText(prev => {
+      if (!mode || !mode.trim()) {
+        return removeKeymapEntry(prev, key)
+      }
+      return updateKeymapEntry(prev, key, [mode.trim().toUpperCase()])
+    })
+  }, [])
+
   const handleAdaptiveTriggerChange = useCallback((value: string) => {
     setConfigText(prev => {
       const trimmed = value.trim().toUpperCase()
@@ -1067,6 +1077,22 @@ const handleDeleteLibraryProfile = async (name: string) => {
         ring: getKeymapValue(configText, 'RIGHT_RING_MODE') ?? '',
       },
     }
+  }, [configText])
+  const stickModeShiftAssignments = useMemo(() => {
+    const result: Record<string, { target: 'LEFT' | 'RIGHT'; mode: string }[]> = {}
+    const lines = configText.split(/\r?\n/)
+    lines.forEach(line => {
+      const match = line.match(/^\s*([^,]+)\s*,\s*((LEFT|RIGHT)_STICK_MODE)\s*=\s*([^\s#]+)/i)
+      if (!match) return
+      const button = match[1].trim().toUpperCase()
+      const target = match[3].toUpperCase() === 'LEFT' ? 'LEFT' : 'RIGHT'
+      const mode = match[4].trim().toUpperCase()
+      if (!button || !mode) return
+      const existing = result[button] ?? []
+      const filtered = existing.filter(entry => entry.target !== target)
+      result[button] = [...filtered, { target, mode }]
+    })
+    return result
   }, [configText])
   const stickAimSettings = useMemo(() => {
     const rawSens = getKeymapValue(configText, 'STICK_SENS')
@@ -1283,6 +1309,8 @@ const handleDeleteLibraryProfile = async (name: string) => {
               onStickDeadzoneChange={handleStickDeadzoneChange}
               onStickModeChange={handleStickModeChange}
               onRingModeChange={handleRingModeChange}
+              stickModeShiftAssignments={stickModeShiftAssignments}
+              onStickModeShiftChange={handleStickModeShiftChange}
               adaptiveTriggerValue={adaptiveTriggerValue}
               onAdaptiveTriggerChange={handleAdaptiveTriggerChange}
               stickAimSettings={stickAimSettings}
@@ -1344,6 +1372,8 @@ const handleDeleteLibraryProfile = async (name: string) => {
               onStickDeadzoneChange={handleStickDeadzoneChange}
               onStickModeChange={handleStickModeChange}
               onRingModeChange={handleRingModeChange}
+              stickModeShiftAssignments={stickModeShiftAssignments}
+              onStickModeShiftChange={handleStickModeShiftChange}
               adaptiveTriggerValue={adaptiveTriggerValue}
               onAdaptiveTriggerChange={handleAdaptiveTriggerChange}
               stickAimSettings={stickAimSettings}
@@ -1398,6 +1428,11 @@ const handleDeleteLibraryProfile = async (name: string) => {
                 right: rightStickDeadzone,
               }}
               onStickDeadzoneChange={handleStickDeadzoneChange}
+              stickModeSettings={stickModes}
+              onStickModeChange={handleStickModeChange}
+              onRingModeChange={handleRingModeChange}
+              stickModeShiftAssignments={stickModeShiftAssignments}
+              onStickModeShiftChange={handleStickModeShiftChange}
               stickModeSettings={stickModes}
               onStickModeChange={handleStickModeChange}
               onRingModeChange={handleRingModeChange}
