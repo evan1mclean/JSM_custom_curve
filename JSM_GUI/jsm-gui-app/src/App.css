@@ -273,6 +273,12 @@ body {
   color: #ddd;
 }
 
+.field-description {
+  margin: 0.25rem 0 0.35rem 0;
+  color: #bcbcbc;
+  font-size: 0.9rem;
+}
+
 .stick-shift-rows {
   display: flex;
   flex-direction: column;
@@ -425,10 +431,28 @@ header h1 {
   border: 1px solid #3a3a3a;
   background: #0f0f0f;
   color: #f5f5f5;
-  font-size: 1rem;
+  font-size: 0.85rem;
   font-weight: 600;
   box-sizing: border-box;
-  appearance: none;
+}
+
+.flex-inputs select.app-select {
+  border-radius: 8px;
+  border: 1px solid #3a3a3a;
+  background: #0f0f0f;
+  color: #f5f5f5;
+  font-size: 0.85rem;
+  font-weight: 600;
+  appearance: auto;
+}
+
+.sensitivity-shift-row select {
+  border-radius: 999px;
+  border: 1px solid #2d2d2d;
+  background: #101010;
+  color: #f0f0f0;
+  padding: 0.4rem 0.75rem;
+  font-weight: 600;
 }
 
 .flex-inputs select:focus {

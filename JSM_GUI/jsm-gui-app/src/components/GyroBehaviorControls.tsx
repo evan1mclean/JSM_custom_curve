@@ -24,6 +24,8 @@ type GyroBehaviorControlsProps = {
   onGyroSpaceChange: (value: string) => void
   onGyroAxisXChange: (value: string) => void
   onGyroAxisYChange: (value: string) => void
+  counterOsMouseSpeed: boolean
+  onCounterOsMouseSpeedChange: (enabled: boolean) => void
   hasPendingChanges: boolean
   onApply: () => void
   onCancel: () => void
@@ -39,6 +41,8 @@ export function GyroBehaviorControls({
   onGyroSpaceChange,
   onGyroAxisXChange,
   onGyroAxisYChange,
+  counterOsMouseSpeed,
+  onCounterOsMouseSpeedChange,
   hasPendingChanges,
   onApply,
   onCancel,
@@ -120,6 +124,21 @@ export function GyroBehaviorControls({
           >
             <option value="">Default</option>
             <option value="INVERTED">Inverted</option>
+          </select>
+        </label>
+      </div>
+      <div className="flex-inputs">
+        <label>
+          Counter OS mouse speed
+          <p className="field-description">Enable for non-raw-input games when Windows pointer speed isn’t 6/11.</p>
+          <select
+            className="app-select"
+            value={counterOsMouseSpeed ? 'ON' : 'OFF'}
+            onChange={(event) => onCounterOsMouseSpeedChange(event.target.value === 'ON')}
+            disabled={isCalibrating}
+          >
+            <option value="OFF">Off (default)</option>
+            <option value="ON">On</option>
           </select>
         </label>
       </div>

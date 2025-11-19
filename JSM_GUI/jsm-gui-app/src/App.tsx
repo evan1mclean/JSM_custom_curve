@@ -1036,6 +1036,7 @@ const handleDeleteLibraryProfile = async (name: string) => {
     if (!raw) return ''
     return raw.trim()
   }, [configText])
+  const counterOsMouseSpeedEnabled = useMemo(() => Boolean(getKeymapValue(configText, 'COUNTER_OS_MOUSE_SPEED')), [configText])
 
   const handleMouseRingRadiusChange = useCallback((value: string) => {
     const trimmed = value.trim()
@@ -1048,6 +1049,15 @@ const handleDeleteLibraryProfile = async (name: string) => {
         return prev
       }
       return updateKeymapEntry(prev, 'MOUSE_RING_RADIUS', [parsed])
+    })
+  }, [])
+
+  const handleCounterOsMouseSpeedChange = useCallback((enabled: boolean) => {
+    setConfigText(prev => {
+      if (!enabled) {
+        return removeKeymapEntry(prev, 'COUNTER_OS_MOUSE_SPEED')
+      }
+      return updateKeymapEntry(prev, 'COUNTER_OS_MOUSE_SPEED', ['ON'])
     })
   }, [])
 
@@ -1288,6 +1298,8 @@ const handleDeleteLibraryProfile = async (name: string) => {
               onGyroSpaceChange={handleGyroSpaceChange}
               onGyroAxisXChange={handleGyroAxisXChange}
               onGyroAxisYChange={handleGyroAxisYChange}
+              counterOsMouseSpeed={counterOsMouseSpeedEnabled}
+              onCounterOsMouseSpeedChange={handleCounterOsMouseSpeedChange}
               hasPendingChanges={hasPendingChanges}
               onApply={applyConfig}
               onCancel={handleCancel}
