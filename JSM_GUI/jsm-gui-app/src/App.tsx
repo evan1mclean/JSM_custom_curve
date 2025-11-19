@@ -1061,6 +1061,32 @@ const handleDeleteLibraryProfile = async (name: string) => {
     })
   }, [])
 
+  const [isCalibrationModalOpen, setCalibrationModalOpen] = useState(false)
+  const [calibrationRestorePath, setCalibrationRestorePath] = useState<string | null>(null)
+  const handleOpenCalibration = useCallback(async () => {
+    setCalibrationModalOpen(true)
+    try {
+      const result = await window.electronAPI?.loadCalibrationPreset?.()
+      if (result?.activeProfile) {
+        setCalibrationRestorePath(result.activeProfile)
+      }
+    } catch (err) {
+      console.error('Failed to load calibration preset', err)
+    }
+  }, [])
+  const handleCloseCalibration = useCallback(async () => {
+    setCalibrationModalOpen(false)
+    if (calibrationRestorePath) {
+      try {
+        await window.electronAPI?.applyProfile?.(calibrationRestorePath, configText)
+      } catch (err) {
+        console.error('Failed to restore profile after calibration', err)
+      } finally {
+        setCalibrationRestorePath(null)
+      }
+    }
+  }, [calibrationRestorePath, configText])
+
   const scrollSensValue = useMemo(() => {
     const raw = getKeymapValue(configText, 'SCROLL_SENS')
     if (!raw) return ''
@@ -1300,6 +1326,7 @@ const handleDeleteLibraryProfile = async (name: string) => {
               onGyroAxisYChange={handleGyroAxisYChange}
               counterOsMouseSpeed={counterOsMouseSpeedEnabled}
               onCounterOsMouseSpeedChange={handleCounterOsMouseSpeedChange}
+              onOpenCalibration={handleOpenCalibration}
               hasPendingChanges={hasPendingChanges}
               onApply={applyConfig}
               onCancel={handleCancel}
@@ -1555,6 +1582,21 @@ const handleDeleteLibraryProfile = async (name: string) => {
           </>
         )}
       </div>
+      {isCalibrationModalOpen && (
+        <div className="modal-overlay">
+          <div className="modal-card">
+            <h3>Real-world calibration</h3>
+            <p className="modal-description">
+              Loaded the calibration preset. In-game, rotate the stick for a full turn, return here, and run the calculation.
+            </p>
+            <div className="modal-actions">
+              <button type="button" className="secondary-btn" onClick={handleCloseCalibration}>
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
