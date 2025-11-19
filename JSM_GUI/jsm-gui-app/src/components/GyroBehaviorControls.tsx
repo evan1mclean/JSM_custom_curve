@@ -26,6 +26,7 @@ type GyroBehaviorControlsProps = {
   onGyroAxisYChange: (value: string) => void
   counterOsMouseSpeed: boolean
   onCounterOsMouseSpeedChange: (enabled: boolean) => void
+  onOpenCalibration?: () => void
   hasPendingChanges: boolean
   onApply: () => void
   onCancel: () => void
@@ -43,6 +44,7 @@ export function GyroBehaviorControls({
   onGyroAxisYChange,
   counterOsMouseSpeed,
   onCounterOsMouseSpeedChange,
+  onOpenCalibration,
   hasPendingChanges,
   onApply,
   onCancel,
@@ -127,6 +129,13 @@ export function GyroBehaviorControls({
           </select>
         </label>
       </div>
+      {onOpenCalibration && (
+        <div className="flex-inputs">
+          <button type="button" className="secondary-btn" onClick={onOpenCalibration} disabled={isCalibrating}>
+            Calculate real world calibration
+          </button>
+        </div>
+      )}
       <div className="flex-inputs">
         <label>
           Counter OS mouse speed
@@ -142,6 +151,13 @@ export function GyroBehaviorControls({
           </select>
         </label>
       </div>
+      {onOpenCalibration && (
+        <div className="flex-inputs">
+          <button type="button" className="secondary-btn" onClick={onOpenCalibration} disabled={isCalibrating}>
+            Calibrate real-world value
+          </button>
+        </div>
+      )}
       <SectionActions
         hasPendingChanges={hasPendingChanges}
         statusMessage={statusMessage}
