@@ -20,6 +20,7 @@ add_executable (
     ${BINARY_NAME}
     src/main.cpp
     src/NaturalCurve.cpp
+    src/PowerCurve.cpp
     src/operators.cpp
     src/CmdRegistry.cpp
     src/quatMaths.cpp
@@ -268,6 +269,8 @@ if (BUILD_JSM_TESTS)
     add_executable(jsm_tests
         tests/natural_curve_tests.cpp
         src/NaturalCurve.cpp
+        tests/power_curve_tests.cpp
+        src/PowerCurve.cpp
     )
     target_link_libraries(jsm_tests PRIVATE Catch2::Catch2WithMain)
     target_include_directories(jsm_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
