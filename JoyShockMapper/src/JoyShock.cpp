@@ -45,6 +45,8 @@ JoyShock::JoyShock(int uniqueHandle, int controllerSplitType, shared_ptr<Digital
   , _motionStick(SettingID::MOTION_DEADZONE_INNER, SettingID::MOTION_DEADZONE_OUTER, SettingID::MOTION_RING_MODE,
       SettingID::MOTION_STICK_MODE, ButtonID::MRING, ButtonID::MLEFT, ButtonID::MRIGHT, ButtonID::MUP, ButtonID::MDOWN)
 {
+	_vendorId = jsl->GetControllerVendor(uniqueHandle);
+	_productId = jsl->GetControllerProduct(uniqueHandle);
 	if (!sharedButtonCommon)
 	{
 		_context = make_shared<DigitalButton::Context>(bind(&JoyShock::onVirtualControllerNotification, this, placeholders::_1, placeholders::_2, placeholders::_3), _motion);

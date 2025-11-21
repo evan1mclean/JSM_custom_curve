@@ -69,6 +69,9 @@ public:
 	int _handle;
 	int _controllerType;
 	int _splitType = 0;
+	int _vendorId = 0;
+	int _productId = 0;
+	bool _ignoreGyro = false;
 
 
 	float neutralQuatW = 1.0f;

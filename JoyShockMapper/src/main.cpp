@@ -14,6 +14,7 @@
 #include <filesystem>
 #include <algorithm>
 #include <atomic>
+#include <sstream>
 #define _USE_MATH_DEFINES
 #include <math.h> // M_PI
 
@@ -42,12 +43,64 @@ unique_ptr<JSM::AutoConnect> autoConnectThread;
 std::atomic<int> g_gyroGlobalOffCount(0);
 std::atomic<int> g_gyroGlobalOnCount(0);
 std::atomic_bool g_hasGyroOnAllBinding(false);
+vector<pair<int, int>> g_ignoreGyroVidPid;
 unique_ptr<PollingThread> minimizeThread;
 bool devicesCalibrating = false;
 unordered_map<int, shared_ptr<JoyShock>> handle_to_joyshock;
 
 int input_pipe_fd[2];
 int triggerCalibrationStep = 0;
+
+static void UpdateIgnoredGyroDevices()
+{
+	g_ignoreGyroVidPid.clear();
+	try
+	{
+		auto ignoreStr = SettingsManager::get<string>(SettingID::IGNORE_GYRO_DEVICES)->value();
+		stringstream ss(ignoreStr);
+		string token;
+		while (ss >> token)
+		{
+			auto colon = token.find(':');
+			if (colon == string::npos)
+			{
+				continue;
+			}
+			string vidStr = token.substr(0, colon);
+			string pidStr = token.substr(colon + 1);
+			try
+			{
+				int vid = stoi(vidStr, nullptr, 0);
+				int pid = stoi(pidStr, nullptr, 0);
+				if (vid > 0 && pid > 0)
+				{
+					g_ignoreGyroVidPid.emplace_back(vid, pid);
+				}
+			}
+			catch (...)
+			{
+				continue;
+			}
+		}
+	}
+	catch (...)
+	{
+	}
+
+	for (auto &entry : handle_to_joyshock)
+	{
+		auto &dev = entry.second;
+		dev->_ignoreGyro = false;
+		for (auto &pair : g_ignoreGyroVidPid)
+		{
+			if (dev->_vendorId == pair.first && dev->_productId == pair.second)
+			{
+				dev->_ignoreGyro = true;
+				break;
+			}
+		}
+	}
+}
 
 static void RefreshTelemetrySettings()
 {
@@ -746,6 +799,10 @@ void joyShockPollCallback(int jcHandle, JOY_SHOCK_STATE state, JOY_SHOCK_STATE l
 
 	bool trackball_x_pressed = false;
 	bool trackball_y_pressed = false;
+	if (jc->_ignoreGyro)
+	{
+		blockGyro = true;
+	}
 
 	// Apply gyro modifiers in the queue from oldest to newest (thus giving priority to most recent)
 	for (auto pair : jc->_context->gyroActionQueue)
@@ -1243,6 +1300,8 @@ void connectDevices(bool mergeJoycons = true)
 				handle_to_joyshock[handle] = make_shared<JoyShock>(handle, type);
 			}
 		}
+
+		UpdateIgnoredGyroDevices();
 	}
 
 	if (numConnected == 1)
@@ -1333,6 +1392,7 @@ bool do_RESET_MAPPINGS(CmdRegistry *registry)
 	g_gyroGlobalOffCount.store(0);
 	g_gyroGlobalOnCount.store(0);
 	g_hasGyroOnAllBinding.store(false);
+	UpdateIgnoredGyroDevices();
 	if (registry)
 	{
 		if (!registry->loadConfigFile("OnReset.txt"))
@@ -2198,6 +2258,12 @@ void initJsmSettings(CmdRegistry *commandRegistry)
 	SettingsManager::add(joycon_motion_mask);
 	commandRegistry->add((new JSMAssignment<JoyconMask>(*joycon_motion_mask))
 	                       ->setHelp("When using two Joycons, select which one will be used for non-gyro motion. Valid values are the following:\nUSE_BOTH, IGNORE_LEFT, IGNORE_RIGHT, IGNORE_BOTH"));
+
+	auto ignore_gyro_devices = new JSMSetting<string>(SettingID::IGNORE_GYRO_DEVICES, "");
+	SettingsManager::add(ignore_gyro_devices);
+	commandRegistry->add((new JSMAssignment<string>(*ignore_gyro_devices))
+	                       ->setHelp("Space-separated list of VID:PID pairs (hex) whose gyro should be ignored, e.g. IGNORE_GYRO_DEVICES = 0x054c:0x0ce6"));
+	ignore_gyro_devices->addOnChangeListener([](const string &) { UpdateIgnoredGyroDevices(); });
 
 	auto zlMode = new JSMSetting<TriggerMode>(SettingID::ZL_MODE, TriggerMode::NO_FULL);
 	zlMode->setFilter(&filterTriggerMode);

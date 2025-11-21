@@ -61,8 +61,6 @@ inline bool operator!=(const AdaptiveTriggerSetting &lhs, const AdaptiveTriggerS
 #define JS_SPLIT_TYPE_FULL 3
 #define JS_VENDOR_UNKNOWN 0
 #define JS_PRODUCT_UNKNOWN 0
-#define JS_VENDOR_UNKNOWN 0
-#define JS_PRODUCT_UNKNOWN 0
 
 #define JSMASK_UP 0x000001
 #define JSMASK_DOWN 0x000002
