@@ -7,6 +7,13 @@ export type TelemetrySample = {
   sensX?: number
   sensY?: number
   curve?: string
+  devices?: {
+    handle: number
+    type: number
+    split?: number
+    vid?: number
+    pid?: number
+  }[]
   [key: string]: unknown
 }
 

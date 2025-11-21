@@ -1418,3 +1418,28 @@ input[type=number] {
   white-space: pre-wrap;
   word-break: break-word;
 }
+
+.controller-list {
+  margin-top: 0.5rem;
+  border: 1px solid #2a2a2a;
+  border-radius: 10px;
+  background: #0a0a0a;
+  padding: 0.65rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.controller-entry {
+  display: flex;
+  color: #e0e0e0;
+  font-size: 0.95rem;
+  align-items: baseline;
+}
+
+.controller-vidpid {
+  color: #e0e0e0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin-left: 0.35rem;
+}

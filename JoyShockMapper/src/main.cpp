@@ -904,6 +904,17 @@ void joyShockPollCallback(int jcHandle, JOY_SHOCK_STATE state, JOY_SHOCK_STATE l
 	telemetrySample.sMaxX = hiSensXY.first;
 	telemetrySample.sMinY = lowSensXY.second;
 	telemetrySample.sMaxY = hiSensXY.second;
+	for (const auto &entry : handle_to_joyshock)
+	{
+		const auto &device = entry.second;
+		TelemetryDevice dev;
+		dev.handle = device->_handle;
+		dev.controllerType = device->_controllerType;
+		dev.splitType = device->_splitType;
+		dev.vendorId = jsl->GetControllerVendor(device->_handle);
+		dev.productId = jsl->GetControllerProduct(device->_handle);
+		telemetrySample.devices.push_back(dev);
+	}
 	Telemetry::MaybeSend(telemetrySample);
 
 	jc->gyroXVelocity = gyroXVelocity;

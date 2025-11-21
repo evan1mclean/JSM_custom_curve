@@ -45,6 +45,8 @@ struct ControllerDevice
 	ControllerDevice(int id)
 	  : _has_accel(false)
 	  , _has_gyro(false)
+	  , _vendorId(JS_VENDOR_UNKNOWN)
+	  , _productId(JS_PRODUCT_UNKNOWN)
 	{
 		_prevTouchState.t0Down = false;
 		_prevTouchState.t1Down = false;
@@ -74,8 +76,8 @@ struct ControllerDevice
 						SDL_SetGamepadSensorEnabled(_sdlController, SDL_SENSOR_ACCEL, true);
 					}
 
-					int vid = SDL_GetGamepadVendor(_sdlController);
-					int pid = SDL_GetGamepadProduct(_sdlController);
+					_vendorId = SDL_GetGamepadVendor(_sdlController);
+					_productId = SDL_GetGamepadProduct(_sdlController);
 
 					auto sdl_ctrlr_type = SDL_GetGamepadType(_sdlController);
 					switch (sdl_ctrlr_type)
@@ -100,17 +102,17 @@ struct ControllerDevice
 						break;
 					case SDL_GamepadType::SDL_GAMEPAD_TYPE_XBOXONE:
 						_ctrlr_type = JS_TYPE_XBOXONE;
-						if (vid == 0x0e6f) // PDP Vendor ID
+						if (_vendorId == 0x0e6f) // PDP Vendor ID
 						{
 							_ctrlr_type = JS_TYPE_XBOX_SERIES;
 						}
-						if (vid == 0x24c6) // PowerA
+						if (_vendorId == 0x24c6) // PowerA
 						{
 							_ctrlr_type = JS_TYPE_XBOX_SERIES;
 						}
-						if (vid == 0x045e) // Microsoft Vendor ID
+						if (_vendorId == 0x045e) // Microsoft Vendor ID
 						{
-							switch (pid)
+							switch (_productId)
 							{
 							case(0x02e3): // Xbox Elite Series 1
 								// Intentional fall through to the next case
@@ -222,6 +224,8 @@ public:
 	bool _has_accel;
 	int _split_type = JS_SPLIT_TYPE_FULL;
 	int _ctrlr_type = 0;
+	int _vendorId = JS_VENDOR_UNKNOWN;
+	int _productId = JS_PRODUCT_UNKNOWN;
 	uint16_t _small_rumble = 0;
 	uint16_t _big_rumble = 0;
 	AdaptiveTriggerSetting _leftTriggerEffect;
@@ -667,6 +671,16 @@ public:
 	int GetControllerSplitType(int deviceId) override
 	{
 		return _controllerMap[deviceId]->_split_type;
+	}
+
+	int GetControllerVendor(int deviceId) override
+	{
+		return _controllerMap[deviceId]->_vendorId;
+	}
+
+	int GetControllerProduct(int deviceId) override
+	{
+		return _controllerMap[deviceId]->_productId;
 	}
 
 	int GetControllerColour(int deviceId) override

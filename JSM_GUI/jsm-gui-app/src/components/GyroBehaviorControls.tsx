@@ -18,6 +18,13 @@ type GyroBehaviorControlsProps = {
   sensitivity: SensitivityValues
   isCalibrating: boolean
   statusMessage?: string | null
+  devices?: {
+    handle: number
+    type: number
+    split?: number
+    vid?: number
+    pid?: number
+  }[]
   onInGameSensChange: (value: string) => void
   onRealWorldCalibrationChange: (value: string) => void
   onTickTimeChange: (value: string) => void
@@ -36,6 +43,7 @@ export function GyroBehaviorControls({
   sensitivity,
   isCalibrating,
   statusMessage,
+  devices,
   onInGameSensChange,
   onRealWorldCalibrationChange,
   onTickTimeChange,
@@ -49,6 +57,38 @@ export function GyroBehaviorControls({
   onApply,
   onCancel,
 }: GyroBehaviorControlsProps) {
+  const controllerLabel = (type?: number) => {
+    switch (type) {
+      case 1:
+        return 'Joy-Con (Left)'
+      case 2:
+        return 'Joy-Con (Right)'
+      case 3:
+        return 'Switch Pro'
+      case 4:
+        return 'DualShock 4'
+      case 5:
+        return 'DualSense'
+      case 6:
+        return 'Xbox One'
+      case 7:
+        return 'Xbox Elite'
+      case 8:
+        return 'Xbox Series'
+      default:
+        return 'Unknown'
+    }
+  }
+  const formatVidPid = (vid?: number, pid?: number) => {
+    const v = typeof vid === 'number' ? vid : undefined
+    const p = typeof pid === 'number' ? pid : undefined
+    if (v === undefined && p === undefined) return ''
+    const toHex = (value: number) => `0x${value.toString(16).padStart(4, '0')}`
+    if (v !== undefined && p !== undefined) return `${toHex(v)}:${toHex(p)}`
+    if (v !== undefined) return toHex(v)
+    return toHex(p!)
+  }
+
   return (
     <Card
       className="control-panel"
@@ -151,6 +191,21 @@ export function GyroBehaviorControls({
           </select>
         </label>
       </div>
+      {devices && devices.length > 0 && (
+        <div className="flex-inputs">
+          <label>
+            Connected controllers
+            <p className="field-description">Controller type and VID:PID detected by JSM.</p>
+            <div className="controller-list">
+              {devices.map(dev => (
+                <div key={dev.handle} className="controller-entry">
+                  {controllerLabel(dev.type)}<span className="controller-vidpid">: {formatVidPid(dev.vid, dev.pid)}</span>
+                </div>
+              ))}
+            </div>
+          </label>
+        </div>
+      )}
       <SectionActions
         hasPendingChanges={hasPendingChanges}
         statusMessage={statusMessage}

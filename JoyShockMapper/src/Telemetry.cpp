@@ -97,8 +97,30 @@ public:
 		    << ",\"SminY\":" << sample.sMinY
 		    << ",\"SmaxY\":" << sample.sMaxY
 		    << ",\"curve\":\"" << sample.curve << "\""
-		    << ",\"params\":" << (sample.paramsJson.empty() ? "{}" : sample.paramsJson)
-		    << "}";
+		    << ",\"params\":" << (sample.paramsJson.empty() ? "{}" : sample.paramsJson);
+
+		if (!sample.devices.empty())
+		{
+			oss << ",\"devices\":[";
+			for (size_t i = 0; i < sample.devices.size(); ++i)
+			{
+				const auto &dev = sample.devices[i];
+				if (i > 0)
+				{
+					oss << ",";
+				}
+				oss << "{"
+				    << "\"handle\":" << dev.handle
+				    << ",\"type\":" << dev.controllerType
+				    << ",\"split\":" << dev.splitType
+				    << ",\"vid\":" << dev.vendorId
+				    << ",\"pid\":" << dev.productId
+				    << "}";
+			}
+			oss << "]";
+		}
+
+		oss << "}";
 
 		const auto payload = oss.str();
 		sendto(_socket, payload.c_str(), static_cast<int>(payload.size()), 0, reinterpret_cast<sockaddr *>(&_target), sizeof(_target));

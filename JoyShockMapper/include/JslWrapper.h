@@ -59,6 +59,10 @@ inline bool operator!=(const AdaptiveTriggerSetting &lhs, const AdaptiveTriggerS
 #define JS_SPLIT_TYPE_LEFT 1
 #define JS_SPLIT_TYPE_RIGHT 2
 #define JS_SPLIT_TYPE_FULL 3
+#define JS_VENDOR_UNKNOWN 0
+#define JS_PRODUCT_UNKNOWN 0
+#define JS_VENDOR_UNKNOWN 0
+#define JS_PRODUCT_UNKNOWN 0
 
 #define JSMASK_UP 0x000001
 #define JSMASK_DOWN 0x000002
@@ -223,6 +227,8 @@ public:
 	virtual void SetTouchCallback(void (*callback)(int, TOUCH_STATE, TOUCH_STATE, float)) = 0;
 	virtual int GetControllerType(int deviceId) = 0;
 	virtual int GetControllerSplitType(int deviceId) = 0;
+	virtual int GetControllerVendor(int deviceId) = 0;
+	virtual int GetControllerProduct(int deviceId) = 0;
 	virtual int GetControllerColour(int deviceId) = 0;
 	virtual void SetLightColour(int deviceId, int colour) = 0;
 	virtual void SetRumble(int deviceId, int smallRumble, int bigRumble) = 0;

@@ -2,6 +2,16 @@
 
 #include <cstdint>
 #include <string>
+#include <vector>
+
+struct TelemetryDevice
+{
+	int handle = 0;
+	int controllerType = 0;
+	int splitType = 0;
+	int vendorId = 0;
+	int productId = 0;
+};
 
 struct TelemetrySample
 {
@@ -19,12 +29,13 @@ struct TelemetrySample
 	float sMaxY = 0.0f;
 	std::string curve = "LINEAR";
 	std::string paramsJson = "{}";
+	std::vector<TelemetryDevice> devices;
 };
 
 namespace Telemetry
 {
 
-constexpr int kProtoVersion = 1;
+constexpr int kProtoVersion = 2;
 constexpr int kDefaultPort = 8974;
 constexpr int kMaxRateHz = 120;
 

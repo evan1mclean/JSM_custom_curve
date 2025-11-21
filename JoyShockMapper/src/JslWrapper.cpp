@@ -199,6 +199,18 @@ public:
 		return JslGetControllerSplitType(deviceId);
 	}
 
+	int GetControllerVendor(int deviceId) override
+	{
+		// Not available in legacy JSL builds
+		return JS_VENDOR_UNKNOWN;
+	}
+
+	int GetControllerProduct(int deviceId) override
+	{
+		// Not available in legacy JSL builds
+		return JS_PRODUCT_UNKNOWN;
+	}
+
 	int GetControllerColour(int deviceId) override
 	{
 		return JslGetControllerColour(deviceId);

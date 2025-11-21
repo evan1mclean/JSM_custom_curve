@@ -1401,6 +1401,7 @@ const handleDeleteLibraryProfile = async (name: string) => {
               sensitivity={sensitivity}
               isCalibrating={isCalibrating}
               statusMessage={statusMessage}
+              devices={sample?.devices}
               onInGameSensChange={handleInGameSensChange}
               onRealWorldCalibrationChange={handleRealWorldCalibrationChange}
               onTickTimeChange={handleTickTimeChange}
