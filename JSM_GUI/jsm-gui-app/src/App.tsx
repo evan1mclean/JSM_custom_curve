@@ -26,6 +26,11 @@ import { SectionActions } from './components/SectionActions'
 const asNumber = (value: unknown) => (typeof value === 'number' ? value : undefined)
 const formatNumber = (value: number | undefined, digits = 2) =>
   typeof value === 'number' && Number.isFinite(value) ? value.toFixed(digits) : '0.00'
+const formatVidPid = (vid?: number, pid?: number) => {
+  if (vid === undefined || pid === undefined) return ''
+  const toHex = (value: number) => `0x${value.toString(16).padStart(4, '0')}`
+  return `${toHex(vid)}:${toHex(pid)}`
+}
 
 const TOGGLE_SPECIALS = ['GYRO_ON', 'GYRO_OFF'] as const
 const DEFAULT_HOLD_PRESS_TIME = 0.15
@@ -163,6 +168,14 @@ function App() {
   const [recalibrating, setRecalibrating] = useState(false)
   const [activeTab, setActiveTab] = useState<'gyro' | 'keymap' | 'touchpad' | 'sticks'>('gyro')
   const [sensitivityView, setSensitivityView] = useState<'base' | 'modeshift'>('base')
+  const ignoredGyroDevices = useMemo(() => {
+    const raw = getKeymapValue(configText, 'IGNORE_GYRO_DEVICES') ?? ''
+    return raw
+      .split(/\s+/)
+      .map(token => token.trim())
+      .filter(Boolean)
+      .map(token => token.toLowerCase())
+  }, [configText])
   const sensitivity = useMemo(() => parseSensitivityValues(configText), [configText])
   const holdPressTimeState = useMemo(() => {
     const raw = getKeymapValue(configText, 'HOLD_PRESS_TIME')
@@ -1190,6 +1203,29 @@ const handleDeleteLibraryProfile = async (name: string) => {
     })
   }, [])
 
+  const handleToggleIgnoreGyroDevice = useCallback((vid: number, pid: number, ignore: boolean) => {
+    const id = formatVidPid(vid, pid).toLowerCase()
+    if (!id) return
+    setConfigText(prev => {
+      const current = (getKeymapValue(prev, 'IGNORE_GYRO_DEVICES') ?? '')
+        .split(/\s+/)
+        .map(token => token.trim())
+        .filter(Boolean)
+        .map(token => token.toLowerCase())
+      const set = new Set(current)
+      if (ignore) {
+        set.add(id)
+      } else {
+        set.delete(id)
+      }
+      const nextList = Array.from(set)
+      if (nextList.length === 0) {
+        return removeKeymapEntry(prev, 'IGNORE_GYRO_DEVICES')
+      }
+      return updateKeymapEntry(prev, 'IGNORE_GYRO_DEVICES', nextList)
+    })
+  }, [])
+
   const handleRecalibrate = async () => {
     if (isCalibrating || recalibrating) return
     setRecalibrating(true)
@@ -1402,6 +1438,8 @@ const handleDeleteLibraryProfile = async (name: string) => {
               isCalibrating={isCalibrating}
               statusMessage={statusMessage}
               devices={sample?.devices}
+              ignoredDevices={ignoredGyroDevices}
+              onToggleIgnoreDevice={handleToggleIgnoreGyroDevice}
               onInGameSensChange={handleInGameSensChange}
               onRealWorldCalibrationChange={handleRealWorldCalibrationChange}
               onTickTimeChange={handleTickTimeChange}

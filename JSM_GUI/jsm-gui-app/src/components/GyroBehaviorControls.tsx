@@ -25,6 +25,8 @@ type GyroBehaviorControlsProps = {
     vid?: number
     pid?: number
   }[]
+  ignoredDevices?: string[]
+  onToggleIgnoreDevice?: (vid: number, pid: number, ignore: boolean) => void
   onInGameSensChange: (value: string) => void
   onRealWorldCalibrationChange: (value: string) => void
   onTickTimeChange: (value: string) => void
@@ -44,6 +46,8 @@ export function GyroBehaviorControls({
   isCalibrating,
   statusMessage,
   devices,
+  ignoredDevices,
+  onToggleIgnoreDevice,
   onInGameSensChange,
   onRealWorldCalibrationChange,
   onTickTimeChange,
@@ -195,13 +199,36 @@ export function GyroBehaviorControls({
         <div className="flex-inputs">
           <label>
             Connected controllers
-            <p className="field-description">Controller type and VID:PID detected by JSM.</p>
+            <p className="field-description">Controller type and VID:PID detected by JSM. Toggle to ignore gyro output per device.</p>
             <div className="controller-list">
-              {devices.map(dev => (
-                <div key={dev.handle} className="controller-entry">
-                  {controllerLabel(dev.type)}<span className="controller-vidpid">: {formatVidPid(dev.vid, dev.pid)}</span>
-                </div>
-              ))}
+              {devices.map(dev => {
+                const id = formatVidPid(dev.vid, dev.pid)
+                const isIgnored = id ? ignoredDevices?.includes(id.toLowerCase()) : false
+                const disabled = !dev.vid || !dev.pid
+                return (
+                  <div key={dev.handle} className="controller-card">
+                    <div className="controller-entry">
+                      {controllerLabel(dev.type)}
+                      {id && <span className="controller-vidpid">: {id}</span>}
+                    </div>
+                    <label className="toggle-switch">
+                      <span className="toggle-label">Ignore gyro output</span>
+                      <div className="toggle-wrapper">
+                        <input
+                          type="checkbox"
+                          disabled={disabled}
+                          checked={Boolean(isIgnored)}
+                          onChange={(event) => {
+                            if (!dev.vid || !dev.pid) return
+                            onToggleIgnoreDevice?.(dev.vid, dev.pid, event.target.checked)
+                          }}
+                        />
+                        <span className="toggle-slider" />
+                      </div>
+                    </label>
+                  </div>
+                )
+              })}
             </div>
           </label>
         </div>
