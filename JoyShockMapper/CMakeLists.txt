@@ -23,6 +23,7 @@ add_executable (
     src/PowerCurve.cpp
     src/QuadraticCurve.cpp
     src/SigmoidCurve.cpp
+    src/JumpCurve.cpp
     src/operators.cpp
     src/CmdRegistry.cpp
     src/quatMaths.cpp
@@ -63,6 +64,7 @@ add_executable (
     include/PowerCurve.h
     include/QuadraticCurve.h
     include/SigmoidCurve.h
+    include/JumpCurve.h
 )
 
 if (WINDOWS)
@@ -280,6 +282,8 @@ if (BUILD_JSM_TESTS)
         src/QuadraticCurve.cpp
         tests/sigmoid_curve_tests.cpp
         src/SigmoidCurve.cpp
+        tests/jump_curve_tests.cpp
+        src/JumpCurve.cpp
     )
     target_link_libraries(jsm_tests PRIVATE Catch2::Catch2WithMain)
     target_include_directories(jsm_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
