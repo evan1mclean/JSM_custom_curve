@@ -1,4 +1,6 @@
 set (BINARY_NAME "JoyShockMapper")
+# Optional tests (off by default)
+option(BUILD_JSM_TESTS "Build JoyShockMapper unit tests" OFF)
 
 git_describe(GIT_TAG --tags --dirty=_d)
 
@@ -17,6 +19,7 @@ set (CMAKE_VS_JUST_MY_CODE_DEBUGGING 1)
 add_executable (
     ${BINARY_NAME}
     src/main.cpp
+    src/NaturalCurve.cpp
     src/operators.cpp
     src/CmdRegistry.cpp
     src/quatMaths.cpp
@@ -53,6 +56,7 @@ add_executable (
     include/SettingsManager.h
     include/Stick.h
     include/JoyShock.h
+    include/NaturalCurve.h
 )
 
 if (WINDOWS)
@@ -252,3 +256,20 @@ target_link_libraries (
     Platform::Dependencies
     GamepadMotionHelpers
 )
+
+# Catch2 tests (isolated from the main executable)
+if (BUILD_JSM_TESTS)
+    include(CTest)
+    CPMAddPackage(
+        NAME Catch2
+        GITHUB_REPOSITORY catchorg/Catch2
+        GIT_TAG v3.4.0
+    )
+    add_executable(jsm_tests
+        tests/natural_curve_tests.cpp
+        src/NaturalCurve.cpp
+    )
+    target_link_libraries(jsm_tests PRIVATE Catch2::Catch2WithMain)
+    target_include_directories(jsm_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
+    add_test(NAME jsm_tests COMMAND jsm_tests)
+endif()

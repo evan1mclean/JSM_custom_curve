@@ -95,6 +95,14 @@ Generate the project by runnning the following in a command prompt at the projec
   * ```mkdir build && cd build```
   * ```cmake .. -G "Visual Studio 17 2022" -A x64 -D SDL=ON```
   * ```cmake --build . --config Release```
+
+Build with tests (optional)
+- Windows:
+  * ```mkdir build && cd build```
+  * ```cmake .. -G "Visual Studio 17 2022" -A x64 -D SDL=ON -DBUILD_JSM_TESTS=ON```
+  * ```cmake --build . --config Release```
+  * ```cd JoyShockMapper```
+  * ```ctest --build-config Release```
   * (Use ```-A Win32``` instead of ```-A x64``` if you specifically need a 32-bit build, and keep ```-D SDL=ON```.)
   * Run the commands from an “x64 Native Tools Command Prompt for VS 2022” (with the Desktop development with C++ workload installed) so CMake can locate MSVC.
 - Linux:
