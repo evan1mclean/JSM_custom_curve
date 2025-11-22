@@ -1,84 +1,79 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_approx.hpp>
-#include "SigmoidCurve.h"
+#include <cmath>
+#include "SigmoidCurve.h"   // or whatever header declares SigmoidSensitivity
 
 using Catch::Approx;
 
-// Model under test:
+// Signature:
 //
 // float SigmoidSensitivity(float omega,
 //                          float sMin, float sMax,
 //                          float vMid, float width);
 //
-// Internally:
-//   w = max(width, 1e-6)
-//   z = (omega - vMid) / w
-//   sigma = 1 / (1 + exp(-z))
-//   S(omega) = sMin + (sMax - sMin) * sigma
+// Normalized sigmoid:
+//   raw(ω)  = 1 / (1 + exp(-(ω - vMid)/width))
+//   σ0      = raw(0)
+//   t(ω)    = (raw(ω) - σ0) / (1 - σ0)
+//   S(ω)    = sMin + (sMax - sMin) * clamp(t, 0, 1)
+//
+// Ensures S(0) = sMin, S(∞) = sMax, smooth and monotone.
 
 
 // ---------------------------------------------------------
-// 1. Basic shape / anchor tests
+// 1. Basic anchors
 // ---------------------------------------------------------
 
-TEST_CASE("SigmoidSensitivity at vMid returns midpoint between sMin and sMax") {
-    float sMin = 0.5f;
-    float sMax = 1.0f;
-    float vMid = 20.0f;
-    float width = 10.0f;
+TEST_CASE("SigmoidSensitivity at omega = 0 returns sMin") {
+    float sMin  = 0.5f;
+    float sMax  = 1.5f;
+    float vMid  = 40.0f;
+    float width = 20.0f;
 
-    float S = SigmoidSensitivity(vMid, sMin, sMax, vMid, width);
-    float expected = (sMin + sMax) * 0.5f;
-
-    REQUIRE(S == Approx(expected).margin(1e-6f));
+    float S = SigmoidSensitivity(0.0f, sMin, sMax, vMid, width);
+    REQUIRE(S == Approx(sMin).margin(1e-6f));
 }
 
-TEST_CASE("SigmoidSensitivity approaches sMin and sMax far from vMid") {
-    float sMin = 0.5f;
-    float sMax = 1.0f;
-    float vMid = 20.0f;
-    float width = 5.0f;
+TEST_CASE("SigmoidSensitivity approaches sMax at large omega") {
+    float sMin  = 0.5f;
+    float sMax  = 1.5f;
+    float vMid  = 40.0f;
+    float width = 20.0f;
 
-    // Far below vMid: omega = vMid - 10 * width
-    float omega_lo = vMid - 10.0f * width;
-    float S_lo = SigmoidSensitivity(omega_lo, sMin, sMax, vMid, width);
-    REQUIRE(S_lo >= sMin);
-    REQUIRE(S_lo <= sMin + (sMax - sMin) * 0.01f); // very close to sMin
+    float omega = 1e6f;
+    float S = SigmoidSensitivity(omega, sMin, sMax, vMid, width);
 
-    // Far above vMid: omega = vMid + 10 * width
-    float omega_hi = vMid + 10.0f * width;
-    float S_hi = SigmoidSensitivity(omega_hi, sMin, sMax, vMid, width);
-    REQUIRE(S_hi <= sMax);
-    REQUIRE(S_hi >= sMax - (sMax - sMin) * 0.01f); // very close to sMax
+    REQUIRE(S <= Approx(sMax).margin(1e-6f));
+    REQUIRE(S == Approx(sMax).margin(1e-3f));
 }
 
 
 // ---------------------------------------------------------
-// 2. Range and monotonicity tests
+// 2. Range and monotonicity
 // ---------------------------------------------------------
 
 TEST_CASE("SigmoidSensitivity stays within [sMin, sMax]") {
-    float sMin = 0.5f;
-    float sMax = 1.0f;
-    float vMid = 20.0f;
-    float width = 8.0f;
+    float sMin  = 0.5f;
+    float sMax  = 1.5f;
+    float vMid  = 40.0f;
+    float width = 20.0f;
 
-    for (float omega = -40.0f; omega <= 100.0f; omega += 2.0f) {
+    for (float omega = 0.0f; omega <= 200.0f; omega += 2.0f) {
         float S = SigmoidSensitivity(omega, sMin, sMax, vMid, width);
         REQUIRE(S >= Approx(sMin).margin(1e-6f));
         REQUIRE(S <= Approx(sMax).margin(1e-6f));
     }
 }
 
-TEST_CASE("SigmoidSensitivity is monotone increasing in omega") {
-    float sMin = 0.5f;
-    float sMax = 1.0f;
-    float vMid = 20.0f;
-    float width = 8.0f;
+TEST_CASE("SigmoidSensitivity is monotone non-decreasing in omega") {
+    float sMin  = 0.5f;
+    float sMax  = 1.5f;
+    float vMid  = 40.0f;
+    float width = 20.0f;
 
-    float prev = SigmoidSensitivity(-40.0f, sMin, sMax, vMid, width);
+    float prev = SigmoidSensitivity(0.0f, sMin, sMax, vMid, width);
 
-    for (float omega = -40.0f; omega <= 100.0f; omega += 2.0f) {
+    for (float omega = 0.0f; omega <= 200.0f; omega += 2.0f) {
         float cur = SigmoidSensitivity(omega, sMin, sMax, vMid, width);
         REQUIRE(cur >= Approx(prev).margin(1e-6f));
         prev = cur;
@@ -87,86 +82,104 @@ TEST_CASE("SigmoidSensitivity is monotone increasing in omega") {
 
 
 // ---------------------------------------------------------
-// 3. Symmetry around vMid
+// 3. Parameter behavior
 // ---------------------------------------------------------
-//
-// For the logistic σ and linear mapping, we have:
-//   σ(-z) = 1 - σ(z)
-//   S(ω) = sMin + Δ σ(z)
-// so S(vMid - d) + S(vMid + d) = sMin + sMax exactly (up to FP error).
 
-TEST_CASE("SigmoidSensitivity is symmetric around vMid in value") {
+TEST_CASE("Increasing vMid shifts the curve to the right") {
+    float sMin  = 0.5f;
+    float sMax  = 1.5f;
+    float width = 20.0f;
+
+    float vMid_left  = 30.0f;
+    float vMid_right = 60.0f;
+
+    float omega = 40.0f; // between the two midpoints
+
+    float S_left  = SigmoidSensitivity(omega, sMin, sMax, vMid_left,  width);
+    float S_right = SigmoidSensitivity(omega, sMin, sMax, vMid_right, width);
+
+    // Larger vMid => curve is shifted right => lower S at the same omega
+    REQUIRE(S_right <= Approx(S_left).margin(1e-6f));
+}
+
+TEST_CASE("Smaller width makes the transition steeper around vMid") {
     float sMin = 0.5f;
-    float sMax = 1.0f;
-    float vMid = 20.0f;
-    float width = 10.0f;
+    float sMax = 1.5f;
+    float vMid = 50.0f;
 
-    float target_sum = sMin + sMax;
+    float width_wide  = 40.0f;
+    float width_narrow= 10.0f;
 
-    for (float d : { 0.0f, 5.0f, 10.0f, 20.0f }) {
-        float S_left  = SigmoidSensitivity(vMid - d, sMin, sMax, vMid, width);
-        float S_right = SigmoidSensitivity(vMid + d, sMin, sMax, vMid, width);
-        REQUIRE(S_left + S_right == Approx(target_sum).margin(1e-5f));
-    }
+    float omega = vMid; // centered at the midpoint
+
+    float S_wide   = SigmoidSensitivity(omega, sMin, sMax, vMid, width_wide);
+    float S_narrow = SigmoidSensitivity(omega, sMin, sMax, vMid, width_narrow);
+
+    // At vMid, narrower width gives a steeper rise, so S_narrow > S_wide
+    REQUIRE(S_narrow >= Approx(S_wide).margin(1e-6f));
 }
 
 
 // ---------------------------------------------------------
-// 4. Width parameter behavior
+// 4. Edge cases
 // ---------------------------------------------------------
 
-TEST_CASE("Larger width makes the transition gentler around vMid") {
+TEST_CASE("Non-positive width still returns finite values within [sMin, sMax]") {
     float sMin = 0.5f;
-    float sMax = 1.0f;
-    float vMid = 20.0f;
+    float sMax = 1.5f;
+    float vMid = 40.0f;
 
-    float width_narrow = 5.0f;
-    float width_wide   = 20.0f;
-
-    // Look at deviation from midpoint at some offset
-    float omega1 = vMid + 5.0f; // same distance from vMid for both widths
-
-    float mid = (sMin + sMax) * 0.5f;
-
-    float S_narrow = SigmoidSensitivity(omega1, sMin, sMax, vMid, width_narrow);
-    float S_wide   = SigmoidSensitivity(omega1, sMin, sMax, vMid, width_wide);
-
-    float dev_narrow = std::fabs(S_narrow - mid);
-    float dev_wide   = std::fabs(S_wide   - mid);
-
-    // Narrow width: sharper S-shape -> larger deviation at same distance
-    REQUIRE(dev_narrow > dev_wide);
-}
-
-
-// ---------------------------------------------------------
-// 5. Edge cases: width <= 0 (guard behavior)
-// ---------------------------------------------------------
-
-TEST_CASE("SigmoidSensitivity with non-positive width still stays within [sMin, sMax]") {
-    float sMin = 0.5f;
-    float sMax = 1.0f;
-    float vMid = 20.0f;
-
-    for (float width : {0.0f, -5.0f}) {
-        for (float omega : {vMid - 1e-4f, vMid, vMid + 1e-4f}) {
+    for (float width : {0.0f, -10.0f}) {
+        for (float omega = 0.0f; omega <= 200.0f; omega += 25.0f) {
             float S = SigmoidSensitivity(omega, sMin, sMax, vMid, width);
+            REQUIRE(std::isfinite(S));
             REQUIRE(S >= Approx(sMin).margin(1e-6f));
             REQUIRE(S <= Approx(sMax).margin(1e-6f));
         }
     }
 }
 
-TEST_CASE("SigmoidSensitivity with very small width behaves like a jump at vMid") {
-    float sMin = 0.5f;
-    float sMax = 1.0f;
-    float vMid = 20.0f;
-    float width = 0.0f; // will be clamped internally to ~1e-6
+TEST_CASE("Negative omega clamps to sMin due to normalization and clamp") {
+    float sMin  = 0.5f;
+    float sMax  = 1.5f;
+    float vMid  = 40.0f;
+    float width = 20.0f;
 
-    // Slightly below and above vMid: should be very close to sMin / sMax.
-    float S_below = SigmoidSensitivity(vMid - 1e-4f, sMin, sMax, vMid, width);
-    float S_above = SigmoidSensitivity(vMid + 1e-4f, sMin, sMax, vMid, width);
+    float Sneg = SigmoidSensitivity(-100.0f, sMin, sMax, vMid, width);
+    REQUIRE(Sneg == Approx(sMin).margin(1e-6f));
+}
 
-    REQUIRE(S_below == Approx(sMin).margin((sMax - sMin) * 1e-3f));
-    REQUIRE(S_above == Approx(sMax).margin((sMax - sMin) * 1e-3f));
+
+// ---------------------------------------------------------
+// 5. Golden sample (analytic case)
+// ---------------------------------------------------------
+//
+// Choose sMin = 0, sMax = 1, vMid = 0, width = 1.
+//
+// raw(ω)  = 1 / (1 + exp(-ω))
+// raw(0)  = 1 / (1 + 1) = 0.5
+// denom   = 1 - 0.5 = 0.5
+//
+// Let ω = ln(3):
+//   raw(ln 3) = 1 / (1 + exp(-ln 3))
+//             = 1 / (1 + 1/3)
+//             = 3/4
+//   t(ω)      = (3/4 - 1/2) / 1/2 = (1/4) / (1/2) = 1/2
+//   S(ω)      = t(ω) = 0.5
+//
+TEST_CASE("SigmoidSensitivity matches analytic golden sample") {
+    float sMin  = 0.0f;
+    float sMax  = 1.0f;
+    float vMid  = 0.0f;
+    float width = 1.0f;
+
+    const float omega = std::log(3.0f); // ~1.0986123
+
+    float S0 = SigmoidSensitivity(0.0f,   sMin, sMax, vMid, width);
+    float S1 = SigmoidSensitivity(omega,  sMin, sMax, vMid, width);
+    float S2 = SigmoidSensitivity(10.0f,  sMin, sMax, vMid, width);
+
+    REQUIRE(S0 == Approx(0.0f).margin(1e-6f));  // S(0) = sMin
+    REQUIRE(S1 == Approx(0.5f).margin(1e-4f));  // S(ln 3) ≈ 0.5
+    REQUIRE(S2 == Approx(1.0f).margin(1e-3f));  // approaches sMax
 }
