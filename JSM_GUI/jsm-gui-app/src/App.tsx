@@ -50,6 +50,8 @@ const SENS_MODE_KEYS = [
   'GYRO_SENS',
   'ACCEL_CURVE',
   'ACCEL_NATURAL_VHALF',
+  'ACCEL_POWER_VREF',
+  'ACCEL_POWER_EXPONENT',
 ] as const
 const prefixedKey = (key: string, prefix?: string) => (prefix ? `${prefix}${key}` : key)
 
@@ -396,6 +398,12 @@ const applyConfig = useCallback(async (options?: { profileNameOverride?: string;
           if (base.naturalVHalf !== undefined) {
             next = updateKeymapEntry(next, `${nextButton},ACCEL_NATURAL_VHALF`, [base.naturalVHalf])
           }
+          if (base.powerVRef !== undefined) {
+            next = updateKeymapEntry(next, `${nextButton},ACCEL_POWER_VREF`, [base.powerVRef])
+          }
+          if (base.powerExponent !== undefined) {
+            next = updateKeymapEntry(next, `${nextButton},ACCEL_POWER_EXPONENT`, [base.powerExponent])
+          }
         }
       }
       return next
@@ -739,7 +747,16 @@ const handleDeleteLibraryProfile = async (name: string) => {
       const defaultX = values.minSensX ?? values.maxSensX ?? 1
       const defaultY = values.minSensY ?? values.minSensX ?? values.maxSensY ?? values.maxSensX ?? defaultX
       let next = updateKeymapEntry(prev, prefixedKey('GYRO_SENS', prefix), [defaultX, defaultY])
-      ;['MIN_GYRO_SENS', 'MAX_GYRO_SENS', 'MIN_GYRO_THRESHOLD', 'MAX_GYRO_THRESHOLD', 'ACCEL_CURVE', 'ACCEL_NATURAL_VHALF'].forEach(
+      ;[
+        'MIN_GYRO_SENS',
+        'MAX_GYRO_SENS',
+        'MIN_GYRO_THRESHOLD',
+        'MAX_GYRO_THRESHOLD',
+        'ACCEL_CURVE',
+        'ACCEL_NATURAL_VHALF',
+        'ACCEL_POWER_VREF',
+        'ACCEL_POWER_EXPONENT',
+      ].forEach(
         key => {
         next = removeKeymapEntry(next, prefixedKey(key, prefix))
         }
@@ -756,11 +773,18 @@ const handleDeleteLibraryProfile = async (name: string) => {
         if (!upper || upper === 'LINEAR') {
           next = removeKeymapEntry(next, resolveSensitivityKey('ACCEL_CURVE'))
           next = removeKeymapEntry(next, resolveSensitivityKey('ACCEL_NATURAL_VHALF'))
+          next = removeKeymapEntry(next, resolveSensitivityKey('ACCEL_POWER_VREF'))
+          next = removeKeymapEntry(next, resolveSensitivityKey('ACCEL_POWER_EXPONENT'))
           return next
         }
-        if (upper === 'NATURAL') {
+        if (upper === 'NATURAL' || upper === 'POWER') {
           next = updateKeymapEntry(next, resolveSensitivityKey('ACCEL_CURVE'), [upper])
-          return next
+          if (upper === 'NATURAL') {
+            next = removeKeymapEntry(next, resolveSensitivityKey('ACCEL_POWER_VREF'))
+            next = removeKeymapEntry(next, resolveSensitivityKey('ACCEL_POWER_EXPONENT'))
+          } else {
+            next = removeKeymapEntry(next, resolveSensitivityKey('ACCEL_NATURAL_VHALF'))
+          }
         }
         return next
       })
@@ -779,6 +803,44 @@ const handleDeleteLibraryProfile = async (name: string) => {
       setConfigText(prev => {
         let next = updateKeymapEntry(prev, resolveSensitivityKey('ACCEL_NATURAL_VHALF'), [parsed])
         next = updateKeymapEntry(next, resolveSensitivityKey('ACCEL_CURVE'), ['NATURAL'])
+        next = removeKeymapEntry(next, resolveSensitivityKey('ACCEL_POWER_VREF'))
+        next = removeKeymapEntry(next, resolveSensitivityKey('ACCEL_POWER_EXPONENT'))
+        return next
+      })
+    },
+    [resolveSensitivityKey]
+  )
+
+  const handlePowerVRefChange = useCallback(
+    (value: string) => {
+      if (value === '') {
+        setConfigText(prev => removeKeymapEntry(prev, resolveSensitivityKey('ACCEL_POWER_VREF')))
+        return
+      }
+      const parsed = parseFloat(value)
+      if (!Number.isFinite(parsed) || parsed <= 0) return
+      setConfigText(prev => {
+        let next = updateKeymapEntry(prev, resolveSensitivityKey('ACCEL_POWER_VREF'), [parsed])
+        next = updateKeymapEntry(next, resolveSensitivityKey('ACCEL_CURVE'), ['POWER'])
+        next = removeKeymapEntry(next, resolveSensitivityKey('ACCEL_NATURAL_VHALF'))
+        return next
+      })
+    },
+    [resolveSensitivityKey]
+  )
+
+  const handlePowerExponentChange = useCallback(
+    (value: string) => {
+      if (value === '') {
+        setConfigText(prev => removeKeymapEntry(prev, resolveSensitivityKey('ACCEL_POWER_EXPONENT')))
+        return
+      }
+      const parsed = parseFloat(value)
+      if (!Number.isFinite(parsed) || parsed <= 0) return
+      setConfigText(prev => {
+        let next = updateKeymapEntry(prev, resolveSensitivityKey('ACCEL_POWER_EXPONENT'), [parsed])
+        next = updateKeymapEntry(next, resolveSensitivityKey('ACCEL_CURVE'), ['POWER'])
+        next = removeKeymapEntry(next, resolveSensitivityKey('ACCEL_NATURAL_VHALF'))
         return next
       })
     },
@@ -806,6 +868,8 @@ const handleDeleteLibraryProfile = async (name: string) => {
       next = updateKeymapEntry(next, prefixedKey('MAX_GYRO_THRESHOLD', prefix), [values.maxThreshold ?? 100])
       next = updateKeymapEntry(next, prefixedKey('ACCEL_CURVE', prefix), ['LINEAR'])
       next = removeKeymapEntry(next, prefixedKey('ACCEL_NATURAL_VHALF', prefix))
+      next = removeKeymapEntry(next, prefixedKey('ACCEL_POWER_VREF', prefix))
+      next = removeKeymapEntry(next, prefixedKey('ACCEL_POWER_EXPONENT', prefix))
       return next
     })
   }
@@ -1516,6 +1580,8 @@ const handleDeleteLibraryProfile = async (name: string) => {
               statusMessage={statusMessage}
               accelCurve={sensitivity.accelCurve}
               naturalVHalf={sensitivity.naturalVHalf}
+              powerVRef={sensitivity.powerVRef}
+              powerExponent={sensitivity.powerExponent}
               mode={currentMode}
               sensitivityView={sensitivityView}
               hasPendingChanges={hasPendingChanges}
@@ -1533,6 +1599,8 @@ const handleDeleteLibraryProfile = async (name: string) => {
               onCancel={handleCancel}
               onAccelCurveChange={handleAccelCurveChange}
               onNaturalVHalfChange={handleNaturalVHalfChange}
+              onPowerVRefChange={handlePowerVRefChange}
+              onPowerExponentChange={handlePowerExponentChange}
               onMinThresholdChange={handleThresholdChange('MIN_GYRO_THRESHOLD')}
               onMaxThresholdChange={handleThresholdChange('MAX_GYRO_THRESHOLD')}
               onMinSensXChange={handleDualSensChange('MIN_GYRO_SENS', 0)}

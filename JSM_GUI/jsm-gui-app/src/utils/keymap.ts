@@ -3,6 +3,8 @@ export interface SensitivityValues {
   realWorldCalibration?: number
   accelCurve?: string
   naturalVHalf?: number
+  powerVRef?: number
+  powerExponent?: number
   minSensX?: number
   minSensY?: number
   maxSensX?: number
@@ -51,6 +53,8 @@ export function parseSensitivityValues(text: string, options?: { prefix?: string
   const accelCurveRaw = raw('ACCEL_CURVE')
   const accelCurve = accelCurveRaw ? accelCurveRaw.trim().toUpperCase() : undefined
   const naturalVHalf = single('ACCEL_NATURAL_VHALF')
+  const powerVRef = single('ACCEL_POWER_VREF')
+  const powerExponent = single('ACCEL_POWER_EXPONENT')
   const minSens = get('MIN_GYRO_SENS', 2)
   const maxSens = get('MAX_GYRO_SENS', 2)
   const staticSens = get('GYRO_SENS', 2)
@@ -76,6 +80,8 @@ export function parseSensitivityValues(text: string, options?: { prefix?: string
     tickTime: single('TICK_TIME'),
     accelCurve,
     naturalVHalf,
+    powerVRef,
+    powerExponent,
   }
 
   if (result.gyroSensX !== undefined) {

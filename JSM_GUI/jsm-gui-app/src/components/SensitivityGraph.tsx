@@ -7,8 +7,10 @@ interface SensitivityGraphProps {
   maxSensX?: number
   minSensY?: number
   maxSensY?: number
-  curveType?: 'LINEAR' | 'NATURAL'
+  curveType?: 'LINEAR' | 'NATURAL' | 'POWER'
   naturalVHalf?: number
+  powerVRef?: number
+  powerExponent?: number
   normalized?: number
   currentSensX?: number
   omega?: number
@@ -32,6 +34,8 @@ export function SensitivityGraph(props: SensitivityGraphProps) {
   maxSensY,
   curveType = 'LINEAR',
   naturalVHalf,
+  powerVRef,
+  powerExponent,
   normalized,
   currentSensX,
   omega,
@@ -62,13 +66,22 @@ export function SensitivityGraph(props: SensitivityGraphProps) {
     ctx.strokeRect(0, 0, baseWidth, baseHeight)
 
     const isNatural = curveType === 'NATURAL'
+    const isPower = curveType === 'POWER'
 
     const hasLinearInputs =
       minThreshold !== undefined && maxThreshold !== undefined && minSensX !== undefined && maxSensX !== undefined
     const hasNaturalInputs =
       minThreshold !== undefined && minSensX !== undefined && maxSensX !== undefined && naturalVHalf !== undefined && naturalVHalf > 0
+    const hasPowerInputs =
+      minThreshold !== undefined &&
+      minSensX !== undefined &&
+      maxSensX !== undefined &&
+      powerVRef !== undefined &&
+      powerVRef > 0 &&
+      powerExponent !== undefined &&
+      powerExponent > 0
 
-    if ((isNatural && !hasNaturalInputs) || (!isNatural && !hasLinearInputs)) {
+    if ((isNatural && !hasNaturalInputs) || (isPower && !hasPowerInputs) || (!isNatural && !isPower && !hasLinearInputs)) {
       ctx.fillStyle = '#777'
       ctx.font = '16px sans-serif'
       ctx.textAlign = 'center'
@@ -93,7 +106,7 @@ export function SensitivityGraph(props: SensitivityGraphProps) {
     ctx.fillText('RWS', 0, 0)
     ctx.restore()
 
-    const axisMaxX = Math.max(MAX_OMEGA, maxThreshold ?? 0)
+    const axisMaxX = Math.max(MAX_OMEGA, maxThreshold ?? 0, powerVRef ?? 0)
     const axisMaxY = Math.max(minSensX, maxSensX, 2)
 
     const toX = (speed: number) => paddingLeft + (graphWidth * (speed / axisMaxX))
@@ -132,9 +145,23 @@ export function SensitivityGraph(props: SensitivityGraphProps) {
       return maxSensX - delta * Math.exp(-k * omegaAdjusted)
     }
 
+    const powerSensitivityAt = (speed: number) => {
+      const vRef = powerVRef ?? 0
+      const exponent = powerExponent ?? 0
+      const omegaAdjusted = Math.max(0, speed - (minThreshold ?? 0))
+      if (vRef <= 0 || exponent <= 0 || omegaAdjusted <= 0) return minSensX
+      const x = omegaAdjusted / vRef
+      const u = Math.pow(x, exponent)
+      const t = clamp(1 - Math.exp(-u), 0, 1)
+      return minSensX + (maxSensX - minSensX) * t
+    }
+
     const sensitivityAt = (speed: number) => {
       if (isNatural) {
         return naturalSensitivityAt(speed)
+      }
+      if (isPower) {
+        return powerSensitivityAt(speed)
       }
       const denom = (maxThreshold ?? 0) - (minThreshold ?? 0)
       if (denom <= 0) {
@@ -213,7 +240,7 @@ export function SensitivityGraph(props: SensitivityGraphProps) {
     }
 
     ctx.textAlign = 'center'
-  }, [minThreshold, maxThreshold, minSensX, minSensY, maxSensX, maxSensY, normalized, currentSensX, omega, disableLiveDot, curveType, naturalVHalf])
+  }, [minThreshold, maxThreshold, minSensX, minSensY, maxSensX, maxSensY, normalized, currentSensX, omega, disableLiveDot, curveType, naturalVHalf, powerVRef, powerExponent])
 
   return <canvas ref={canvasRef} className="legacy-curve-canvas" />
 }
