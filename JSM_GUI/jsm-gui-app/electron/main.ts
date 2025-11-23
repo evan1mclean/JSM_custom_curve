@@ -15,14 +15,16 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 // │ │ ├── main.js
 // │ │ └── preload.mjs
 // │
-process.env.APP_ROOT = path.join(__dirname, '..')
+const APP_ROOT = app.isPackaged ? app.getAppPath() : path.join(__dirname, '..')
+process.env.APP_ROOT = APP_ROOT
 
 // 🚧 Use ['ENV_NAME'] avoid vite:define plugin - Vite@2.x
 export const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL']
-export const MAIN_DIST = path.join(process.env.APP_ROOT, 'dist-electron')
-export const RENDERER_DIST = path.join(process.env.APP_ROOT, 'dist')
+export const MAIN_DIST = path.join(APP_ROOT, 'dist-electron')
+export const RENDERER_DIST = path.join(APP_ROOT, 'dist')
 
 process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, 'public') : RENDERER_DIST
+const DATA_DIR = app.getPath('userData')
 
 let win: BrowserWindow | null
 let telemetrySocket: dgram.Socket | null = null
@@ -32,13 +34,13 @@ let calibrationTimer: NodeJS.Timeout | null = null
 let calibrationSecondsSetting = 5
 
 const TELEMETRY_PORT = 8974
-const BIN_DIR = path.join(process.env.APP_ROOT, 'bin')
+const BIN_DIR = app.isPackaged ? path.join(process.resourcesPath, 'bin') : path.join(APP_ROOT, 'bin')
 const STARTUP_FILE = path.join(BIN_DIR, 'OnStartUp.txt')
 const STARTUP_COMMAND = 'OnStartUp.txt'
 const JSM_EXECUTABLE = path.join(BIN_DIR, process.platform === 'win32' ? 'JoyShockMapper.exe' : 'JoyShockMapper')
 const CONSOLE_INJECTOR = path.join(BIN_DIR, process.platform === 'win32' ? 'jsm-console-injector.exe' : 'jsm-console-injector')
-const LOG_FILE = path.join(process.env.APP_ROOT, 'jsm-gui.log')
-const WINDOW_STATE_FILE = path.join(process.env.APP_ROOT, 'window-state.json')
+const LOG_FILE = path.join(DATA_DIR, 'jsm-gui.log')
+const WINDOW_STATE_FILE = path.join(DATA_DIR, 'window-state.json')
 
 const PROFILE_LIBRARY_DIR = path.join(BIN_DIR, 'profiles-library')
 const DEFAULT_PROFILE_NAME = 'Profile 1'

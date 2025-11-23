@@ -1,9 +1,9 @@
 // @see - https://www.electron.build/configuration/configuration
 {
   "$schema": "https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json",
-  "appId": "YourAppID",
+  "appId": "com.evanmclean.jsmcustomcurve",
+  "productName": "JoyShockMapper Custom Curve",
   "asar": true,
-  "productName": "YourAppName",
   "directories": {
     "output": "release/${version}"
   },
@@ -11,34 +11,28 @@
     "dist",
     "dist-electron"
   ],
-  "mac": {
-    "target": [
-      "dmg"
-    ],
-    "artifactName": "${productName}-Mac-${version}-Installer.${ext}"
-  },
+  "extraResources": [
+    {
+      "from": "bin",
+      "to": "bin"
+    }
+  ],
   "win": {
     "icon": "public/gyro-icon.ico",
     "target": [
       {
-        "target": "nsis",
+        "target": "zip",
         "arch": [
           "x64"
         ]
       }
     ],
-    "artifactName": "${productName}-Windows-${version}-Setup.${ext}"
+    "artifactName": "${productName}.zip"
   },
   "nsis": {
     "oneClick": false,
     "perMachine": false,
     "allowToChangeInstallationDirectory": true,
     "deleteAppDataOnUninstall": false
-  },
-  "linux": {
-    "target": [
-      "AppImage"
-    ],
-    "artifactName": "${productName}-Linux-${version}.${ext}"
   }
 }
