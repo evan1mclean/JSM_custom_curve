@@ -9,6 +9,7 @@ This repo bundles a modded JoyShockMapper build with a new GUI. For full JSM com
 - Use the Recalibrate button for a quick 5 second calibration whenever you need it.
 
 ## What’s different from upstream JSM in this fork
+- Built off of SDL2 version of JSM using SDL2 compatibility layer for SDL3 for broader controller support.
 - Custom accel curve implementations (Natural, Power, Quadratic, Sigmoid, Jump) with catch2 unit tests.
 - Live telemetry bridge to feed the GUI.
 - Global gyro on/off binds exposed in the GUI and per-device ignore gyro binds for people connecting two devices to one JSM instance I.E. external gyro box users.
