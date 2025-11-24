@@ -4,6 +4,7 @@ This repo bundles a modded JoyShockMapper build with a new GUI. For full JSM com
 
 ## Quick start
 - Download and run (Windows): [Latest GUI release](https://github.com/evan1mclean/JSM_custom_curve/releases/tag/v1.0.0-jsm-gui).
+- If using HidHide, point it to the JoyShockMapper.exe located in JoyShockMapper.Custom.Curve\resources\bin
 - The app launches JSM in the background when it starts and shuts it down when you close the GUI.
 - Create or load a profile; map bindings/gyro settings in the UI or import an existing config, then click Apply to push it immediately to JSM.
 - Use the Recalibrate button for a quick 5 second calibration whenever you need it.
