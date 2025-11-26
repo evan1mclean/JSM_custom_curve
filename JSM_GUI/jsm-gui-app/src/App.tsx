@@ -16,12 +16,17 @@ import {
 } from './utils/keymap'
 import { SensitivityControls } from './components/SensitivityControls'
 import { ConfigEditor } from './components/ConfigEditor'
-import { CalibrationCard } from './components/CalibrationCard'
 import { ProfileManager } from './components/ProfileManager'
 import { GyroBehaviorControls } from './components/GyroBehaviorControls'
 import { NoiseSteadyingControls } from './components/NoiseSteadyingControls'
 import { KeymapControls } from './components/KeymapControls'
 import { SectionActions } from './components/SectionActions'
+
+type PrimaryTab = 'gyro' | 'keybinds' | 'touchpad' | 'sticks'
+type GyroSubTab = 'behavior' | 'sensitivity' | 'noise'
+type KeybindsSubTab = 'face' | 'dpad' | 'bumpers' | 'triggers' | 'center'
+type TouchpadSubTab = 'mode' | 'grid' | 'bind'
+type SticksSubTab = 'bindings' | 'modes'
 
 const asNumber = (value: unknown) => (typeof value === 'number' ? value : undefined)
 const formatNumber = (value: number | undefined, digits = 2) =>
@@ -179,7 +184,12 @@ function App() {
   const [currentLibraryProfile, setCurrentLibraryProfile] = useState<string | null>(null)
   const [activeProfilePath, setActiveProfilePath] = useState<string>('')
   const [recalibrating, setRecalibrating] = useState(false)
-  const [activeTab, setActiveTab] = useState<'gyro' | 'keymap' | 'touchpad' | 'sticks'>('gyro')
+  const [isProfileModalOpen, setProfileModalOpen] = useState(false)
+  const [primaryTab, setPrimaryTab] = useState<PrimaryTab>('gyro')
+  const [gyroSubTab, setGyroSubTab] = useState<GyroSubTab>('behavior')
+  const [keybindsSubTab, setKeybindsSubTab] = useState<KeybindsSubTab>('face')
+  const [touchpadSubTab, setTouchpadSubTab] = useState<TouchpadSubTab>('mode')
+  const [sticksSubTab, setSticksSubTab] = useState<SticksSubTab>('bindings')
   const [sensitivityView, setSensitivityView] = useState<'base' | 'modeshift'>('base')
   const ignoredGyroDevices = useMemo(() => {
     const raw = getKeymapValue(configText, 'IGNORE_GYRO_DEVICES') ?? ''
@@ -1597,78 +1607,77 @@ const handleDeleteLibraryProfile = async (name: string) => {
   const profileLabel = currentLibraryProfile ?? 'Unsaved profile'
   const activeProfileFile = activeProfilePath || 'No active profile'
   const profileFileLabel = `${activeProfileFile} — ${profileLabel}`
+  const calibrationMessage = isCalibrating ? `Calibrating — place controller on a flat surface (${countdown ?? '...'}s)` : ''
+  const lockMessage = 'Calibrating — place controller on a flat surface'
 
-  return (
-    <div className="app-frame">
-      <div className="App legacy-shell">
-        <header>
-          <h1>JoyShockMapper Custom Curve</h1>
-        </header>
+  const renderGyroNav = () => (
+    <div className="subnav">
+      <button className={`pill-tab ${gyroSubTab === 'behavior' ? 'active' : ''}`} onClick={() => setGyroSubTab('behavior')}>
+        Gyro Behavior
+      </button>
+      <button className={`pill-tab ${gyroSubTab === 'sensitivity' ? 'active' : ''}`} onClick={() => setGyroSubTab('sensitivity')}>
+        Sensitivity
+      </button>
+      <button className={`pill-tab ${gyroSubTab === 'noise' ? 'active' : ''}`} onClick={() => setGyroSubTab('noise')}>
+        Noise & Steadying
+      </button>
+    </div>
+  )
 
-        <div className="tab-bar">
-          <button
-            className={`pill-tab tab-button ${activeTab === 'gyro' ? 'active' : ''}`}
-            onClick={() => setActiveTab('gyro')}
-          >
-            Gyro & Sensitivity
-          </button>
-          <button
-            className={`pill-tab tab-button ${activeTab === 'keymap' ? 'active' : ''}`}
-            onClick={() => setActiveTab('keymap')}
-          >
-            Keymap
-          </button>
-          <button
-            className={`pill-tab tab-button ${activeTab === 'touchpad' ? 'active' : ''}`}
-            onClick={() => setActiveTab('touchpad')}
-          >
-            Touchpad
-          </button>
-          <button
-            className={`pill-tab tab-button ${activeTab === 'sticks' ? 'active' : ''}`}
-            onClick={() => setActiveTab('sticks')}
-          >
-            Sticks
-          </button>
-        </div>
+  const renderKeybindsNav = () => (
+    <div className="subnav">
+      {(['face', 'dpad', 'bumpers', 'triggers', 'center'] as KeybindsSubTab[]).map(entry => (
+        <button key={entry} className={`pill-tab ${keybindsSubTab === entry ? 'active' : ''}`} onClick={() => setKeybindsSubTab(entry)}>
+          {entry === 'face' && 'Face'}
+          {entry === 'dpad' && 'D-pad'}
+          {entry === 'bumpers' && 'Bumpers'}
+          {entry === 'triggers' && 'Triggers'}
+          {entry === 'center' && 'Center'}
+        </button>
+      ))}
+    </div>
+  )
 
-        <CalibrationCard
-          isCalibrating={isCalibrating}
-          countdown={countdown}
-          recalibrating={recalibrating}
-          onRecalibrate={handleRecalibrate}
-        />
+  const renderTouchpadNav = () => (
+    <div className="subnav">
+      <button className={`pill-tab ${touchpadSubTab === 'mode' ? 'active' : ''}`} onClick={() => setTouchpadSubTab('mode')}>
+        Mode
+      </button>
+      <button className={`pill-tab ${touchpadSubTab === 'grid' ? 'active' : ''}`} onClick={() => setTouchpadSubTab('grid')}>
+        Grid
+      </button>
+      <button className={`pill-tab ${touchpadSubTab === 'bind' ? 'active' : ''}`} onClick={() => setTouchpadSubTab('bind')}>
+        Bindings
+      </button>
+    </div>
+  )
 
-        <ProfileManager
-          currentProfileName={currentLibraryProfile}
-          hasPendingChanges={hasPendingChanges}
-          isCalibrating={isCalibrating}
-          profileApplied={configText === appliedConfig}
-          statusMessage={statusMessage}
-          onApplyProfile={applyConfig}
-          applyDisabled={isCalibrating}
-          onImportProfile={handleImportProfile}
-          libraryProfiles={libraryProfiles}
-          libraryLoading={isLibraryLoading}
-          editedProfileNames={editedLibraryNames}
-          onProfileNameChange={handleLibraryProfileNameChange}
-          onRenameProfile={handleRenameProfile}
-          onDeleteProfile={handleDeleteLibraryProfile}
-          onAddProfile={handleCreateProfile}
-          onLoadLibraryProfile={handleLoadProfileFromLibrary}
-        />
+  const renderSticksNav = () => (
+    <div className="subnav">
+      <button className={`pill-tab ${sticksSubTab === 'bindings' ? 'active' : ''}`} onClick={() => setSticksSubTab('bindings')}>
+        Bindings
+      </button>
+      <button className={`pill-tab ${sticksSubTab === 'modes' ? 'active' : ''}`} onClick={() => setSticksSubTab('modes')}>
+        Modes & Settings
+      </button>
+    </div>
+  )
 
-        {activeTab === 'gyro' && (
-          <>
-            <GyroBehaviorControls
-              sensitivity={sensitivity}
-              isCalibrating={isCalibrating}
-              statusMessage={statusMessage}
-              devices={sample?.devices}
-              ignoredDevices={ignoredGyroDevices}
-              onToggleIgnoreDevice={handleToggleIgnoreGyroDevice}
-              onInGameSensChange={handleInGameSensChange}
-              onRealWorldCalibrationChange={handleRealWorldCalibrationChange}
+  const renderPrimaryContent = () => {
+    if (primaryTab === 'gyro') {
+      return (
+        <>
+          {gyroSubTab === 'behavior' && (
+            <>
+              <GyroBehaviorControls
+                sensitivity={sensitivity}
+                isCalibrating={isCalibrating}
+                statusMessage={statusMessage}
+                devices={sample?.devices}
+                ignoredDevices={ignoredGyroDevices}
+                onToggleIgnoreDevice={handleToggleIgnoreGyroDevice}
+                onInGameSensChange={handleInGameSensChange}
+                onRealWorldCalibrationChange={handleRealWorldCalibrationChange}
               onTickTimeChange={handleTickTimeChange}
               onGyroSpaceChange={handleGyroSpaceChange}
               onGyroAxisXChange={handleGyroAxisXChange}
@@ -1679,9 +1688,12 @@ const handleDeleteLibraryProfile = async (name: string) => {
               hasPendingChanges={hasPendingChanges}
               onApply={applyConfig}
               onCancel={handleCancel}
+              lockMessage={lockMessage}
             />
-
-            <SensitivityControls
+          </>
+        )}
+        {gyroSubTab === 'sensitivity' && (
+          <SensitivityControls
               sensitivity={sensitivity}
               modeshiftSensitivity={modeshiftSensitivity}
               isCalibrating={isCalibrating}
@@ -1701,9 +1713,7 @@ const handleDeleteLibraryProfile = async (name: string) => {
               touchpadMode={touchpadModeValue}
               touchpadGridCells={touchpadModeValue === 'GRID_AND_STICK' ? Math.min(25, gridSizeValue.columns * gridSizeValue.rows) : 0}
               onModeChange={(mode) =>
-                mode === 'static'
-                  ? switchToStaticMode(activeSensitivityPrefix)
-                  : switchToAccelMode(activeSensitivityPrefix)
+                mode === 'static' ? switchToStaticMode(activeSensitivityPrefix) : switchToAccelMode(activeSensitivityPrefix)
               }
               onSensitivityViewChange={setSensitivityView}
               onApply={applyConfig}
@@ -1725,8 +1735,10 @@ const handleDeleteLibraryProfile = async (name: string) => {
               onStaticSensYChange={handleStaticSensChange(1)}
               modeshiftButton={sensitivityModeshiftButton}
               onModeshiftButtonChange={handleSensitivityModeshiftButtonChange}
+              lockMessage={lockMessage}
             />
-
+          )}
+          {gyroSubTab === 'noise' && (
             <NoiseSteadyingControls
               sensitivity={sensitivity}
               isCalibrating={isCalibrating}
@@ -1734,78 +1746,301 @@ const handleDeleteLibraryProfile = async (name: string) => {
               hasPendingChanges={hasPendingChanges}
               onApply={applyConfig}
               onCancel={handleCancel}
+              lockMessage={lockMessage}
               onCutoffSpeedChange={handleCutoffSpeedChange}
               onCutoffRecoveryChange={handleCutoffRecoveryChange}
               onSmoothTimeChange={handleSmoothTimeChange}
               onSmoothThresholdChange={handleSmoothThresholdChange}
               telemetry={{ omega: telemetryValues.omega, timestamp: telemetryValues.timestamp }}
             />
+          )}
+        </>
+      )
+    }
 
-            <ConfigEditor
-              value={configText}
-              label={profileFileLabel}
-              disabled={isCalibrating}
-              hasPendingChanges={hasPendingChanges}
-              statusMessage={statusMessage}
-              onChange={setConfigText}
-              onApply={applyConfig}
-              onCancel={handleCancel}
-            />
-          </>
-        )}
+    if (primaryTab === 'keybinds') {
+      return (
+        <>
+          <KeymapControls
+            configText={configText}
+            hasPendingChanges={hasPendingChanges}
+            isCalibrating={isCalibrating}
+            statusMessage={statusMessage}
+            onApply={applyConfig}
+            onCancel={handleCancel}
+            onBindingChange={handleFaceButtonBindingChange}
+            onAssignSpecialAction={handleSpecialActionAssignment}
+            onClearSpecialAction={handleClearSpecialAction}
+            trackballDecay={trackballDecayValue}
+            onTrackballDecayChange={handleTrackballDecayChange}
+            holdPressTimeSeconds={holdPressTimeSeconds}
+            holdPressTimeIsCustom={holdPressTimeIsCustom}
+            holdPressTimeDefault={DEFAULT_HOLD_PRESS_TIME}
+            onHoldPressTimeChange={handleHoldPressTimeChange}
+            doublePressWindowSeconds={doublePressWindowSeconds}
+            doublePressWindowIsCustom={doublePressWindowIsCustom}
+            onDoublePressWindowChange={handleDoublePressWindowChange}
+            simPressWindowSeconds={simPressWindowSeconds}
+            simPressWindowIsCustom={simPressWindowIsCustom}
+            onSimPressWindowChange={handleSimPressWindowChange}
+            triggerThreshold={triggerThresholdValue}
+            onTriggerThresholdChange={handleTriggerThresholdChange}
+            onModifierChange={handleModifierChange}
+            touchpadMode={touchpadModeValue}
+            gridColumns={gridSizeValue.columns}
+            gridRows={gridSizeValue.rows}
+            stickDeadzoneSettings={{
+              defaults: stickDeadzoneDefaults,
+              left: leftStickDeadzone,
+              right: rightStickDeadzone,
+            }}
+            stickModeSettings={stickModes}
+            onStickDeadzoneChange={handleStickDeadzoneChange}
+            onStickModeChange={handleStickModeChange}
+            onRingModeChange={handleRingModeChange}
+            stickModeShiftAssignments={stickModeShiftAssignments}
+            onStickModeShiftChange={handleStickModeShiftChange}
+            adaptiveTriggerValue={adaptiveTriggerValue}
+            onAdaptiveTriggerChange={handleAdaptiveTriggerChange}
+            stickAimSettings={stickAimSettings}
+            stickAimHandlers={stickAimHandlers}
+            stickFlickSettings={stickFlickSettings}
+            stickFlickHandlers={stickFlickHandlers}
+            mouseRingRadius={mouseRingRadiusValue}
+            onMouseRingRadiusChange={handleMouseRingRadiusChange}
+            scrollSens={scrollSensValue}
+            onScrollSensChange={handleScrollSensChange}
+            lockMessage={lockMessage}
+            visibleSections={[keybindsSubTab === 'face' && 'global', keybindsSubTab].filter(Boolean) as string[]}
+          />
+        </>
+      )
+    }
 
-        {activeTab === 'keymap' && (
-          <>
-            <KeymapControls
-              configText={configText}
-              hasPendingChanges={hasPendingChanges}
-              isCalibrating={isCalibrating}
-              statusMessage={statusMessage}
-              onApply={applyConfig}
-              onCancel={handleCancel}
-              onBindingChange={handleFaceButtonBindingChange}
-              onAssignSpecialAction={handleSpecialActionAssignment}
-              onClearSpecialAction={handleClearSpecialAction}
-              trackballDecay={trackballDecayValue}
-              onTrackballDecayChange={handleTrackballDecayChange}
-              holdPressTimeSeconds={holdPressTimeSeconds}
-              holdPressTimeIsCustom={holdPressTimeIsCustom}
-              holdPressTimeDefault={DEFAULT_HOLD_PRESS_TIME}
-              onHoldPressTimeChange={handleHoldPressTimeChange}
-              doublePressWindowSeconds={doublePressWindowSeconds}
-              doublePressWindowIsCustom={doublePressWindowIsCustom}
-              onDoublePressWindowChange={handleDoublePressWindowChange}
-              simPressWindowSeconds={simPressWindowSeconds}
-              simPressWindowIsCustom={simPressWindowIsCustom}
-              onSimPressWindowChange={handleSimPressWindowChange}
-              triggerThreshold={triggerThresholdValue}
-              onTriggerThresholdChange={handleTriggerThresholdChange}
-              onModifierChange={handleModifierChange}
-              touchpadMode={touchpadModeValue}
-              gridColumns={gridSizeValue.columns}
-              gridRows={gridSizeValue.rows}
-              stickDeadzoneSettings={{
-                defaults: stickDeadzoneDefaults,
-                left: leftStickDeadzone,
-                right: rightStickDeadzone,
-              }}
-              stickModeSettings={stickModes}
-              onStickDeadzoneChange={handleStickDeadzoneChange}
-              onStickModeChange={handleStickModeChange}
-              onRingModeChange={handleRingModeChange}
-              stickModeShiftAssignments={stickModeShiftAssignments}
-              onStickModeShiftChange={handleStickModeShiftChange}
-              adaptiveTriggerValue={adaptiveTriggerValue}
-              onAdaptiveTriggerChange={handleAdaptiveTriggerChange}
-              stickAimSettings={stickAimSettings}
-              stickAimHandlers={stickAimHandlers}
-              stickFlickSettings={stickFlickSettings}
-              stickFlickHandlers={stickFlickHandlers}
-              mouseRingRadius={mouseRingRadiusValue}
-              onMouseRingRadiusChange={handleMouseRingRadiusChange}
-              scrollSens={scrollSensValue}
-              onScrollSensChange={handleScrollSensChange}
-            />
+    if (primaryTab === 'touchpad') {
+      const sections =
+        touchpadSubTab === 'bind'
+          ? ['touch-bind']
+          : touchpadSubTab === 'grid'
+            ? ['touch-grid']
+            : ['touch-grid']
+      return (
+        <>
+          <KeymapControls
+            view="touchpad"
+            configText={configText}
+            hasPendingChanges={hasPendingChanges}
+            isCalibrating={isCalibrating}
+            statusMessage={statusMessage}
+            onApply={applyConfig}
+            onCancel={handleCancel}
+            onBindingChange={handleFaceButtonBindingChange}
+            onAssignSpecialAction={handleSpecialActionAssignment}
+            onClearSpecialAction={handleClearSpecialAction}
+            trackballDecay={trackballDecayValue}
+            onTrackballDecayChange={handleTrackballDecayChange}
+            holdPressTimeSeconds={holdPressTimeSeconds}
+            holdPressTimeIsCustom={holdPressTimeIsCustom}
+            holdPressTimeDefault={DEFAULT_HOLD_PRESS_TIME}
+            onHoldPressTimeChange={handleHoldPressTimeChange}
+            doublePressWindowSeconds={doublePressWindowSeconds}
+            doublePressWindowIsCustom={doublePressWindowIsCustom}
+            onDoublePressWindowChange={handleDoublePressWindowChange}
+            simPressWindowSeconds={simPressWindowSeconds}
+            simPressWindowIsCustom={simPressWindowIsCustom}
+            onSimPressWindowChange={handleSimPressWindowChange}
+            triggerThreshold={triggerThresholdValue}
+            onTriggerThresholdChange={handleTriggerThresholdChange}
+            onModifierChange={handleModifierChange}
+            touchpadMode={touchpadModeValue}
+            onTouchpadModeChange={handleTouchpadModeChange}
+            gridColumns={gridSizeValue.columns}
+            gridRows={gridSizeValue.rows}
+            onGridSizeChange={handleGridSizeChange}
+            touchpadSensitivity={touchpadSensitivityValue}
+            onTouchpadSensitivityChange={handleTouchpadSensitivityChange}
+            stickDeadzoneSettings={{
+              defaults: stickDeadzoneDefaults,
+              left: leftStickDeadzone,
+              right: rightStickDeadzone,
+            }}
+            stickModeSettings={stickModes}
+            onStickDeadzoneChange={handleStickDeadzoneChange}
+            onStickModeChange={handleStickModeChange}
+            onRingModeChange={handleRingModeChange}
+            stickModeShiftAssignments={stickModeShiftAssignments}
+            onStickModeShiftChange={handleStickModeShiftChange}
+            adaptiveTriggerValue={adaptiveTriggerValue}
+            onAdaptiveTriggerChange={handleAdaptiveTriggerChange}
+            stickAimSettings={stickAimSettings}
+            stickAimHandlers={stickAimHandlers}
+            lockMessage={lockMessage}
+            visibleSections={sections}
+          />
+        </>
+      )
+    }
+
+    if (primaryTab === 'sticks') {
+      return (
+        <>
+          <KeymapControls
+            view="sticks"
+            configText={configText}
+            hasPendingChanges={hasPendingChanges}
+            isCalibrating={isCalibrating}
+            statusMessage={statusMessage}
+            onApply={applyConfig}
+            onCancel={handleCancel}
+            onBindingChange={handleFaceButtonBindingChange}
+            onAssignSpecialAction={handleSpecialActionAssignment}
+            onClearSpecialAction={handleClearSpecialAction}
+            trackballDecay={trackballDecayValue}
+            onTrackballDecayChange={handleTrackballDecayChange}
+            holdPressTimeSeconds={holdPressTimeSeconds}
+            holdPressTimeIsCustom={holdPressTimeIsCustom}
+            holdPressTimeDefault={DEFAULT_HOLD_PRESS_TIME}
+            onHoldPressTimeChange={handleHoldPressTimeChange}
+            doublePressWindowSeconds={doublePressWindowSeconds}
+            doublePressWindowIsCustom={doublePressWindowIsCustom}
+            onDoublePressWindowChange={handleDoublePressWindowChange}
+            simPressWindowSeconds={simPressWindowSeconds}
+            simPressWindowIsCustom={simPressWindowIsCustom}
+            onSimPressWindowChange={handleSimPressWindowChange}
+            triggerThreshold={triggerThresholdValue}
+            onTriggerThresholdChange={handleTriggerThresholdChange}
+            onModifierChange={handleModifierChange}
+            touchpadMode={touchpadModeValue}
+            gridColumns={gridSizeValue.columns}
+            gridRows={gridSizeValue.rows}
+            stickDeadzoneSettings={{
+              defaults: stickDeadzoneDefaults,
+              left: leftStickDeadzone,
+              right: rightStickDeadzone,
+            }}
+            onStickDeadzoneChange={handleStickDeadzoneChange}
+            stickModeSettings={stickModes}
+            onStickModeChange={handleStickModeChange}
+            onRingModeChange={handleRingModeChange}
+            stickModeShiftAssignments={stickModeShiftAssignments}
+            onStickModeShiftChange={handleStickModeShiftChange}
+            stickAimSettings={stickAimSettings}
+            stickAimHandlers={stickAimHandlers}
+            stickFlickSettings={stickFlickSettings}
+            stickFlickHandlers={stickFlickHandlers}
+            scrollSens={scrollSensValue}
+            onScrollSensChange={handleScrollSensChange}
+            mouseRingRadius={mouseRingRadiusValue}
+            onMouseRingRadiusChange={handleMouseRingRadiusChange}
+            stickForcedView={sticksSubTab}
+            showStickViewToggle={false}
+            lockMessage={lockMessage}
+          />
+        </>
+      )
+    }
+
+    return null
+  }
+
+  return (
+    <div className="app-shell">
+      <aside className="side-nav">
+        <div className="nav-brand">JSM Custom Curve</div>
+        <div className="nav-group">
+          <button className={`nav-item ${primaryTab === 'gyro' ? 'active' : ''}`} onClick={() => setPrimaryTab('gyro')}>
+            Gyro & Sensitivity
+          </button>
+          <button className={`nav-item ${primaryTab === 'keybinds' ? 'active' : ''}`} onClick={() => setPrimaryTab('keybinds')}>
+            Keybinds
+          </button>
+          <button className={`nav-item ${primaryTab === 'touchpad' ? 'active' : ''}`} onClick={() => setPrimaryTab('touchpad')}>
+            Touchpad
+          </button>
+          <button className={`nav-item ${primaryTab === 'sticks' ? 'active' : ''}`} onClick={() => setPrimaryTab('sticks')}>
+            Sticks
+          </button>
+        </div>
+      </aside>
+      <div className="shell-main">
+          <div className="top-bar">
+          <div className="top-bar-left">
+            {primaryTab === 'gyro' && renderGyroNav()}
+            {primaryTab === 'keybinds' && renderKeybindsNav()}
+            {primaryTab === 'touchpad' && renderTouchpadNav()}
+            {primaryTab === 'sticks' && renderSticksNav()}
+          </div>
+          <div className="top-bar-right" />
+        </div>
+        <div className="content-grid">
+          <main className="main-pane">{renderPrimaryContent()}</main>
+          <aside className="right-rail">
+            <div className="recalibrate-card">
+              {isCalibrating ? (
+                <div className="recalibrate-row">
+                  <span className="calibration-pill calibration-pill-inline">
+                    Calibrating — ({countdown ?? '…'})
+                  </span>
+                </div>
+              ) : (
+                <button className="secondary-btn rail-button" onClick={handleRecalibrate} disabled={recalibrating}>
+                  {recalibrating ? 'Recalibrating…' : 'Recalibrate gyro'}
+                </button>
+              )}
+            </div>
+            <div className="profile-summary-card">
+              <div className="profile-summary-header">
+                <div className="profile-summary-title">Profile</div>
+                <span className={`status-chip ${hasPendingChanges ? 'warning' : 'success'}`}>
+                  {hasPendingChanges ? 'Pending changes' : 'Applied'}
+                </span>
+              </div>
+              <div className="profile-summary-name">{currentLibraryProfile ?? 'Unsaved profile'}</div>
+              <label className="profile-summary-select">
+                Quick switch
+                <select
+                  className="app-select"
+                  value={currentLibraryProfile ?? ''}
+                  onChange={event => {
+                    const name = event.target.value
+                    if (!name) return
+                    handleLoadProfileFromLibrary(name)
+                  }}
+                >
+                  <option value="" disabled>
+                    Select profile
+                  </option>
+                  {(libraryProfiles ?? []).map(name => (
+                    <option key={name} value={name}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <div className="profile-summary-actions">
+                <button className="secondary-btn" onClick={() => setProfileModalOpen(true)}>
+                  Manage profiles
+                </button>
+                <button className="secondary-btn" onClick={handleImportProfile} disabled={!window.electronAPI?.saveLibraryProfile}>
+                  Import
+                </button>
+              </div>
+            </div>
+            <div className="config-editor-desktop">
+              <ConfigEditor
+                value={configText}
+                label={profileFileLabel}
+                disabled={isCalibrating}
+                hasPendingChanges={hasPendingChanges}
+                statusMessage={statusMessage}
+                onChange={setConfigText}
+                onApply={applyConfig}
+                onCancel={handleCancel}
+                lockMessage={lockMessage}
+              />
+            </div>
+          </aside>
+          <div className="config-editor-mobile">
             <ConfigEditor
               value={configText}
               label={profileFileLabel}
@@ -1815,135 +2050,10 @@ const handleDeleteLibraryProfile = async (name: string) => {
               onChange={setConfigText}
               onApply={applyConfig}
               onCancel={handleCancel}
+              lockMessage={lockMessage}
             />
-          </>
-        )}
-        {activeTab === 'touchpad' && (
-          <>
-            <KeymapControls
-              view="touchpad"
-              configText={configText}
-              hasPendingChanges={hasPendingChanges}
-              isCalibrating={isCalibrating}
-              statusMessage={statusMessage}
-              onApply={applyConfig}
-              onCancel={handleCancel}
-              onBindingChange={handleFaceButtonBindingChange}
-              onAssignSpecialAction={handleSpecialActionAssignment}
-              onClearSpecialAction={handleClearSpecialAction}
-              trackballDecay={trackballDecayValue}
-              onTrackballDecayChange={handleTrackballDecayChange}
-              holdPressTimeSeconds={holdPressTimeSeconds}
-              holdPressTimeIsCustom={holdPressTimeIsCustom}
-              holdPressTimeDefault={DEFAULT_HOLD_PRESS_TIME}
-              onHoldPressTimeChange={handleHoldPressTimeChange}
-              doublePressWindowSeconds={doublePressWindowSeconds}
-              doublePressWindowIsCustom={doublePressWindowIsCustom}
-              onDoublePressWindowChange={handleDoublePressWindowChange}
-              simPressWindowSeconds={simPressWindowSeconds}
-              simPressWindowIsCustom={simPressWindowIsCustom}
-              onSimPressWindowChange={handleSimPressWindowChange}
-              triggerThreshold={triggerThresholdValue}
-              onTriggerThresholdChange={handleTriggerThresholdChange}
-              onModifierChange={handleModifierChange}
-              touchpadMode={touchpadModeValue}
-              onTouchpadModeChange={handleTouchpadModeChange}
-              gridColumns={gridSizeValue.columns}
-              gridRows={gridSizeValue.rows}
-              onGridSizeChange={handleGridSizeChange}
-              touchpadSensitivity={touchpadSensitivityValue}
-              onTouchpadSensitivityChange={handleTouchpadSensitivityChange}
-              stickDeadzoneSettings={{
-                defaults: stickDeadzoneDefaults,
-                left: leftStickDeadzone,
-                right: rightStickDeadzone,
-              }}
-              stickModeSettings={stickModes}
-              onStickDeadzoneChange={handleStickDeadzoneChange}
-              onStickModeChange={handleStickModeChange}
-              onRingModeChange={handleRingModeChange}
-              stickModeShiftAssignments={stickModeShiftAssignments}
-              onStickModeShiftChange={handleStickModeShiftChange}
-              adaptiveTriggerValue={adaptiveTriggerValue}
-              onAdaptiveTriggerChange={handleAdaptiveTriggerChange}
-              stickAimSettings={stickAimSettings}
-              stickAimHandlers={stickAimHandlers}
-            />
-            <ConfigEditor
-              value={configText}
-              label={profileFileLabel}
-              disabled={isCalibrating}
-              hasPendingChanges={hasPendingChanges}
-              statusMessage={statusMessage}
-              onChange={setConfigText}
-              onApply={applyConfig}
-              onCancel={handleCancel}
-            />
-          </>
-        )}
-        {activeTab === 'sticks' && (
-          <>
-            <KeymapControls
-              view="sticks"
-              configText={configText}
-              hasPendingChanges={hasPendingChanges}
-              isCalibrating={isCalibrating}
-              statusMessage={statusMessage}
-              onApply={applyConfig}
-              onCancel={handleCancel}
-              onBindingChange={handleFaceButtonBindingChange}
-              onAssignSpecialAction={handleSpecialActionAssignment}
-              onClearSpecialAction={handleClearSpecialAction}
-              trackballDecay={trackballDecayValue}
-              onTrackballDecayChange={handleTrackballDecayChange}
-              holdPressTimeSeconds={holdPressTimeSeconds}
-              holdPressTimeIsCustom={holdPressTimeIsCustom}
-              holdPressTimeDefault={DEFAULT_HOLD_PRESS_TIME}
-              onHoldPressTimeChange={handleHoldPressTimeChange}
-              doublePressWindowSeconds={doublePressWindowSeconds}
-              doublePressWindowIsCustom={doublePressWindowIsCustom}
-              onDoublePressWindowChange={handleDoublePressWindowChange}
-              simPressWindowSeconds={simPressWindowSeconds}
-              simPressWindowIsCustom={simPressWindowIsCustom}
-              onSimPressWindowChange={handleSimPressWindowChange}
-              triggerThreshold={triggerThresholdValue}
-              onTriggerThresholdChange={handleTriggerThresholdChange}
-              onModifierChange={handleModifierChange}
-              touchpadMode={touchpadModeValue}
-              gridColumns={gridSizeValue.columns}
-              gridRows={gridSizeValue.rows}
-              stickDeadzoneSettings={{
-                defaults: stickDeadzoneDefaults,
-                left: leftStickDeadzone,
-                right: rightStickDeadzone,
-              }}
-              onStickDeadzoneChange={handleStickDeadzoneChange}
-              stickModeSettings={stickModes}
-              onStickModeChange={handleStickModeChange}
-              onRingModeChange={handleRingModeChange}
-              stickModeShiftAssignments={stickModeShiftAssignments}
-              onStickModeShiftChange={handleStickModeShiftChange}
-              stickAimSettings={stickAimSettings}
-              stickAimHandlers={stickAimHandlers}
-              stickFlickSettings={stickFlickSettings}
-              stickFlickHandlers={stickFlickHandlers}
-              scrollSens={scrollSensValue}
-              onScrollSensChange={handleScrollSensChange}
-              mouseRingRadius={mouseRingRadiusValue}
-              onMouseRingRadiusChange={handleMouseRingRadiusChange}
-            />
-            <ConfigEditor
-              value={configText}
-              label={profileFileLabel}
-              disabled={isCalibrating}
-              hasPendingChanges={hasPendingChanges}
-              statusMessage={statusMessage}
-              onChange={setConfigText}
-              onApply={applyConfig}
-              onCancel={handleCancel}
-            />
-          </>
-        )}
+          </div>
+        </div>
       </div>
       {isCalibrationModalOpen && (
         <div className="modal-overlay">
@@ -2011,6 +2121,36 @@ const handleDeleteLibraryProfile = async (name: string) => {
                 </div>
               </>
             )}
+          </div>
+        </div>
+      )}
+      {isProfileModalOpen && (
+        <div className="modal-overlay">
+          <div className="modal-card profile-modal">
+            <div className="modal-header">
+              <h3>Profiles</h3>
+              <button className="secondary-btn" onClick={() => setProfileModalOpen(false)}>
+                Close
+              </button>
+            </div>
+            <ProfileManager
+              currentProfileName={currentLibraryProfile}
+              hasPendingChanges={hasPendingChanges}
+              isCalibrating={isCalibrating}
+              profileApplied={configText === appliedConfig}
+              statusMessage={statusMessage}
+              onApplyProfile={applyConfig}
+              applyDisabled={isCalibrating}
+              onImportProfile={handleImportProfile}
+              libraryProfiles={libraryProfiles}
+              libraryLoading={isLibraryLoading}
+              editedProfileNames={editedLibraryNames}
+              onProfileNameChange={handleLibraryProfileNameChange}
+              onRenameProfile={handleRenameProfile}
+              onDeleteProfile={handleDeleteLibraryProfile}
+              onAddProfile={handleCreateProfile}
+              onLoadLibraryProfile={handleLoadProfileFromLibrary}
+            />
           </div>
         </div>
       )}

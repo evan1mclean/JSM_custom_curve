@@ -52,6 +52,7 @@ type SensitivityControlsProps = {
   onStaticSensYChange: (value: string) => void
   modeshiftButton: string | null
   onModeshiftButtonChange: (value: string) => void
+  lockMessage?: string
 }
 
 export function SensitivityControls({
@@ -87,6 +88,7 @@ export function SensitivityControls({
   onStaticSensYChange,
   modeshiftButton,
   onModeshiftButtonChange,
+  lockMessage = 'Calibrating — place controller on a flat surface',
 }: SensitivityControlsProps) {
   const displaySensitivity =
     sensitivityView === 'base' || !modeshiftButton ? sensitivity : modeshiftSensitivity ?? sensitivity
@@ -100,7 +102,7 @@ export function SensitivityControls({
       className="control-panel"
       lockable
       locked={isCalibrating}
-      lockMessage="Controls locked while JSM calibrates"
+      lockMessage={lockMessage}
     >
       <h2>Gyro Sensitivity Controls</h2>
       <div className="mode-toggle">

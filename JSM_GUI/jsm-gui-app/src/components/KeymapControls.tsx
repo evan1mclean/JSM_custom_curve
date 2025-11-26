@@ -46,6 +46,10 @@ type KeymapControlsProps = {
   triggerThreshold: number
   onTriggerThresholdChange: (value: string) => void
   view?: 'full' | 'touchpad' | 'sticks'
+  lockMessage?: string
+  visibleSections?: string[]
+  stickForcedView?: 'bindings' | 'modes'
+  showStickViewToggle?: boolean
   touchpadMode?: string
   onTouchpadModeChange?: (value: string) => void
   gridColumns?: number
@@ -582,6 +586,10 @@ export function KeymapControls({
   triggerThreshold,
   onTriggerThresholdChange,
   view = 'full',
+  lockMessage,
+  visibleSections,
+  stickForcedView,
+  showStickViewToggle = true,
   touchpadMode: touchpadModeProp = '',
   onTouchpadModeChange,
   gridColumns = 2,
@@ -613,6 +621,18 @@ export function KeymapControls({
   const [suppressKey, setSuppressKey] = useState<string | null>(null)
   const [manualRows, setManualRows] = useState<Record<string, ManualRowState>>({})
   const [stickShiftDisplayModes, setStickShiftDisplayModes] = useState<Record<string, 'tap' | 'extra'>>({})
+  const currentStickView = stickForcedView ?? stickView
+  const stickToggleVisible = view === 'sticks' && showStickViewToggle && !stickForcedView
+  useEffect(() => {
+    if (stickForcedView) {
+      setStickView(stickForcedView)
+    }
+  }, [stickForcedView])
+
+  const isVisible = (section: string) => {
+    if (!visibleSections || visibleSections.length === 0) return true
+    return visibleSections.includes(section)
+  }
   const touchpadMode = useMemo(() => {
     const upper = touchpadModeProp?.toUpperCase()
     if (upper === 'GRID_AND_STICK' || upper === 'MOUSE') return upper
@@ -1183,8 +1203,10 @@ export function KeymapControls({
     />
   )
 
+  const resolvedLockMessage = lockMessage ?? 'Calibrating — place controller on a flat surface'
+
   return (
-    <Card className="control-panel" lockable locked={isCalibrating} lockMessage="Keymapping locked while JSM calibrates">
+    <Card className="control-panel" lockable locked={isCalibrating} lockMessage={resolvedLockMessage}>
       <div className="keymap-card-header">
         <h2>
           {view === 'touchpad' ? 'Touchpad Controls' : view === 'sticks' ? 'Stick Bindings' : 'Keymap Controls'}
@@ -1201,7 +1223,7 @@ export function KeymapControls({
         )}
       </div>
 
-      {showFullLayout && (
+      {showFullLayout && isVisible('global') && (
         <>
           <KeymapSection
             title="Global controls"
@@ -1242,6 +1264,12 @@ export function KeymapControls({
           </KeymapSection>
           {renderSectionActions()}
 
+          {renderSectionActions()}
+        </>
+      )}
+
+      {showFullLayout && isVisible('face') && (
+        <>
           <KeymapSection
             title="Face Buttons"
             description="Tap / Hold / Double / Chorded / Simultaneous bindings available via Add Extra Binding."
@@ -1249,7 +1277,11 @@ export function KeymapControls({
             <div className="keymap-grid">{FACE_BUTTONS.map(renderButtonCard)}</div>
           </KeymapSection>
           {renderSectionActions()}
+        </>
+      )}
 
+      {showFullLayout && isVisible('dpad') && (
+        <>
           <KeymapSection
             title="D-pad"
             description="Directional pad bindings with the same extra slots and special actions."
@@ -1257,12 +1289,20 @@ export function KeymapControls({
             <div className="keymap-grid">{DPAD_BUTTONS.map(renderButtonCard)}</div>
           </KeymapSection>
           {renderSectionActions()}
+        </>
+      )}
 
+      {showFullLayout && isVisible('bumpers') && (
+        <>
           <KeymapSection title="Bumpers" description="L1/R1 bindings with the usual specials and extra slots.">
             <div className="keymap-grid">{BUMPER_BUTTONS.map(renderButtonCard)}</div>
           </KeymapSection>
           {renderSectionActions()}
+        </>
+      )}
 
+      {showFullLayout && isVisible('triggers') && (
+        <>
           <KeymapSection title="Triggers" description="Soft/full pulls and threshold toggles for L2/R2.">
             <div className="keymap-grid">
               {TRIGGER_BUTTONS.map(renderButtonCard)}
@@ -1285,7 +1325,7 @@ export function KeymapControls({
           {renderSectionActions()}
         </>
       )}
-      {showFullLayout && (
+      {showFullLayout && isVisible('center') && (
         <>
           <KeymapSection title="Center buttons" description="Options, Share, and Mic bindings.">
             <div className="keymap-grid">{CENTER_BUTTONS.map(renderButtonCard)}</div>
@@ -1296,15 +1336,17 @@ export function KeymapControls({
 
       {showStickLayout && (
         <>
-          <div className="mode-toggle stick-subtabs">
-            <button className={`pill-tab ${stickView === 'bindings' ? 'active' : ''}`} onClick={() => setStickView('bindings')}>
-              Bindings
-            </button>
-            <button className={`pill-tab ${stickView === 'modes' ? 'active' : ''}`} onClick={() => setStickView('modes')}>
-              Modes & Settings
-            </button>
-          </div>
-          {stickView === 'bindings' ? (
+          {stickToggleVisible && (
+            <div className="mode-toggle stick-subtabs">
+              <button className={`pill-tab ${currentStickView === 'bindings' ? 'active' : ''}`} onClick={() => setStickView('bindings')}>
+                Bindings
+              </button>
+              <button className={`pill-tab ${currentStickView === 'modes' ? 'active' : ''}`} onClick={() => setStickView('modes')}>
+                Modes & Settings
+              </button>
+            </div>
+          )}
+          {currentStickView === 'bindings' ? (
             <>
               <KeymapSection
                 title="Left stick"
@@ -1461,89 +1503,97 @@ export function KeymapControls({
 
       {view === 'touchpad' && (
         <>
-          <KeymapSection title="Touch and click buttons" description="Bindings for touch contact and pad click.">
-            <div className="keymap-grid">{TOUCH_BUTTONS.map(renderButtonCard)}</div>
-          </KeymapSection>
-          {renderSectionActions()}
-          <KeymapSection title="Touchpad mode and grid" description="Adjust mode, grid size, and sensitivity for the touchpad.">
-            <div className="touchpad-settings">
-              <label>
-                Mode
-                <select className="app-select" value={touchpadMode} onChange={(event) => onTouchpadModeChange?.(event.target.value)}>
-                  <option value="">None selected</option>
-                  <option value="GRID_AND_STICK">Grid and Stick</option>
-                  <option value="MOUSE">Mouse</option>
-                </select>
-              </label>
-              {touchpadMode === 'GRID_AND_STICK' && (
-                <>
-                  <div className="grid-size-inputs">
-                    <label>
-                      Columns
-                      <input
-                        type="number"
-                        min={1}
-                        max={5}
-                        value={gridColumns}
-                        onChange={(event) => onGridSizeChange?.(Number(event.target.value) || 1, gridRows)}
-                      />
-                    </label>
-                    <label>
-                      Rows
-                      <input
-                        type="number"
-                        min={1}
-                        max={5}
-                        value={gridRows}
-                        onChange={(event) => onGridSizeChange?.(gridColumns, Number(event.target.value) || 1)}
-                      />
-                    </label>
-                  </div>
-                  <small className="grid-limit-hint">Columns × Rows cannot exceed 25 total regions.</small>
-                </>
-              )}
-              {touchpadMode === 'MOUSE' && (
-                <label>
-                  Touchpad sensitivity
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={touchpadSensitivity ?? ''}
-                    onChange={(event) => onTouchpadSensitivityChange?.(event.target.value)}
-                    placeholder="Default"
-                  />
-                </label>
-              )}
-            </div>
-          </KeymapSection>
-          {touchpadMode === 'GRID_AND_STICK' && (
-            <KeymapSection
-              title="Touchpad grid"
-              description="This preview mirrors the touchpad. Configure each region using the rows below."
-            >
-              <div className="touchpad-grid-preview" style={{ gridTemplateColumns: `repeat(${clampedGridCols}, 1fr)` }}>
-                {Array.from({ length: clampedGridCells }).map((_, index) => {
-                  const rowIndex = Math.floor(index / clampedGridCols)
-                  const colIndex = index % clampedGridCols
-                  return (
-                    <div className="touchpad-grid-cell" key={`cell-${index}`}>
-                      <span>T{index + 1}</span>
-                      <small>
-                        Row {rowIndex + 1}, Col {colIndex + 1}
-                      </small>
-                    </div>
-                  )
-                })}
-              </div>
-              <div
-                className="touchpad-binding-list"
-                data-touchpad-binding-list
-              >
-                <div className="keymap-grid">{touchpadGridButtons.map(renderButtonCard)}</div>
-              </div>
-            </KeymapSection>
+          {isVisible('touch-bind') && (
+            <>
+              <KeymapSection title="Touch and click buttons" description="Bindings for touch contact and pad click.">
+                <div className="keymap-grid">{TOUCH_BUTTONS.map(renderButtonCard)}</div>
+              </KeymapSection>
+              {renderSectionActions()}
+            </>
           )}
-          {renderSectionActions()}
+          {isVisible('touch-grid') && (
+            <>
+              <KeymapSection title="Touchpad mode and grid" description="Adjust mode, grid size, and sensitivity for the touchpad.">
+                <div className="touchpad-settings">
+                  <label>
+                    Mode
+                    <select className="app-select" value={touchpadMode} onChange={(event) => onTouchpadModeChange?.(event.target.value)}>
+                      <option value="">None selected</option>
+                      <option value="GRID_AND_STICK">Grid and Stick</option>
+                      <option value="MOUSE">Mouse</option>
+                    </select>
+                  </label>
+                  {touchpadMode === 'GRID_AND_STICK' && (
+                    <>
+                      <div className="grid-size-inputs">
+                        <label>
+                          Columns
+                          <input
+                            type="number"
+                            min={1}
+                            max={5}
+                            value={gridColumns}
+                            onChange={(event) => onGridSizeChange?.(Number(event.target.value) || 1, gridRows)}
+                          />
+                        </label>
+                        <label>
+                          Rows
+                          <input
+                            type="number"
+                            min={1}
+                            max={5}
+                            value={gridRows}
+                            onChange={(event) => onGridSizeChange?.(gridColumns, Number(event.target.value) || 1)}
+                          />
+                        </label>
+                      </div>
+                      <small className="grid-limit-hint">Columns × Rows cannot exceed 25 total regions.</small>
+                    </>
+                  )}
+                  {touchpadMode === 'MOUSE' && (
+                    <label>
+                      Touchpad sensitivity
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={touchpadSensitivity ?? ''}
+                        onChange={(event) => onTouchpadSensitivityChange?.(event.target.value)}
+                        placeholder="Default"
+                      />
+                    </label>
+                  )}
+                </div>
+              </KeymapSection>
+              {touchpadMode === 'GRID_AND_STICK' && (
+                <KeymapSection
+                  title="Touchpad grid"
+                  description="This preview mirrors the touchpad. Configure each region using the rows below."
+                >
+                  <div className="touchpad-grid-preview" style={{ gridTemplateColumns: `repeat(${clampedGridCols}, 1fr)` }}>
+                    {Array.from({ length: clampedGridCells }).map((_, index) => {
+                      const rowIndex = Math.floor(index / clampedGridCols)
+                      const colIndex = index % clampedGridCols
+                      return (
+                        <div className="touchpad-grid-cell" key={`cell-${index}`}>
+                          <span>T{index + 1}</span>
+                          <small>
+                            Row {rowIndex + 1}, Col {colIndex + 1}
+                          </small>
+                        </div>
+                      )
+                    })}
+                  </div>
+                  <div
+                    className="touchpad-binding-list"
+                    data-touchpad-binding-list
+                  >
+                    <div className="keymap-grid">{touchpadGridButtons.map(renderButtonCard)}</div>
+                  </div>
+                </KeymapSection>
+              )}
+              {renderSectionActions()}
+            </>
+          )}
         </>
       )}
 

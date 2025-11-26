@@ -39,6 +39,7 @@ type GyroBehaviorControlsProps = {
   hasPendingChanges: boolean
   onApply: () => void
   onCancel: () => void
+  lockMessage?: string
 }
 
 export function GyroBehaviorControls({
@@ -60,6 +61,7 @@ export function GyroBehaviorControls({
   hasPendingChanges,
   onApply,
   onCancel,
+  lockMessage = 'Calibrating — place controller on a flat surface',
 }: GyroBehaviorControlsProps) {
   const controllerLabel = (type?: number) => {
     switch (type) {
@@ -98,7 +100,7 @@ export function GyroBehaviorControls({
       className="control-panel"
       lockable
       locked={isCalibrating}
-      lockMessage="Controls locked while JSM calibrates"
+      lockMessage={lockMessage}
     >
       <h2>Gyro Behavior</h2>
       {onOpenCalibration && (

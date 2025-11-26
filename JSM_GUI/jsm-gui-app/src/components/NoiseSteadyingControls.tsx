@@ -10,6 +10,7 @@ type NoiseSteadyingControlsProps = {
   statusMessage?: string | null
   onApply: () => void
   onCancel: () => void
+  lockMessage?: string
   onCutoffSpeedChange: (value: string) => void
   onCutoffRecoveryChange: (value: string) => void
   onSmoothTimeChange: (value: string) => void
@@ -27,6 +28,7 @@ export function NoiseSteadyingControls({
   statusMessage,
   onApply,
   onCancel,
+  lockMessage = 'Calibrating — place controller on a flat surface',
   onCutoffSpeedChange,
   onCutoffRecoveryChange,
   onSmoothTimeChange,
@@ -38,7 +40,7 @@ export function NoiseSteadyingControls({
       className="control-panel"
       lockable
       locked={isCalibrating}
-      lockMessage="Controls locked while JSM calibrates"
+      lockMessage={lockMessage}
     >
       <div className="section-header">
         <h2 className="section-title">Noise & Steadying</h2>
