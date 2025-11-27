@@ -13,6 +13,8 @@ import { BindingRow } from './BindingRow'
 import { KeymapSection } from './KeymapSection'
 import { SectionActions } from './SectionActions'
 import { StickSettingsCard } from './StickSettingsCard'
+import { DEFAULT_STICK_DEADZONE_INNER, DEFAULT_STICK_DEADZONE_OUTER } from '../constants/defaults'
+import { STICK_MODE_VALUES, formatStickModeLabel } from '../constants/sticks'
 
 type KeymapControlsProps = {
   configText: string
@@ -169,38 +171,6 @@ const RIGHT_STICK_BUTTONS: ButtonDefinition[] = [
   { command: 'R3', description: 'Right stick click', playstation: 'R3', xbox: 'RS Click' },
   { command: 'RRING', description: 'Right stick ring binding', playstation: 'R-Ring', xbox: 'R-Ring' },
 ]
-
-const STICK_MODE_VALUES = [
-  'NO_MOUSE',
-  'AIM',
-  'FLICK',
-  'FLICK_ONLY',
-  'ROTATE_ONLY',
-  'MOUSE_AREA',
-  'SCROLL_WHEEL',
-  'HYBRID_AIM',
-  'INNER_RING',
-  'OUTER_RING',
-] as const
-
-const STICK_MODE_LABELS: Record<string, string> = {
-  NO_MOUSE: 'No Mouse',
-  AIM: 'Aim',
-  FLICK: 'Flick Stick',
-  FLICK_ONLY: 'Flick Only',
-  ROTATE_ONLY: 'Rotate Only',
-  MOUSE_AREA: 'Mouse Area',
-  SCROLL_WHEEL: 'Scroll Wheel',
-  HYBRID_AIM: 'Hybrid Aim',
-  INNER_RING: 'Inner Ring',
-  OUTER_RING: 'Outer Ring',
-}
-
-const formatStickModeLabel = (mode: string) => {
-  const upper = mode?.toUpperCase()
-  if (STICK_MODE_LABELS[upper]) return STICK_MODE_LABELS[upper]
-  return upper.replace(/_/g, ' ')
-}
 
 const buildStickShiftValue = (target: 'LEFT' | 'RIGHT', mode: string) => `STICK_SHIFT:${target}:${mode}`
 
@@ -435,9 +405,6 @@ const SPECIAL_LABELS: Record<string, string> = {
 
 const EXTRA_BINDING_SLOTS: BindingSlot[] = ['hold', 'double', 'chord', 'simultaneous']
 const MODIFIER_SLOT_TYPES: BindingSlot[] = ['chord', 'simultaneous']
-const DEFAULT_STICK_DEADZONE_INNER = '0.15'
-const DEFAULT_STICK_DEADZONE_OUTER = '0.10'
-
 const getDefaultModifierForButton = (button: string, modifierOptions: ModifierSelectOption[]) => {
   const upper = button.toUpperCase()
   const fallback = modifierOptions[0]?.value ?? 'L3'

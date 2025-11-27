@@ -1,4 +1,5 @@
 import { ReactNode } from 'react'
+import { STICK_MODE_VALUES, formatStickModeLabel } from '../constants/sticks'
 
 type StickSettingsCardProps = {
   title: string
@@ -39,6 +40,8 @@ export function StickSettingsCard({
   const resolvedInner = clamp(parseFloat(innerValue || defaultInner))
   const resolvedOuter = clamp(parseFloat(outerValue || defaultOuter))
 
+  const selectableStickModes = STICK_MODE_VALUES.filter(mode => mode !== 'NO_MOUSE')
+
   return (
     <div className="stick-mode-card" data-capture-ignore="true">
       <h3>{title}</h3>
@@ -50,14 +53,12 @@ export function StickSettingsCard({
           onChange={(event) => onModeChange(event.target.value)}
           disabled={disabled}
         >
-          <option value="">Default (NO_MOUSE)</option>
-          <option value="AIM">Aim</option>
-          <option value="FLICK">Flick</option>
-          <option value="FLICK_ONLY">Flick Only</option>
-          <option value="ROTATE_ONLY">Rotate Only</option>
-          <option value="MOUSE_AREA">Mouse Area</option>
-          <option value="SCROLL_WHEEL">Scroll Wheel</option>
-          <option value="HYBRID_AIM">Hybrid Aim</option>
+          <option value="">Default ({formatStickModeLabel('NO_MOUSE')})</option>
+          {selectableStickModes.map(mode => (
+            <option key={mode} value={mode}>
+              {formatStickModeLabel(mode)}
+            </option>
+          ))}
         </select>
       </label>
       <label>

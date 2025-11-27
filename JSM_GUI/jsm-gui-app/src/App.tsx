@@ -21,6 +21,8 @@ import { GyroBehaviorControls } from './components/GyroBehaviorControls'
 import { NoiseSteadyingControls } from './components/NoiseSteadyingControls'
 import { KeymapControls } from './components/KeymapControls'
 import { SectionActions } from './components/SectionActions'
+import { DEFAULT_HOLD_PRESS_TIME, DEFAULT_STICK_DEADZONE_INNER, DEFAULT_STICK_DEADZONE_OUTER, DEFAULT_WINDOW_SECONDS } from './constants/defaults'
+import { LOCK_MESSAGE } from './constants/messages'
 
 type PrimaryTab = 'gyro' | 'keybinds' | 'touchpad' | 'sticks'
 type GyroSubTab = 'behavior' | 'sensitivity' | 'noise'
@@ -38,10 +40,6 @@ const formatVidPid = (vid?: number, pid?: number) => {
 }
 
 const TOGGLE_SPECIALS = ['GYRO_ON', 'GYRO_OFF'] as const
-const DEFAULT_HOLD_PRESS_TIME = 0.15
-const DEFAULT_WINDOW_SECONDS = 0.15
-const DEFAULT_STICK_DEADZONE_INNER = '0.15'
-const DEFAULT_STICK_DEADZONE_OUTER = '0.10'
 const REQUIRED_HEADER_LINES = [
   { pattern: /^RESET_MAPPINGS\b/i, value: 'RESET_MAPPINGS' },
   { pattern: /^TELEMETRY_ENABLED\b/i, value: 'TELEMETRY_ENABLED = ON' },
@@ -1608,8 +1606,7 @@ const handleDeleteLibraryProfile = async (name: string) => {
   const activeProfileFile = activeProfilePath || 'No active profile'
   const profileFileLabel = `${activeProfileFile} — ${profileLabel}`
   const calibrationMessage = isCalibrating ? `Calibrating — place controller on a flat surface (${countdown ?? '...'}s)` : ''
-  const lockMessage = 'Calibrating — place controller on a flat surface'
-  const pendingMessage = 'Pending changes — click Apply to send to JoyShockMapper.'
+  const lockMessage = LOCK_MESSAGE
 
   const renderGyroNav = () => (
     <div className="subnav">
