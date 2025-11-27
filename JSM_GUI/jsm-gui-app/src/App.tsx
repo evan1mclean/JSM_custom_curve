@@ -24,6 +24,7 @@ import { SectionActions } from './components/SectionActions'
 import { DEFAULT_HOLD_PRESS_TIME, DEFAULT_STICK_DEADZONE_INNER, DEFAULT_STICK_DEADZONE_OUTER, DEFAULT_WINDOW_SECONDS } from './constants/defaults'
 import { LOCK_MESSAGE } from './constants/messages'
 import { formatVidPid } from './utils/controllers'
+import { useProfileLibrary } from './hooks/useProfileLibrary'
 
 type PrimaryTab = 'gyro' | 'keybinds' | 'touchpad' | 'sticks'
 type GyroSubTab = 'behavior' | 'sensitivity' | 'noise'
@@ -35,11 +36,6 @@ const asNumber = (value: unknown) => (typeof value === 'number' ? value : undefi
 const formatNumber = (value: number | undefined, digits = 2) =>
   typeof value === 'number' && Number.isFinite(value) ? value.toFixed(digits) : '0.00'
 const TOGGLE_SPECIALS = ['GYRO_ON', 'GYRO_OFF'] as const
-const REQUIRED_HEADER_LINES = [
-  { pattern: /^RESET_MAPPINGS\b/i, value: 'RESET_MAPPINGS' },
-  { pattern: /^TELEMETRY_ENABLED\b/i, value: 'TELEMETRY_ENABLED = ON' },
-  { pattern: /^TELEMETRY_PORT\b/i, value: 'TELEMETRY_PORT = 8974' },
-]
 const SENS_MODE_KEYS = [
   'MIN_GYRO_THRESHOLD',
   'MAX_GYRO_THRESHOLD',
@@ -55,25 +51,6 @@ const SENS_MODE_KEYS = [
   'ACCEL_JUMP_TAU',
 ] as const
 const prefixedKey = (key: string, prefix?: string) => (prefix ? `${prefix}${key}` : key)
-
-const ensureHeaderLines = (text: string) => {
-  const lines = text.split(/\r?\n/)
-  const remaining: string[] = []
-  lines.forEach(line => {
-    const trimmed = line.trim()
-    if (!trimmed) {
-      remaining.push(line)
-      return
-    }
-    if (REQUIRED_HEADER_LINES.some(entry => entry.pattern.test(trimmed))) {
-      return
-    }
-    remaining.push(line)
-  })
-  const header = REQUIRED_HEADER_LINES.map(entry => entry.value)
-  const rest = remaining.join('\n').trimStart()
-  return rest ? `${header.join('\n')}\n${rest}` : header.join('\n')
-}
 
 const upsertFlagCommand = (text: string, key: string, enabled: boolean) => {
   const lines = text.split(/\r?\n/).filter(line => {
@@ -92,29 +69,6 @@ const hasFlagCommand = (text: string, key: string) => {
   return pattern.test(text)
 }
 
-const CALIBRATION_PATTERNS = [
-  /^RESET_MAPPINGS\b/i,
-  /^TELEMETRY_ENABLED\b/i,
-  /^TELEMETRY_PORT\b/i,
-  /^RESTART_GYRO_CALIBRATION\b/i,
-  /^FINISH_GYRO_CALIBRATION\b/i,
-  /^SLEEP\b/i,
-  /^COUNTER_OS_MOUSE_SPEED\b/i,
-]
-
-const sanitizeImportedConfig = (rawText: string) => {
-  const withoutComments = rawText
-    .split(/\r?\n/)
-    .map(line => {
-      const hashIndex = line.indexOf('#')
-      const withoutHash = hashIndex >= 0 ? line.slice(0, hashIndex) : line
-      return withoutHash.trim()
-    })
-    .filter(line => line.length > 0 && !CALIBRATION_PATTERNS.some(pattern => pattern.test(line)))
-    .join('\n')
-
-  return ensureHeaderLines(withoutComments)
-}
 const clearToggleAssignments = (text: string, command: string) => {
   let next = text
   TOGGLE_SPECIALS.forEach(toggle => {
@@ -171,11 +125,6 @@ function App() {
   const [configText, setConfigText] = useState('')
   const [appliedConfig, setAppliedConfig] = useState('')
   const [statusMessage, setStatusMessage] = useState<string | null>(null)
-  const [libraryProfiles, setLibraryProfiles] = useState<string[]>([])
-  const [isLibraryLoading, setIsLibraryLoading] = useState(false)
-  const [editedLibraryNames, setEditedLibraryNames] = useState<Record<string, string>>({})
-  const [currentLibraryProfile, setCurrentLibraryProfile] = useState<string | null>(null)
-  const [activeProfilePath, setActiveProfilePath] = useState<string>('')
   const [recalibrating, setRecalibrating] = useState(false)
   const [isProfileModalOpen, setProfileModalOpen] = useState(false)
   const [primaryTab, setPrimaryTab] = useState<PrimaryTab>('gyro')
@@ -184,6 +133,25 @@ function App() {
   const [touchpadSubTab, setTouchpadSubTab] = useState<TouchpadSubTab>('mode')
   const [sticksSubTab, setSticksSubTab] = useState<SticksSubTab>('bindings')
   const [sensitivityView, setSensitivityView] = useState<'base' | 'modeshift'>('base')
+  const {
+    libraryProfiles,
+    isLibraryLoading,
+    editedLibraryNames,
+    currentLibraryProfile,
+    activeProfilePath,
+    applyConfig,
+    handleLoadProfileFromLibrary,
+    handleLibraryProfileNameChange,
+    handleCreateProfile,
+    handleRenameProfile,
+    handleDeleteLibraryProfile,
+    handleImportProfile,
+  } = useProfileLibrary({
+    configText,
+    setConfigText,
+    setAppliedConfig,
+    setStatusMessage,
+  })
   const ignoredGyroDevices = useMemo(() => {
     const raw = getKeymapValue(configText, 'IGNORE_GYRO_DEVICES') ?? ''
     return raw
@@ -270,85 +238,6 @@ const simPressWindowIsCustom = simPressWindowState.isCustom
     if (!sensitivityModeshiftButton) return undefined
     return parseSensitivityValues(configText, { prefix: `${sensitivityModeshiftButton},` })
   }, [configText, sensitivityModeshiftButton])
-  const refreshLibraryProfiles = useCallback(async (): Promise<string[]> => {
-    if (!window.electronAPI?.listLibraryProfiles) {
-      setLibraryProfiles([])
-      setEditedLibraryNames({})
-      return []
-    }
-    setIsLibraryLoading(true)
-    try {
-      const entries = await window.electronAPI.listLibraryProfiles()
-      const sorted = entries ?? []
-      setLibraryProfiles(sorted)
-      setEditedLibraryNames(prev => {
-        const next: Record<string, string> = {}
-        sorted.forEach(name => {
-          next[name] = prev[name] ?? name
-        })
-        return next
-      })
-      return sorted
-    } catch (err) {
-      console.error('Failed to load profile library', err)
-      setLibraryProfiles([])
-      setEditedLibraryNames({})
-      return []
-    } finally {
-      setIsLibraryLoading(false)
-    }
-  }, [])
-
-useEffect(() => {
-  refreshLibraryProfiles()
-}, [refreshLibraryProfiles])
-
-useEffect(() => {
-  const loadActiveProfile = async () => {
-    if (!window.electronAPI?.getActiveProfile) return
-    try {
-      const result = await window.electronAPI.getActiveProfile()
-      if (result) {
-        setConfigText(result.content ?? '')
-        setAppliedConfig(result.content ?? '')
-        setCurrentLibraryProfile(result.name ?? null)
-        setActiveProfilePath(result.path ?? '')
-      }
-    } catch (err) {
-      console.error('Failed to load active profile', err)
-    }
-  }
-  loadActiveProfile()
-}, [])
-
-const applyConfig = useCallback(async (options?: { profileNameOverride?: string; textOverride?: string; profilePathOverride?: string }) => {
-  const sourceText = options?.textOverride ?? configText
-  const sanitizedConfig = ensureHeaderLines(sourceText)
-  if (options?.textOverride !== undefined) {
-    setConfigText(sanitizedConfig)
-  } else if (sanitizedConfig !== configText) {
-    setConfigText(sanitizedConfig)
-  }
-  try {
-    const targetPath = options?.profilePathOverride ?? activeProfilePath
-    const result = await window.electronAPI?.applyProfile?.(targetPath, sanitizedConfig)
-    if (result?.path) {
-      setActiveProfilePath(result.path)
-    }
-    const profileName = options?.profileNameOverride ?? currentLibraryProfile ?? 'Unsaved profile'
-    setStatusMessage(
-      result?.restarted
-        ? `Applied ${profileName} to JoyShockMapper (restarted).`
-        : `Applied ${profileName} to JoyShockMapper.`
-    )
-    setAppliedConfig(sanitizedConfig)
-    setTimeout(() => setStatusMessage(null), 3000)
-  } catch (err) {
-    console.error(err)
-    setStatusMessage('Failed to apply keymap.')
-  }
-}, [activeProfilePath, configText, currentLibraryProfile])
-
   const activeSensitivityPrefix = useMemo(() => {
     if (sensitivityView === 'modeshift' && sensitivityModeshiftButton) {
       return `${sensitivityModeshiftButton},`
@@ -599,158 +488,6 @@ const handleRealWorldCalibrationChange = (value: string) => {
   const next = parseFloat(value)
   if (Number.isNaN(next)) return
   setConfigText(prev => updateKeymapEntry(prev, 'REAL_WORLD_CALIBRATION', [next]))
-}
-
-const handleLoadProfileFromLibrary = useCallback(async (name: string): Promise<string | null> => {
-  if (!window.electronAPI?.activateLibraryProfile) return null
-  try {
-    const result = await window.electronAPI.activateLibraryProfile(name)
-    if (result?.content !== undefined) {
-      const profileContent = result.content ?? ''
-      const profileName = result.name ?? name
-      const profilePath = result.path ?? ''
-      setConfigText(profileContent)
-      setAppliedConfig(profileContent)
-      setCurrentLibraryProfile(profileName)
-      setActiveProfilePath(profilePath)
-      await applyConfig({
-        profileNameOverride: profileName,
-        textOverride: profileContent,
-        profilePathOverride: profilePath,
-      })
-      setStatusMessage(`Loaded "${profileName}" from library and applied it to JoyShockMapper.`)
-      setTimeout(() => setStatusMessage(null), 3000)
-      return result.content
-    }
-  } catch (err) {
-    console.error('Failed to load profile from library', err)
-    setStatusMessage('Failed to load profile from library.')
-    setTimeout(() => setStatusMessage(null), 3000)
-    refreshLibraryProfiles()
-  }
-  return null
-  }, [applyConfig, refreshLibraryProfiles])
-
-const handleLibraryProfileNameChange = (originalName: string, value: string) => {
-  setEditedLibraryNames(prev => ({
-    ...prev,
-    [originalName]: value,
-  }))
-}
-
-const handleCreateProfile = async () => {
-  if (!window.electronAPI?.createLibraryProfile) return
-  try {
-    const result = await window.electronAPI.createLibraryProfile()
-    if (result) {
-      const profileContent = result.content ?? ''
-      const profileName = result.name ?? null
-      const profilePath = result.path ?? ''
-      setConfigText(profileContent)
-      setAppliedConfig(profileContent)
-      setCurrentLibraryProfile(profileName)
-      setActiveProfilePath(profilePath)
-      setEditedLibraryNames(prev => ({
-        ...prev,
-        [profileName ?? '']: profileName ?? '',
-      }))
-      await applyConfig({
-        profileNameOverride: profileName ?? 'Unsaved profile',
-        textOverride: profileContent,
-        profilePathOverride: profilePath,
-      })
-      refreshLibraryProfiles()
-    }
-  } catch (err) {
-    console.error('Failed to create profile', err)
-    setStatusMessage('Failed to create profile.')
-    setTimeout(() => setStatusMessage(null), 3000)
-  }
-}
-
-const handleRenameProfile = async (originalName: string) => {
-  if (!window.electronAPI?.renameLibraryProfile) return
-  const pendingName = (editedLibraryNames[originalName] ?? originalName).trim()
-  if (!pendingName) {
-    setStatusMessage('Profile name cannot be empty.')
-    setTimeout(() => setStatusMessage(null), 3000)
-    return
-  }
-  try {
-    const result = await window.electronAPI.renameLibraryProfile(originalName, pendingName)
-    if (result) {
-      if (currentLibraryProfile === originalName) {
-        setCurrentLibraryProfile(result.name ?? originalName)
-        setActiveProfilePath(result.path ?? activeProfilePath)
-        if (result.content !== undefined) {
-          setConfigText(result.content)
-          setAppliedConfig(result.content)
-        }
-      }
-      setEditedLibraryNames(prev => {
-        const next = { ...prev }
-        delete next[originalName]
-        next[result.name ?? originalName] = result.name ?? originalName
-        return next
-      })
-      refreshLibraryProfiles()
-    }
-  } catch (err) {
-    console.error('Failed to rename profile', err)
-    setStatusMessage('Failed to rename profile.')
-    setTimeout(() => setStatusMessage(null), 3000)
-  }
-}
-
-const handleDeleteLibraryProfile = async (name: string) => {
-  if (!window.electronAPI?.deleteLibraryProfile) return
-  try {
-    const response = (await window.electronAPI.deleteLibraryProfile(name)) ?? { success: true }
-    const entries = (await refreshLibraryProfiles()) ?? []
-    setEditedLibraryNames(prev => {
-      const next = { ...prev }
-      delete next[name]
-      if (response.fallback?.name) {
-        next[response.fallback.name] = response.fallback.name
-      }
-      return next
-    })
-    if (currentLibraryProfile === name) {
-      const fallback = response.fallback
-      if (fallback) {
-        setCurrentLibraryProfile(fallback.name ?? null)
-        setConfigText(fallback.content ?? '')
-        setAppliedConfig(fallback.content ?? '')
-        setActiveProfilePath(fallback.path ?? '')
-        await applyConfig({
-          profileNameOverride: fallback.name ?? 'Unsaved profile',
-          textOverride: fallback.content ?? '',
-          profilePathOverride: fallback.path ?? '',
-        })
-      } else if (entries.length > 0) {
-        const fallbackName = entries[0]
-        const content = await handleLoadProfileFromLibrary(fallbackName)
-        if (content !== null) {
-          const relativePath = `profiles-library/${fallbackName}.txt`
-          setCurrentLibraryProfile(fallbackName)
-          setActiveProfilePath(relativePath)
-          await applyConfig({ profileNameOverride: fallbackName, textOverride: content, profilePathOverride: relativePath })
-        }
-      } else {
-        setCurrentLibraryProfile(null)
-        setConfigText('')
-        setAppliedConfig('')
-        setActiveProfilePath('')
-        await applyConfig({ profileNameOverride: 'Unsaved profile', textOverride: '', profilePathOverride: '' })
-      }
-    }
-    setStatusMessage(`Deleted "${name}" from library.`)
-    setTimeout(() => setStatusMessage(null), 3000)
-  } catch (err) {
-    console.error('Failed to delete profile', err)
-    setStatusMessage('Failed to delete profile.')
-    setTimeout(() => setStatusMessage(null), 3000)
-  }
 }
 
   const switchToStaticMode = (prefix?: string) => {
@@ -1471,24 +1208,6 @@ const handleDeleteLibraryProfile = async (name: string) => {
       setStatusMessage('Failed to start recalibration.')
     } finally {
       setRecalibrating(false)
-      setTimeout(() => setStatusMessage(null), 3000)
-    }
-  }
-
-  const handleImportProfile = async (fileName: string, fileContent: string) => {
-    if (!fileContent) return
-    const baseName = fileName.replace(/\.[^/.]+$/, '') || fileName || 'Imported Profile'
-    try {
-      const sanitized = sanitizeImportedConfig(fileContent)
-      const result = await window.electronAPI?.saveLibraryProfile?.(baseName, sanitized)
-      const savedName = result?.name ?? baseName
-      await handleLoadProfileFromLibrary(savedName)
-      setStatusMessage(`Imported "${savedName}" into the editor. Click Apply to use it.`)
-      setTimeout(() => setStatusMessage(null), 3000)
-      refreshLibraryProfiles()
-    } catch (err) {
-      console.error('Failed to import profile', err)
-      setStatusMessage('Failed to import profile.')
       setTimeout(() => setStatusMessage(null), 3000)
     }
   }
