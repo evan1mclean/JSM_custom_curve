@@ -16,8 +16,6 @@ type ProfileManagerProps = {
   onDeleteProfile: (name: string) => void
   onAddProfile: () => void
   onLoadLibraryProfile: (name: string) => void
-  onApplyProfile?: () => void
-  applyDisabled?: boolean
   lockMessage?: string
 }
 
@@ -36,8 +34,6 @@ export function ProfileManager({
   onDeleteProfile,
   onAddProfile,
   onLoadLibraryProfile,
-  onApplyProfile: _onApplyProfile,
-  applyDisabled: _applyDisabled = false,
   lockMessage,
 }: ProfileManagerProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null)

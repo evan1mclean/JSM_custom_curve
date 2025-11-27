@@ -1,5 +1,5 @@
 import './App.css'
-import { useCallback, useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useTelemetry } from './hooks/useTelemetry'
 import { SensitivityControls } from './components/SensitivityControls'
 import { ConfigEditor } from './components/ConfigEditor'
@@ -12,7 +12,7 @@ import { LOCK_MESSAGE } from './constants/messages'
 import { DEFAULT_HOLD_PRESS_TIME } from './constants/defaults'
 import { useProfileLibrary } from './hooks/useProfileLibrary'
 import { useKeymapConfig } from './hooks/useKeymapConfig'
-import { getKeymapValue, removeKeymapEntry, updateKeymapEntry } from './utils/keymap'
+import { useCalibration } from './hooks/useCalibration'
 
 type PrimaryTab = 'gyro' | 'keybinds' | 'touchpad' | 'sticks'
 type GyroSubTab = 'behavior' | 'sensitivity' | 'noise'
@@ -23,21 +23,6 @@ type SticksSubTab = 'bindings' | 'modes'
 const asNumber = (value: unknown) => (typeof value === 'number' ? value : undefined)
 const formatNumber = (value: number | undefined, digits = 2) =>
   typeof value === 'number' && Number.isFinite(value) ? value.toFixed(digits) : '0.00'
-const hasFlagCommand = (text: string, key: string) => {
-  const pattern = new RegExp(`^\\s*${key}\\b`, 'im')
-  return pattern.test(text)
-}
-const upsertFlagCommand = (text: string, key: string, enabled: boolean) => {
-  const lines = text.split(/\r?\n/).filter(line => {
-    const trimmed = line.trim().toUpperCase()
-    if (!trimmed) return true
-    return !(trimmed === key.toUpperCase() || trimmed.startsWith(`${key.toUpperCase()} `) || trimmed.startsWith(`${key.toUpperCase()}=`))
-  })
-  if (enabled) {
-    lines.push(key)
-  }
-  return lines.join('\n')
-}
 function App() {
   const { sample, isCalibrating, countdown } = useTelemetry()
   const [statusMessage, setStatusMessage] = useState<string | null>(null)
@@ -152,100 +137,23 @@ function App() {
     setAppliedConfig,
     setStatusMessage,
   })
-  const [isCalibrationModalOpen, setCalibrationModalOpen] = useState(false)
-  const [calibrationRestorePath, setCalibrationRestorePath] = useState<string | null>(null)
-  const [calibrationCounterOs, setCalibrationCounterOs] = useState<boolean>(counterOsMouseSpeedEnabled)
-  const [calibrationInGameSens, setCalibrationInGameSens] = useState<string>(sensitivity.inGameSens?.toString() ?? '')
-  const [calibrationText, setCalibrationText] = useState<string>('')
-  const [calibrationDirty, setCalibrationDirty] = useState(false)
-  const [calibrationLoadMessage, setCalibrationLoadMessage] = useState<string | null>(null)
-  const [calibrationOutput, setCalibrationOutput] = useState<string>('')
-  useEffect(() => {
-    if (!calibrationLoadMessage) return
-    const id = setTimeout(() => setCalibrationLoadMessage(null), 4000)
-    return () => clearTimeout(id)
-  }, [calibrationLoadMessage])
-  const resetCalibrationInputs = useCallback(() => {
-    const sens = getKeymapValue(calibrationText, 'IN_GAME_SENS') ?? ''
-    const counter = hasFlagCommand(calibrationText, 'COUNTER_OS_MOUSE_SPEED')
-    setCalibrationInGameSens(sens)
-    setCalibrationCounterOs(counter)
-    setCalibrationDirty(false)
-  }, [calibrationText])
-
-  const handleOpenCalibration = useCallback(async () => {
-    setCalibrationOutput('')
-    setCalibrationCounterOs(counterOsMouseSpeedEnabled)
-    setCalibrationInGameSens(sensitivity.inGameSens?.toString() ?? '')
-    setCalibrationModalOpen(true)
-    try {
-      const result = await window.electronAPI?.loadCalibrationPreset?.()
-      if (result?.activeProfile) {
-        setCalibrationRestorePath(result.activeProfile)
-      }
-      setCalibrationLoadMessage(result?.success ? 'Calibration preset loaded.' : 'Failed to load calibration preset.')
-      const preset = await window.electronAPI?.readCalibrationPreset?.()
-      if (preset?.success && preset.content !== undefined) {
-        setCalibrationText(preset.content)
-        const presetSens = getKeymapValue(preset.content, 'IN_GAME_SENS') ?? sensitivity.inGameSens?.toString() ?? ''
-        const presetCounter = hasFlagCommand(preset.content, 'COUNTER_OS_MOUSE_SPEED')
-        setCalibrationInGameSens(presetSens)
-        setCalibrationCounterOs(presetCounter)
-        setCalibrationDirty(false)
-      }
-    } catch (err) {
-      console.error('Failed to load calibration preset', err)
-    }
-  }, [counterOsMouseSpeedEnabled, sensitivity.inGameSens])
-  const handleCloseCalibration = useCallback(async () => {
-    setCalibrationModalOpen(false)
-    setCalibrationOutput('')
-    if (calibrationRestorePath) {
-      try {
-        await window.electronAPI?.applyProfile?.(calibrationRestorePath, configText)
-      } catch (err) {
-        console.error('Failed to restore profile after calibration', err)
-      } finally {
-        setCalibrationRestorePath(null)
-      }
-    }
-  }, [calibrationRestorePath, configText])
-
-  const buildCalibrationPreset = useCallback(() => {
-    let next = calibrationText || ''
-    next = upsertFlagCommand(next, 'COUNTER_OS_MOUSE_SPEED', calibrationCounterOs)
-    const trimmed = calibrationInGameSens.trim()
-    if (!trimmed) {
-      next = removeKeymapEntry(next, 'IN_GAME_SENS')
-    } else {
-      const parsed = Number(trimmed)
-      if (Number.isFinite(parsed)) {
-        next = updateKeymapEntry(next, 'IN_GAME_SENS', [parsed])
-      }
-    }
-    return next
-  }, [calibrationCounterOs, calibrationInGameSens, calibrationText])
-
-  const handleApplyCalibrationPreset = useCallback(async () => {
-    const nextText = buildCalibrationPreset()
-    setCalibrationText(nextText)
-    setCalibrationDirty(false)
-    await window.electronAPI?.saveCalibrationPreset?.(nextText)
-  }, [buildCalibrationPreset])
-
-  const handleRunCalibration = useCallback(async () => {
-    try {
-      const result = await window.electronAPI?.runCalibrationCommand?.('CALCULATE_REAL_WORLD_CALIBRATION')
-      const output = result && typeof result.output === 'string' ? result.output : ''
-      if (output.length > 0) {
-        setCalibrationOutput(output)
-      } else {
-        setCalibrationOutput('No response captured.')
-      }
-    } catch (err) {
-      setCalibrationOutput(`Failed to run calculation: ${String(err)}`)
-    }
-  }, [])
+  const {
+    isCalibrationModalOpen,
+    calibrationCounterOs,
+    calibrationInGameSens,
+    calibrationDirty,
+    calibrationLoadMessage,
+    calibrationOutput,
+    resetCalibrationInputs,
+    handleOpenCalibration,
+    handleCloseCalibration,
+    handleApplyCalibrationPreset,
+    handleRunCalibration,
+  } = useCalibration({
+    configText,
+    counterOsMouseSpeedEnabled,
+    sensitivityInGame: sensitivity.inGameSens,
+  })
 
 
   const handleRecalibrate = async () => {
@@ -293,7 +201,6 @@ function App() {
   const profileLabel = currentLibraryProfile ?? 'Unsaved profile'
   const activeProfileFile = activeProfilePath || 'No active profile'
   const profileFileLabel = `${activeProfileFile} — ${profileLabel}`
-  const calibrationMessage = isCalibrating ? `Calibrating — place controller on a flat surface (${countdown ?? '...'}s)` : ''
   const lockMessage = LOCK_MESSAGE
 
   const renderGyroNav = () => (
@@ -823,8 +730,6 @@ function App() {
               isCalibrating={isCalibrating}
               profileApplied={configText === appliedConfig}
               statusMessage={statusMessage}
-              onApplyProfile={applyConfig}
-              applyDisabled={isCalibrating}
               onImportProfile={handleImportProfile}
               libraryProfiles={libraryProfiles}
               libraryLoading={isLibraryLoading}

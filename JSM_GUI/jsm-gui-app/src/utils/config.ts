@@ -46,3 +46,15 @@ export const sanitizeImportedConfig = (rawText: string) => {
 
   return ensureHeaderLines(withoutComments)
 }
+
+export const upsertFlagCommand = (text: string, key: string, enabled: boolean) => {
+  const lines = text.split(/\r?\n/).filter(line => {
+    const trimmed = line.trim().toUpperCase()
+    if (!trimmed) return true
+    return !(trimmed === key.toUpperCase() || trimmed.startsWith(`${key.toUpperCase()} `) || trimmed.startsWith(`${key.toUpperCase()}=`))
+  })
+  if (enabled) {
+    lines.push(key)
+  }
+  return lines.join('\n')
+}
