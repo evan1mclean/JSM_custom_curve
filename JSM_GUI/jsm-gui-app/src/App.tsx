@@ -23,6 +23,7 @@ import { KeymapControls } from './components/KeymapControls'
 import { SectionActions } from './components/SectionActions'
 import { DEFAULT_HOLD_PRESS_TIME, DEFAULT_STICK_DEADZONE_INNER, DEFAULT_STICK_DEADZONE_OUTER, DEFAULT_WINDOW_SECONDS } from './constants/defaults'
 import { LOCK_MESSAGE } from './constants/messages'
+import { formatVidPid } from './utils/controllers'
 
 type PrimaryTab = 'gyro' | 'keybinds' | 'touchpad' | 'sticks'
 type GyroSubTab = 'behavior' | 'sensitivity' | 'noise'
@@ -33,12 +34,6 @@ type SticksSubTab = 'bindings' | 'modes'
 const asNumber = (value: unknown) => (typeof value === 'number' ? value : undefined)
 const formatNumber = (value: number | undefined, digits = 2) =>
   typeof value === 'number' && Number.isFinite(value) ? value.toFixed(digits) : '0.00'
-const formatVidPid = (vid?: number, pid?: number) => {
-  if (vid === undefined || pid === undefined) return ''
-  const toHex = (value: number) => `0x${value.toString(16).padStart(4, '0')}`
-  return `${toHex(vid)}:${toHex(pid)}`
-}
-
 const TOGGLE_SPECIALS = ['GYRO_ON', 'GYRO_OFF'] as const
 const REQUIRED_HEADER_LINES = [
   { pattern: /^RESET_MAPPINGS\b/i, value: 'RESET_MAPPINGS' },

@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useState } from 'react'
+import { Fragment, ReactNode, useEffect, useMemo, useState } from 'react'
 import { Card } from './Card'
 import {
   BindingSlot,
@@ -23,7 +23,6 @@ type KeymapControlsProps = {
   statusMessage?: string | null
   onApply: () => void
   onCancel: () => void
-  lockMessage?: string
   onBindingChange: (button: string, slot: BindingSlot, value: string | null, options?: { modifier?: string }) => void
   onAssignSpecialAction: (special: string, buttonCommand: string) => void
   onClearSpecialAction: (special: string, buttonCommand: string) => void
@@ -1171,6 +1170,13 @@ export function KeymapControls({
     />
   )
 
+  const renderSectionWithActions = (content: ReactNode) => (
+    <>
+      {content}
+      {renderSectionActions()}
+    </>
+  )
+
   const resolvedLockMessage = lockMessage ?? 'Calibrating — place controller on a flat surface'
 
   return (
@@ -1192,7 +1198,7 @@ export function KeymapControls({
       </div>
 
       {showFullLayout && isVisible('global') && (
-        <>
+        renderSectionWithActions(
           <KeymapSection
             title="Global controls"
             description="Timing windows that apply whenever those binding types are in use."
@@ -1230,47 +1236,41 @@ export function KeymapControls({
               )}
             </div>
           </KeymapSection>
-          {renderSectionActions()}
-
-          {renderSectionActions()}
-        </>
+        )
       )}
 
       {showFullLayout && isVisible('face') && (
-        <>
+        renderSectionWithActions(
           <KeymapSection
             title="Face Buttons"
             description="Tap / Hold / Double / Chorded / Simultaneous bindings available via Add Extra Binding."
           >
             <div className="keymap-grid">{FACE_BUTTONS.map(renderButtonCard)}</div>
           </KeymapSection>
-          {renderSectionActions()}
-        </>
+        )
       )}
 
       {showFullLayout && isVisible('dpad') && (
-        <>
+        renderSectionWithActions(
           <KeymapSection
             title="D-pad"
             description="Directional pad bindings with the same extra slots and special actions."
           >
             <div className="keymap-grid">{DPAD_BUTTONS.map(renderButtonCard)}</div>
           </KeymapSection>
-          {renderSectionActions()}
-        </>
+        )
       )}
 
       {showFullLayout && isVisible('bumpers') && (
-        <>
+        renderSectionWithActions(
           <KeymapSection title="Bumpers" description="L1/R1 bindings with the usual specials and extra slots.">
             <div className="keymap-grid">{BUMPER_BUTTONS.map(renderButtonCard)}</div>
           </KeymapSection>
-          {renderSectionActions()}
-        </>
+        )
       )}
 
       {showFullLayout && isVisible('triggers') && (
-        <>
+        renderSectionWithActions(
           <KeymapSection title="Triggers" description="Soft/full pulls and threshold toggles for L2/R2.">
             <div className="keymap-grid">
               {TRIGGER_BUTTONS.map(renderButtonCard)}
@@ -1290,16 +1290,14 @@ export function KeymapControls({
               </div>
             </div>
           </KeymapSection>
-          {renderSectionActions()}
-        </>
+        )
       )}
       {showFullLayout && isVisible('center') && (
-        <>
+        renderSectionWithActions(
           <KeymapSection title="Center buttons" description="Options, Share, and Mic bindings.">
             <div className="keymap-grid">{CENTER_BUTTONS.map(renderButtonCard)}</div>
           </KeymapSection>
-          {renderSectionActions()}
-        </>
+        )
       )}
 
       {showStickLayout && (
@@ -1316,154 +1314,158 @@ export function KeymapControls({
           )}
           {currentStickView === 'bindings' ? (
             <>
-              <KeymapSection
-                title="Left stick"
-                description="Bind directions, ring, or stick click with the same extra slots available elsewhere."
-              >
-                <div className="keymap-grid">{LEFT_STICK_BUTTONS.map(renderButtonCard)}</div>
-              </KeymapSection>
-              {renderSectionActions()}
-              <KeymapSection title="Right stick" description="Configure the right stick directions, ring binding, or stick click.">
-                <div className="keymap-grid">{RIGHT_STICK_BUTTONS.map(renderButtonCard)}</div>
-              </KeymapSection>
-              {renderSectionActions()}
+              {renderSectionWithActions(
+                <KeymapSection
+                  title="Left stick"
+                  description="Bind directions, ring, or stick click with the same extra slots available elsewhere."
+                >
+                  <div className="keymap-grid">{LEFT_STICK_BUTTONS.map(renderButtonCard)}</div>
+                </KeymapSection>
+              )}
+              {renderSectionWithActions(
+                <KeymapSection title="Right stick" description="Configure the right stick directions, ring binding, or stick click.">
+                  <div className="keymap-grid">{RIGHT_STICK_BUTTONS.map(renderButtonCard)}</div>
+                </KeymapSection>
+              )}
             </>
           ) : (
               <>
-                <StickSettingsCard
-                  title="Left stick"
-                  innerValue={leftDeadzoneValues.inner}
-                  outerValue={leftDeadzoneValues.outer}
-                  defaultInner={deadzoneDefaults.inner}
-                  defaultOuter={deadzoneDefaults.outer}
-                  modeValue={leftStickModes.mode}
-                  ringValue={leftStickModes.ring}
-                  onModeChange={(value) => onStickModeChange?.('LEFT', value)}
-                  onRingChange={(value) => onRingModeChange?.('LEFT', value)}
-                  disabled={isCalibrating}
-                  onInnerChange={(value) => onStickDeadzoneChange?.('LEFT', 'INNER', value)}
-                  onOuterChange={(value) => onStickDeadzoneChange?.('LEFT', 'OUTER', value)}
-                  modeExtras={(() => {
-                    const leftMode = stickModeSettings?.left.mode ?? ''
-                    if ((leftMode === 'AIM' || leftMode === 'HYBRID_AIM') && stickAimSettings && stickAimHandlers) {
-                      return <StickAimSettings values={stickAimSettings} handlers={stickAimHandlers} disabled={isCalibrating} />
-                    }
-                    if ((leftMode === 'FLICK' || leftMode === 'FLICK_ONLY' || leftMode === 'ROTATE_ONLY') && stickFlickSettings && stickFlickHandlers) {
-                      return <StickFlickSettings values={stickFlickSettings} handlers={stickFlickHandlers} disabled={isCalibrating} />
-                    }
-                    if (leftMode === 'MOUSE_AREA' && mouseRingRadius !== undefined && onMouseRingRadiusChange) {
-                      return (
-                        <div className="stick-flick-settings" data-capture-ignore="true">
-                          <small>Mouse area radius (pixels from center).</small>
-                          <div className="stick-aim-grid">
-                            <label>
-                              Mouse area radius
-                              <input
-                                type="number"
-                                min="0"
-                                step="10"
-                                value={mouseRingRadius}
-                                onChange={(event) => onMouseRingRadiusChange(event.target.value)}
-                                placeholder="Enter radius"
-                                disabled={isCalibrating}
-                              />
-                            </label>
+                {renderSectionWithActions(
+                  <StickSettingsCard
+                    title="Left stick"
+                    innerValue={leftDeadzoneValues.inner}
+                    outerValue={leftDeadzoneValues.outer}
+                    defaultInner={deadzoneDefaults.inner}
+                    defaultOuter={deadzoneDefaults.outer}
+                    modeValue={leftStickModes.mode}
+                    ringValue={leftStickModes.ring}
+                    onModeChange={(value) => onStickModeChange?.('LEFT', value)}
+                    onRingChange={(value) => onRingModeChange?.('LEFT', value)}
+                    disabled={isCalibrating}
+                    onInnerChange={(value) => onStickDeadzoneChange?.('LEFT', 'INNER', value)}
+                    onOuterChange={(value) => onStickDeadzoneChange?.('LEFT', 'OUTER', value)}
+                    modeExtras={(() => {
+                      const leftMode = stickModeSettings?.left.mode ?? ''
+                      if ((leftMode === 'AIM' || leftMode === 'HYBRID_AIM') && stickAimSettings && stickAimHandlers) {
+                        return <StickAimSettings values={stickAimSettings} handlers={stickAimHandlers} disabled={isCalibrating} />
+                      }
+                      if ((leftMode === 'FLICK' || leftMode === 'FLICK_ONLY' || leftMode === 'ROTATE_ONLY') && stickFlickSettings && stickFlickHandlers) {
+                        return <StickFlickSettings values={stickFlickSettings} handlers={stickFlickHandlers} disabled={isCalibrating} />
+                      }
+                      if (leftMode === 'MOUSE_AREA' && mouseRingRadius !== undefined && onMouseRingRadiusChange) {
+                        return (
+                          <div className="stick-flick-settings" data-capture-ignore="true">
+                            <small>Mouse area radius (pixels from center).</small>
+                            <div className="stick-aim-grid">
+                              <label>
+                                Mouse area radius
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="10"
+                                  value={mouseRingRadius}
+                                  onChange={(event) => onMouseRingRadiusChange(event.target.value)}
+                                  placeholder="Enter radius"
+                                  disabled={isCalibrating}
+                                />
+                              </label>
+                            </div>
                           </div>
-                        </div>
-                      )
-                    }
-                    if (leftMode === 'SCROLL_WHEEL' && scrollSens !== undefined && onScrollSensChange) {
-                      return (
-                        <div className="stick-flick-settings" data-capture-ignore="true">
-                          <small>Scroll wheel sensitivity (degrees per pulse). Higher values require larger rotations.</small>
-                          <div className="stick-aim-grid">
-                            <label>
-                              Scroll sensitivity
-                              <input
-                                type="number"
-                                min="0"
-                                step="1"
-                                value={scrollSens}
-                                onChange={(event) => onScrollSensChange(event.target.value)}
-                                placeholder="Enter degrees"
-                                disabled={isCalibrating}
-                              />
-                            </label>
+                        )
+                      }
+                      if (leftMode === 'SCROLL_WHEEL' && scrollSens !== undefined && onScrollSensChange) {
+                        return (
+                          <div className="stick-flick-settings" data-capture-ignore="true">
+                            <small>Scroll wheel sensitivity (degrees per pulse). Higher values require larger rotations.</small>
+                            <div className="stick-aim-grid">
+                              <label>
+                                Scroll sensitivity
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="1"
+                                  value={scrollSens}
+                                  onChange={(event) => onScrollSensChange(event.target.value)}
+                                  placeholder="Enter degrees"
+                                  disabled={isCalibrating}
+                                />
+                              </label>
+                            </div>
                           </div>
-                        </div>
-                      )
-                    }
-                    return null
-                  })()}
-                />
-                {renderSectionActions()}
-                <StickSettingsCard
-                  title="Right stick"
-                  innerValue={rightDeadzoneValues.inner}
-                  outerValue={rightDeadzoneValues.outer}
-                  defaultInner={deadzoneDefaults.inner}
-                  defaultOuter={deadzoneDefaults.outer}
-                  modeValue={rightStickModes.mode}
-                  ringValue={rightStickModes.ring}
-                  onModeChange={(value) => onStickModeChange?.('RIGHT', value)}
-                  onRingChange={(value) => onRingModeChange?.('RIGHT', value)}
-                  disabled={isCalibrating}
-                  onInnerChange={(value) => onStickDeadzoneChange?.('RIGHT', 'INNER', value)}
-                  onOuterChange={(value) => onStickDeadzoneChange?.('RIGHT', 'OUTER', value)}
-                  modeExtras={(() => {
-                    const rightMode = stickModeSettings?.right.mode ?? ''
-                    if (rightMode === 'AIM' && stickAimSettings && stickAimHandlers) {
-                      return <StickAimSettings values={stickAimSettings} handlers={stickAimHandlers} disabled={isCalibrating} />
-                    }
-                    if ((rightMode === 'FLICK' || rightMode === 'FLICK_ONLY' || rightMode === 'ROTATE_ONLY') && stickFlickSettings && stickFlickHandlers) {
-                      return <StickFlickSettings values={stickFlickSettings} handlers={stickFlickHandlers} disabled={isCalibrating} />
-                    }
-                    if (rightMode === 'MOUSE_AREA' && mouseRingRadius !== undefined && onMouseRingRadiusChange) {
-                      return (
-                        <div className="stick-flick-settings" data-capture-ignore="true">
-                          <small>Mouse area radius (pixels from center).</small>
-                          <div className="stick-aim-grid">
-                            <label>
-                              Mouse area radius
-                              <input
-                                type="number"
-                                min="0"
-                                step="10"
-                                value={mouseRingRadius}
-                                onChange={(event) => onMouseRingRadiusChange(event.target.value)}
-                                placeholder="Enter radius"
-                                disabled={isCalibrating}
-                              />
-                            </label>
+                        )
+                      }
+                      return null
+                    })()}
+                  />
+                )}
+                {renderSectionWithActions(
+                  <StickSettingsCard
+                    title="Right stick"
+                    innerValue={rightDeadzoneValues.inner}
+                    outerValue={rightDeadzoneValues.outer}
+                    defaultInner={deadzoneDefaults.inner}
+                    defaultOuter={deadzoneDefaults.outer}
+                    modeValue={rightStickModes.mode}
+                    ringValue={rightStickModes.ring}
+                    onModeChange={(value) => onStickModeChange?.('RIGHT', value)}
+                    onRingChange={(value) => onRingModeChange?.('RIGHT', value)}
+                    disabled={isCalibrating}
+                    onInnerChange={(value) => onStickDeadzoneChange?.('RIGHT', 'INNER', value)}
+                    onOuterChange={(value) => onStickDeadzoneChange?.('RIGHT', 'OUTER', value)}
+                    modeExtras={(() => {
+                      const rightMode = stickModeSettings?.right.mode ?? ''
+                      if (rightMode === 'AIM' && stickAimSettings && stickAimHandlers) {
+                        return <StickAimSettings values={stickAimSettings} handlers={stickAimHandlers} disabled={isCalibrating} />
+                      }
+                      if ((rightMode === 'FLICK' || rightMode === 'FLICK_ONLY' || rightMode === 'ROTATE_ONLY') && stickFlickSettings && stickFlickHandlers) {
+                        return <StickFlickSettings values={stickFlickSettings} handlers={stickFlickHandlers} disabled={isCalibrating} />
+                      }
+                      if (rightMode === 'MOUSE_AREA' && mouseRingRadius !== undefined && onMouseRingRadiusChange) {
+                        return (
+                          <div className="stick-flick-settings" data-capture-ignore="true">
+                            <small>Mouse area radius (pixels from center).</small>
+                            <div className="stick-aim-grid">
+                              <label>
+                                Mouse area radius
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="10"
+                                  value={mouseRingRadius}
+                                  onChange={(event) => onMouseRingRadiusChange(event.target.value)}
+                                  placeholder="Enter radius"
+                                  disabled={isCalibrating}
+                                />
+                              </label>
+                            </div>
                           </div>
-                        </div>
-                      )
-                    }
-                    if (rightMode === 'SCROLL_WHEEL' && scrollSens !== undefined && onScrollSensChange) {
-                      return (
-                        <div className="stick-flick-settings" data-capture-ignore="true">
-                          <small>Scroll wheel sensitivity (degrees per pulse). Higher values require larger rotations.</small>
-                          <div className="stick-aim-grid">
-                            <label>
-                              Scroll sensitivity
-                              <input
-                                type="number"
-                                min="0"
-                                step="1"
-                                value={scrollSens}
-                                onChange={(event) => onScrollSensChange(event.target.value)}
-                                placeholder="Enter degrees"
-                                disabled={isCalibrating}
-                              />
-                            </label>
+                        )
+                      }
+                      if (rightMode === 'SCROLL_WHEEL' && scrollSens !== undefined && onScrollSensChange) {
+                        return (
+                          <div className="stick-flick-settings" data-capture-ignore="true">
+                            <small>Scroll wheel sensitivity (degrees per pulse). Higher values require larger rotations.</small>
+                            <div className="stick-aim-grid">
+                              <label>
+                                Scroll sensitivity
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="1"
+                                  value={scrollSens}
+                                  onChange={(event) => onScrollSensChange(event.target.value)}
+                                  placeholder="Enter degrees"
+                                  disabled={isCalibrating}
+                                />
+                              </label>
+                            </div>
                           </div>
-                        </div>
-                      )
-                    }
-                    return null
-                  })()}
-                />
-              {renderSectionActions()}
+                        )
+                      }
+                      return null
+                    })()}
+                  />
+                )}
             </>
           )}
         </>
@@ -1472,95 +1474,95 @@ export function KeymapControls({
       {view === 'touchpad' && (
         <>
           {isVisible('touch-bind') && (
-            <>
+            renderSectionWithActions(
               <KeymapSection title="Touch and click buttons" description="Bindings for touch contact and pad click.">
                 <div className="keymap-grid">{TOUCH_BUTTONS.map(renderButtonCard)}</div>
               </KeymapSection>
-              {renderSectionActions()}
-            </>
+            )
           )}
           {isVisible('touch-grid') && (
-            <>
-              <KeymapSection title="Touchpad mode and grid" description="Adjust mode, grid size, and sensitivity for the touchpad.">
-                <div className="touchpad-settings">
-                  <label>
-                    Mode
-                    <select className="app-select" value={touchpadMode} onChange={(event) => onTouchpadModeChange?.(event.target.value)}>
-                      <option value="">None selected</option>
-                      <option value="GRID_AND_STICK">Grid and Stick</option>
-                      <option value="MOUSE">Mouse</option>
-                    </select>
-                  </label>
-                  {touchpadMode === 'GRID_AND_STICK' && (
-                    <>
-                      <div className="grid-size-inputs">
-                        <label>
-                          Columns
-                          <input
-                            type="number"
-                            min={1}
-                            max={5}
-                            value={gridColumns}
-                            onChange={(event) => onGridSizeChange?.(Number(event.target.value) || 1, gridRows)}
-                          />
-                        </label>
-                        <label>
-                          Rows
-                          <input
-                            type="number"
-                            min={1}
-                            max={5}
-                            value={gridRows}
-                            onChange={(event) => onGridSizeChange?.(gridColumns, Number(event.target.value) || 1)}
-                          />
-                        </label>
-                      </div>
-                      <small className="grid-limit-hint">Columns × Rows cannot exceed 25 total regions.</small>
-                    </>
-                  )}
-                  {touchpadMode === 'MOUSE' && (
+            renderSectionWithActions(
+              <>
+                <KeymapSection title="Touchpad mode and grid" description="Adjust mode, grid size, and sensitivity for the touchpad.">
+                  <div className="touchpad-settings">
                     <label>
-                      Touchpad sensitivity
-                      <input
-                        type="number"
-                        step="0.1"
-                        value={touchpadSensitivity ?? ''}
-                        onChange={(event) => onTouchpadSensitivityChange?.(event.target.value)}
-                        placeholder="Default"
-                      />
+                      Mode
+                      <select className="app-select" value={touchpadMode} onChange={(event) => onTouchpadModeChange?.(event.target.value)}>
+                        <option value="">None selected</option>
+                        <option value="GRID_AND_STICK">Grid and Stick</option>
+                        <option value="MOUSE">Mouse</option>
+                      </select>
                     </label>
-                  )}
-                </div>
-              </KeymapSection>
-              {touchpadMode === 'GRID_AND_STICK' && (
-                <KeymapSection
-                  title="Touchpad grid"
-                  description="This preview mirrors the touchpad. Configure each region using the rows below."
-                >
-                  <div className="touchpad-grid-preview" style={{ gridTemplateColumns: `repeat(${clampedGridCols}, 1fr)` }}>
-                    {Array.from({ length: clampedGridCells }).map((_, index) => {
-                      const rowIndex = Math.floor(index / clampedGridCols)
-                      const colIndex = index % clampedGridCols
-                      return (
-                        <div className="touchpad-grid-cell" key={`cell-${index}`}>
-                          <span>T{index + 1}</span>
-                          <small>
-                            Row {rowIndex + 1}, Col {colIndex + 1}
-                          </small>
+                    {touchpadMode === 'GRID_AND_STICK' && (
+                      <>
+                        <div className="grid-size-inputs">
+                          <label>
+                            Columns
+                            <input
+                              type="number"
+                              min={1}
+                              max={5}
+                              value={gridColumns}
+                              onChange={(event) => onGridSizeChange?.(Number(event.target.value) || 1, gridRows)}
+                            />
+                          </label>
+                          <label>
+                            Rows
+                            <input
+                              type="number"
+                              min={1}
+                              max={5}
+                              value={gridRows}
+                              onChange={(event) => onGridSizeChange?.(gridColumns, Number(event.target.value) || 1)}
+                            />
+                          </label>
                         </div>
-                      )
-                    })}
-                  </div>
-                  <div
-                    className="touchpad-binding-list"
-                    data-touchpad-binding-list
-                  >
-                    <div className="keymap-grid">{touchpadGridButtons.map(renderButtonCard)}</div>
+                        <small className="grid-limit-hint">Columns × Rows cannot exceed 25 total regions.</small>
+                      </>
+                    )}
+                    {touchpadMode === 'MOUSE' && (
+                      <label>
+                        Touchpad sensitivity
+                        <input
+                          type="number"
+                          step="0.1"
+                          value={touchpadSensitivity ?? ''}
+                          onChange={(event) => onTouchpadSensitivityChange?.(event.target.value)}
+                          placeholder="Default"
+                        />
+                      </label>
+                    )}
                   </div>
                 </KeymapSection>
-              )}
-              {renderSectionActions()}
-            </>
+                {touchpadMode === 'GRID_AND_STICK' && (
+                  <KeymapSection
+                    title="Touchpad grid"
+                    description="This preview mirrors the touchpad. Configure each region using the rows below."
+                  >
+                    <div className="touchpad-grid-preview" style={{ gridTemplateColumns: `repeat(${clampedGridCols}, 1fr)` }}>
+                      {Array.from({ length: clampedGridCells }).map((_, index) => {
+                        const rowIndex = Math.floor(index / clampedGridCols)
+                        const colIndex = index % clampedGridCols
+                        return (
+                          <div className="touchpad-grid-cell" key={`cell-${index}`}>
+                            <span>T{index + 1}</span>
+                            <small>
+                              Row {rowIndex + 1}, Col {colIndex + 1}
+                            </small>
+                          </div>
+                        )
+                      })}
+                    </div>
+                    <div
+                      className="touchpad-binding-list"
+                      data-touchpad-binding-list
+                    >
+                      <div className="keymap-grid">{touchpadGridButtons.map(renderButtonCard)}</div>
+                    </div>
+                  </KeymapSection>
+                )}
+              </>
+            )
           )}
         </>
       )}
