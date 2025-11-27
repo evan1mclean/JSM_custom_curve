@@ -6,6 +6,7 @@ import { Card } from './Card'
 import { TelemetrySample } from '../hooks/useTelemetry'
 import { CurvePreview } from './CurvePreview'
 import { SectionActions } from './SectionActions'
+import { LOCK_MESSAGE } from '../constants/messages'
 
 type SensitivityControlsProps = {
   sensitivity: SensitivityValues
@@ -88,7 +89,7 @@ export function SensitivityControls({
   onStaticSensYChange,
   modeshiftButton,
   onModeshiftButtonChange,
-  lockMessage = 'Calibrating — place controller on a flat surface',
+  lockMessage = LOCK_MESSAGE,
 }: SensitivityControlsProps) {
   const displaySensitivity =
     sensitivityView === 'base' || !modeshiftButton ? sensitivity : modeshiftSensitivity ?? sensitivity

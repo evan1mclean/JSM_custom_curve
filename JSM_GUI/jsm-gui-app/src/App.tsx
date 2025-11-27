@@ -1609,6 +1609,7 @@ const handleDeleteLibraryProfile = async (name: string) => {
   const profileFileLabel = `${activeProfileFile} — ${profileLabel}`
   const calibrationMessage = isCalibrating ? `Calibrating — place controller on a flat surface (${countdown ?? '...'}s)` : ''
   const lockMessage = 'Calibrating — place controller on a flat surface'
+  const pendingMessage = 'Pending changes — click Apply to send to JoyShockMapper.'
 
   const renderGyroNav = () => (
     <div className="subnav">
@@ -2036,7 +2037,6 @@ const handleDeleteLibraryProfile = async (name: string) => {
                 onChange={setConfigText}
                 onApply={applyConfig}
                 onCancel={handleCancel}
-                lockMessage={lockMessage}
               />
             </div>
           </aside>
@@ -2050,7 +2050,6 @@ const handleDeleteLibraryProfile = async (name: string) => {
               onChange={setConfigText}
               onApply={applyConfig}
               onCancel={handleCancel}
-              lockMessage={lockMessage}
             />
           </div>
         </div>

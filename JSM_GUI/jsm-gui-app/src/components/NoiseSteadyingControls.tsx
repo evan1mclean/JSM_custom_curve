@@ -2,6 +2,7 @@ import { Card } from './Card'
 import { SensitivityValues } from '../utils/keymap'
 import { TelemetryBanner } from './TelemetryBanner'
 import { SectionActions } from './SectionActions'
+import { LOCK_MESSAGE } from '../constants/messages'
 
 type NoiseSteadyingControlsProps = {
   sensitivity: SensitivityValues
@@ -28,7 +29,7 @@ export function NoiseSteadyingControls({
   statusMessage,
   onApply,
   onCancel,
-  lockMessage = 'Calibrating — place controller on a flat surface',
+  lockMessage = LOCK_MESSAGE,
   onCutoffSpeedChange,
   onCutoffRecoveryChange,
   onSmoothTimeChange,

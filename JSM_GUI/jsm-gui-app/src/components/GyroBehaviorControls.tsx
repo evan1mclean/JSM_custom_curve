@@ -1,6 +1,7 @@
 import { SensitivityValues } from '../utils/keymap'
 import { Card } from './Card'
 import { SectionActions } from './SectionActions'
+import { LOCK_MESSAGE } from '../constants/messages'
 
 const TICK_TIME_OPTIONS = [
   { value: '1', label: '500 Hz (1 ms)' },
@@ -61,7 +62,7 @@ export function GyroBehaviorControls({
   hasPendingChanges,
   onApply,
   onCancel,
-  lockMessage = 'Calibrating — place controller on a flat surface',
+  lockMessage = LOCK_MESSAGE,
 }: GyroBehaviorControlsProps) {
   const controllerLabel = (type?: number) => {
     switch (type) {

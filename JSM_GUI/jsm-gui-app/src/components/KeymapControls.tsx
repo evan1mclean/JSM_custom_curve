@@ -21,6 +21,7 @@ type KeymapControlsProps = {
   statusMessage?: string | null
   onApply: () => void
   onCancel: () => void
+  lockMessage?: string
   onBindingChange: (button: string, slot: BindingSlot, value: string | null, options?: { modifier?: string }) => void
   onAssignSpecialAction: (special: string, buttonCommand: string) => void
   onClearSpecialAction: (special: string, buttonCommand: string) => void
