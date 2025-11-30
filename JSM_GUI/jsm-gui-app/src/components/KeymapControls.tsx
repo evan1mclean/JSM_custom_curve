@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { Fragment, useEffect, useMemo, useState } from 'react'
 import { Card } from './Card'
 import {
   BindingSlot,
@@ -563,6 +563,11 @@ export function KeymapControls({
     return null
   }
 
+  const renderSections = (sections: { key: string; shouldRender: boolean; node: JSX.Element }[]) =>
+    sections
+      .filter(section => section.shouldRender)
+      .map(section => <Fragment key={section.key}>{section.node}</Fragment>)
+
   return (
     <Card className="control-panel" lockable locked={isCalibrating} lockMessage={resolvedLockMessage}>
       <div className="keymap-card-header">
@@ -581,89 +586,111 @@ export function KeymapControls({
         )}
       </div>
 
-      {showFullLayout && isVisible('global') && (
-        <GlobalControlsSection
-          holdPressTimeSeconds={holdPressTimeInputValue}
-          holdPressTimeIsCustom={holdPressTimeIsCustom}
-          holdPressTimeDefault={holdPressTimeDefault}
-          onHoldPressTimeChange={onHoldPressTimeChange}
-          doublePressWindowSeconds={doublePressInputValue}
-          doublePressWindowIsCustom={doublePressWindowIsCustom}
-          onDoublePressWindowChange={onDoublePressWindowChange}
-          simPressWindowSeconds={simPressInputValue}
-          simPressWindowIsCustom={simPressWindowIsCustom}
-          onSimPressWindowChange={onSimPressWindowChange}
-          triggerThreshold={triggerThreshold}
-          onTriggerThresholdChange={onTriggerThresholdChange}
-          {...actionsProps}
-        />
-      )}
-
-      {showFullLayout && isVisible('face') && (
-        <ButtonGridSection
-          title="Face Buttons"
-          description="Tap / Hold / Double / Chorded / Simultaneous bindings available via Add Extra Binding."
-          buttons={FACE_BUTTONS}
-          renderButton={renderButtonCard}
-          {...actionsProps}
-        />
-      )}
-
-      {showFullLayout && isVisible('dpad') && (
-        <ButtonGridSection
-          title="D-pad"
-          description="Directional pad bindings with the same extra slots and special actions."
-          buttons={DPAD_BUTTONS}
-          renderButton={renderButtonCard}
-          {...actionsProps}
-        />
-      )}
-
-      {showFullLayout && isVisible('bumpers') && (
-        <ButtonGridSection
-          title="Bumpers"
-          description="L1/R1 bindings with the usual specials and extra slots."
-          buttons={BUMPER_BUTTONS}
-          renderButton={renderButtonCard}
-          {...actionsProps}
-        />
-      )}
-
-      {showFullLayout && isVisible('triggers') && (
-        <ButtonGridSection
-          title="Triggers"
-          description="Soft/full pulls and threshold toggles for L2/R2."
-          buttons={TRIGGER_BUTTONS}
-          renderButton={renderButtonCard}
-          extraContent={
-            <div className="adaptive-toggle" data-capture-ignore="true">
-              <label>
-                Adaptive triggers (DualSense)
-                <select
-                  className="app-select"
-                  value={adaptiveTriggerValue}
-                  onChange={(event) => onAdaptiveTriggerChange?.(event.target.value)}
-                  disabled={isCalibrating}
-                >
-                  <option value="">Default (ON)</option>
-                  <option value="OFF">Off</option>
-                </select>
-              </label>
-            </div>
-          }
-          {...actionsProps}
-        />
-      )}
-
-      {showFullLayout && isVisible('center') && (
-        <ButtonGridSection
-          title="Center buttons"
-          description="Options, Share, and Mic bindings."
-          buttons={CENTER_BUTTONS}
-          renderButton={renderButtonCard}
-          {...actionsProps}
-        />
-      )}
+      {showFullLayout &&
+        renderSections([
+          {
+            key: 'global',
+            shouldRender: isVisible('global'),
+            node: (
+              <GlobalControlsSection
+                holdPressTimeSeconds={holdPressTimeInputValue}
+                holdPressTimeIsCustom={holdPressTimeIsCustom}
+                holdPressTimeDefault={holdPressTimeDefault}
+                onHoldPressTimeChange={onHoldPressTimeChange}
+                doublePressWindowSeconds={doublePressInputValue}
+                doublePressWindowIsCustom={doublePressWindowIsCustom}
+                onDoublePressWindowChange={onDoublePressWindowChange}
+                simPressWindowSeconds={simPressInputValue}
+                simPressWindowIsCustom={simPressWindowIsCustom}
+                onSimPressWindowChange={onSimPressWindowChange}
+                triggerThreshold={triggerThreshold}
+                onTriggerThresholdChange={onTriggerThresholdChange}
+                {...actionsProps}
+              />
+            ),
+          },
+          {
+            key: 'face',
+            shouldRender: isVisible('face'),
+            node: (
+              <ButtonGridSection
+                title="Face Buttons"
+                description="Tap / Hold / Double / Chorded / Simultaneous bindings available via Add Extra Binding."
+                buttons={FACE_BUTTONS}
+                renderButton={renderButtonCard}
+                {...actionsProps}
+              />
+            ),
+          },
+          {
+            key: 'dpad',
+            shouldRender: isVisible('dpad'),
+            node: (
+              <ButtonGridSection
+                title="D-pad"
+                description="Directional pad bindings with the same extra slots and special actions."
+                buttons={DPAD_BUTTONS}
+                renderButton={renderButtonCard}
+                {...actionsProps}
+              />
+            ),
+          },
+          {
+            key: 'bumpers',
+            shouldRender: isVisible('bumpers'),
+            node: (
+              <ButtonGridSection
+                title="Bumpers"
+                description="L1/R1 bindings with the usual specials and extra slots."
+                buttons={BUMPER_BUTTONS}
+                renderButton={renderButtonCard}
+                {...actionsProps}
+              />
+            ),
+          },
+          {
+            key: 'triggers',
+            shouldRender: isVisible('triggers'),
+            node: (
+              <ButtonGridSection
+                title="Triggers"
+                description="Soft/full pulls and threshold toggles for L2/R2."
+                buttons={TRIGGER_BUTTONS}
+                renderButton={renderButtonCard}
+                extraContent={
+                  <div className="adaptive-toggle" data-capture-ignore="true">
+                    <label>
+                      Adaptive triggers (DualSense)
+                      <select
+                        className="app-select"
+                        value={adaptiveTriggerValue}
+                        onChange={(event) => onAdaptiveTriggerChange?.(event.target.value)}
+                        disabled={isCalibrating}
+                      >
+                        <option value="">Default (ON)</option>
+                        <option value="OFF">Off</option>
+                      </select>
+                    </label>
+                  </div>
+                }
+                {...actionsProps}
+              />
+            ),
+          },
+          {
+            key: 'center',
+            shouldRender: isVisible('center'),
+            node: (
+              <ButtonGridSection
+                title="Center buttons"
+                description="Options, Share, and Mic bindings."
+                buttons={CENTER_BUTTONS}
+                renderButton={renderButtonCard}
+                {...actionsProps}
+              />
+            ),
+          },
+        ])}
 
       {showStickLayout && (
         <>
@@ -678,22 +705,34 @@ export function KeymapControls({
             </div>
           )}
           {currentStickView === 'bindings' ? (
-            <>
-              <ButtonGridSection
-                title="Left stick"
-                description="Bind directions, ring, or stick click with the same extra slots available elsewhere."
-                buttons={LEFT_STICK_BUTTONS}
-                renderButton={renderButtonCard}
-                {...actionsProps}
-              />
-              <ButtonGridSection
-                title="Right stick"
-                description="Configure the right stick directions, ring binding, or stick click."
-                buttons={RIGHT_STICK_BUTTONS}
-                renderButton={renderButtonCard}
-                {...actionsProps}
-              />
-            </>
+            renderSections([
+              {
+                key: 'left-stick-bind',
+                shouldRender: true,
+                node: (
+                  <ButtonGridSection
+                    title="Left stick"
+                    description="Bind directions, ring, or stick click with the same extra slots available elsewhere."
+                    buttons={LEFT_STICK_BUTTONS}
+                    renderButton={renderButtonCard}
+                    {...actionsProps}
+                  />
+                ),
+              },
+              {
+                key: 'right-stick-bind',
+                shouldRender: true,
+                node: (
+                  <ButtonGridSection
+                    title="Right stick"
+                    description="Configure the right stick directions, ring binding, or stick click."
+                    buttons={RIGHT_STICK_BUTTONS}
+                    renderButton={renderButtonCard}
+                    {...actionsProps}
+                  />
+                ),
+              },
+            ])
           ) : (
             <StickModesSection
               leftDeadzone={leftDeadzoneValues}
@@ -715,38 +754,48 @@ export function KeymapControls({
 
       {view === 'touchpad' && (
         <>
-          {isVisible('touch-bind') && (
-            <ButtonGridSection
-              title="Touch and click buttons"
-              description="Bindings for touch contact and pad click."
-              buttons={TOUCH_BUTTONS}
-              renderButton={renderButtonCard}
-              {...actionsProps}
-            />
-          )}
-          {isVisible('touch-grid') && (
-            <>
-              <TouchpadSettingsSection
-                touchpadMode={touchpadMode}
-                gridColumns={gridColumns}
-                gridRows={gridRows}
-                onTouchpadModeChange={onTouchpadModeChange}
-                onGridSizeChange={onGridSizeChange}
-                touchpadSensitivity={touchpadSensitivity}
-                onTouchpadSensitivityChange={onTouchpadSensitivityChange}
-                {...actionsProps}
-              />
-              {touchpadMode === 'GRID_AND_STICK' && (
-                <TouchpadGridSection
-                  gridColumns={clampedGridCols}
-                  gridCells={clampedGridCells}
+          {renderSections([
+            {
+              key: 'touch-bind',
+              shouldRender: isVisible('touch-bind'),
+              node: (
+                <ButtonGridSection
+                  title="Touch and click buttons"
+                  description="Bindings for touch contact and pad click."
+                  buttons={TOUCH_BUTTONS}
                   renderButton={renderButtonCard}
-                  touchpadButtons={touchpadGridButtons}
                   {...actionsProps}
                 />
-              )}
-            </>
-          )}
+              ),
+            },
+            {
+              key: 'touch-grid',
+              shouldRender: isVisible('touch-grid'),
+              node: (
+                <>
+                  <TouchpadSettingsSection
+                    touchpadMode={touchpadMode}
+                    gridColumns={gridColumns}
+                    gridRows={gridRows}
+                    onTouchpadModeChange={onTouchpadModeChange}
+                    onGridSizeChange={onGridSizeChange}
+                    touchpadSensitivity={touchpadSensitivity}
+                    onTouchpadSensitivityChange={onTouchpadSensitivityChange}
+                    {...actionsProps}
+                  />
+                  {touchpadMode === 'GRID_AND_STICK' && (
+                    <TouchpadGridSection
+                      gridColumns={clampedGridCols}
+                      gridCells={clampedGridCells}
+                      renderButton={renderButtonCard}
+                      touchpadButtons={touchpadGridButtons}
+                      {...actionsProps}
+                    />
+                  )}
+                </>
+              ),
+            },
+          ])}
         </>
       )}
 
