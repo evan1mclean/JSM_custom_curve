@@ -8,13 +8,40 @@ import {
   ManualRowState,
   ManualRowInfo,
 } from '../utils/keymap'
-import { buildModifierOptions, ControllerLayout, ModifierSelectOption } from '../utils/modifierOptions'
+import { buildModifierOptions, ControllerLayout } from '../utils/modifierOptions'
 import { BindingRow } from './BindingRow'
 import { KeymapSection } from './KeymapSection'
 import { SectionActions } from './SectionActions'
 import { StickSettingsCard } from './StickSettingsCard'
 import { DEFAULT_STICK_DEADZONE_INNER, DEFAULT_STICK_DEADZONE_OUTER } from '../constants/defaults'
-import { STICK_MODE_VALUES, formatStickModeLabel } from '../constants/sticks'
+import { formatStickModeLabel } from '../constants/sticks'
+import {
+  BUMPER_BUTTONS,
+  CENTER_BUTTONS,
+  DPAD_BUTTONS,
+  EXTRA_BINDING_SLOTS,
+  FACE_BUTTONS,
+  LEFT_STICK_BUTTONS,
+  MODIFIER_SLOT_TYPES,
+  RIGHT_STICK_BUTTONS,
+  SPECIAL_BINDINGS,
+  SPECIAL_LABELS,
+  SPECIAL_OPTION_LIST,
+  SPECIAL_OPTION_MANUAL_LIST,
+  STICK_AIM_DEFAULTS,
+  STICK_SHIFT_HEADER_OPTION,
+  STICK_SHIFT_SPECIAL_OPTIONS,
+  TOUCH_BUTTONS,
+  TRIGGER_BUTTONS,
+  buildStickShiftValue,
+  getDefaultModifierForButton,
+  parseStickShiftSelection,
+  type ButtonDefinition,
+} from '../keymap/schema'
+import {
+  TRACKBALL_SPECIALS,
+} from '../keymap/bindings'
+import { useBindingCapture } from '../keymap/useBindingCapture'
 
 type KeymapControlsProps = {
   configText: string
@@ -107,95 +134,6 @@ type KeymapControlsProps = {
   onStickModeShiftChange?: (button: string, target: 'LEFT' | 'RIGHT', mode?: string) => void
   adaptiveTriggerValue?: string
   onAdaptiveTriggerChange?: (value: string) => void
-}
-
-type ButtonDefinition = {
-  command: string
-  description: string
-  playstation: string
-  xbox: string
-}
-
-const FACE_BUTTONS: ButtonDefinition[] = [
-  { command: 'S', description: 'South / Bottom', playstation: 'Cross', xbox: 'A' },
-  { command: 'E', description: 'East / Right', playstation: 'Circle', xbox: 'B' },
-  { command: 'N', description: 'North / Top', playstation: 'Triangle', xbox: 'Y' },
-  { command: 'W', description: 'West / Left', playstation: 'Square', xbox: 'X' },
-]
-
-const DPAD_BUTTONS: ButtonDefinition[] = [
-  { command: 'UP', description: 'D-pad Up', playstation: 'Up', xbox: 'Up' },
-  { command: 'DOWN', description: 'D-pad Down', playstation: 'Down', xbox: 'Down' },
-  { command: 'LEFT', description: 'D-pad Left', playstation: 'Left', xbox: 'Left' },
-  { command: 'RIGHT', description: 'D-pad Right', playstation: 'Right', xbox: 'Right' },
-]
-
-const BUMPER_BUTTONS: ButtonDefinition[] = [
-  { command: 'L', description: 'Left bumper (L1 / LB)', playstation: 'L1', xbox: 'LB' },
-  { command: 'R', description: 'Right bumper (R1 / RB)', playstation: 'R1', xbox: 'RB' },
-]
-
-const TRIGGER_BUTTONS: ButtonDefinition[] = [
-  { command: 'ZL', description: 'Left trigger soft pull', playstation: 'L2', xbox: 'LT' },
-  { command: 'ZLF', description: 'Left trigger full pull', playstation: 'L2 Full', xbox: 'LT Full' },
-  { command: 'ZR', description: 'Right trigger soft pull', playstation: 'R2', xbox: 'RT' },
-  { command: 'ZRF', description: 'Right trigger full pull', playstation: 'R2 Full', xbox: 'RT Full' },
-]
-
-const CENTER_BUTTONS: ButtonDefinition[] = [
-  { command: '+', description: 'Options / Menu (plus)', playstation: 'Options', xbox: 'Options' },
-  { command: '-', description: 'Share / View (minus)', playstation: 'Share', xbox: 'View' },
-  { command: 'MIC', description: 'Microphone button', playstation: 'Mic', xbox: 'Mic' },
-]
-
-const TOUCH_BUTTONS: ButtonDefinition[] = [
-  { command: 'TOUCH', description: 'Touch contact', playstation: 'Touch', xbox: 'Touch' },
-  { command: 'CAPTURE', description: 'Touchpad click', playstation: 'Click', xbox: 'Click' },
-]
-
-const LEFT_STICK_BUTTONS: ButtonDefinition[] = [
-  { command: 'LUP', description: 'Left stick up direction', playstation: 'LS Up', xbox: 'LS Up' },
-  { command: 'LDOWN', description: 'Left stick down direction', playstation: 'LS Down', xbox: 'LS Down' },
-  { command: 'LLEFT', description: 'Left stick left direction', playstation: 'LS Left', xbox: 'LS Left' },
-  { command: 'LRIGHT', description: 'Left stick right direction', playstation: 'LS Right', xbox: 'LS Right' },
-  { command: 'L3', description: 'Left stick click', playstation: 'L3', xbox: 'LS Click' },
-  { command: 'LRING', description: 'Left stick ring binding', playstation: 'L-Ring', xbox: 'L-Ring' },
-]
-
-const RIGHT_STICK_BUTTONS: ButtonDefinition[] = [
-  { command: 'RUP', description: 'Right stick up direction', playstation: 'RS Up', xbox: 'RS Up' },
-  { command: 'RDOWN', description: 'Right stick down direction', playstation: 'RS Down', xbox: 'RS Down' },
-  { command: 'RLEFT', description: 'Right stick left direction', playstation: 'RS Left', xbox: 'RS Left' },
-  { command: 'RRIGHT', description: 'Right stick right direction', playstation: 'RS Right', xbox: 'RS Right' },
-  { command: 'R3', description: 'Right stick click', playstation: 'R3', xbox: 'RS Click' },
-  { command: 'RRING', description: 'Right stick ring binding', playstation: 'R-Ring', xbox: 'R-Ring' },
-]
-
-const buildStickShiftValue = (target: 'LEFT' | 'RIGHT', mode: string) => `STICK_SHIFT:${target}:${mode}`
-
-const STICK_SHIFT_SPECIAL_OPTIONS = STICK_MODE_VALUES.flatMap(mode => [
-  {
-    value: buildStickShiftValue('LEFT', mode),
-    label: `Stick shift — Left → ${formatStickModeLabel(mode)}`,
-  },
-  {
-    value: buildStickShiftValue('RIGHT', mode),
-    label: `Stick shift — Right → ${formatStickModeLabel(mode)}`,
-  },
-])
-const STICK_SHIFT_HEADER_OPTION = { value: 'STICK_SHIFT_HEADER', label: '── Stick mode shifts ──', disabled: true }
-
-const parseStickShiftSelection = (value: string) => {
-  const match = /^STICK_SHIFT:(LEFT|RIGHT):([A-Z_]+)$/i.exec(value)
-  if (!match) return null
-  return { target: match[1].toUpperCase() as 'LEFT' | 'RIGHT', mode: match[2].toUpperCase() }
-}
-
-const STICK_AIM_DEFAULTS = {
-  sens: '360',
-  power: '2',
-  accelerationRate: '0',
-  accelerationCap: '1000000',
 }
 
 type StickAimSettingsProps = {
@@ -372,161 +310,6 @@ const StickFlickSettings = ({ values, handlers, disabled }: StickFlickSettingsPr
   )
 }
 
-const SPECIAL_BINDINGS = [
-  { value: '', label: 'Special Binds' },
-  { value: 'GYRO_OFF', label: 'Hold to disable gyro' },
-  { value: 'GYRO_ON', label: 'Hold to enable gyro' },
-  { value: 'GYRO_OFF_ALL', label: 'Hold to disable gyro (all controllers)' },
-  { value: 'GYRO_ON_ALL', label: 'Hold to enable gyro (all controllers)' },
-  { value: 'GYRO_INVERT', label: 'Invert gyro direction (both axes)' },
-  { value: 'GYRO_INV_X', label: 'Invert gyro X axis' },
-  { value: 'GYRO_INV_Y', label: 'Invert gyro Y axis' },
-  { value: 'GYRO_TRACKBALL', label: 'Trackball mode (hold to engage)' },
-  { value: 'GYRO_TRACK_X', label: 'Trackball mode — X axis' },
-  { value: 'GYRO_TRACK_Y', label: 'Trackball mode — Y axis' },
-]
-
-const SPECIAL_OPTION_LIST = SPECIAL_BINDINGS.filter(option => option.value)
-const SPECIAL_OPTION_MANUAL_LIST = SPECIAL_BINDINGS.filter(option => option.value && !['GYRO_OFF', 'GYRO_ON'].includes(option.value))
-
-const SPECIAL_LABELS: Record<string, string> = {
-  GYRO_OFF: 'Disable gyro',
-  GYRO_ON: 'Enable gyro',
-  GYRO_OFF_ALL: 'Disable gyro (all)',
-  GYRO_ON_ALL: 'Enable gyro (all)',
-  GYRO_INVERT: 'Invert gyro axes',
-  GYRO_INV_X: 'Invert gyro X axis',
-  GYRO_INV_Y: 'Invert gyro Y axis',
-  GYRO_TRACKBALL: 'Trackball mode (XY)',
-  GYRO_TRACK_X: 'Trackball mode (X only)',
-  GYRO_TRACK_Y: 'Trackball mode (Y only)',
-}
-
-const EXTRA_BINDING_SLOTS: BindingSlot[] = ['hold', 'double', 'chord', 'simultaneous']
-const MODIFIER_SLOT_TYPES: BindingSlot[] = ['chord', 'simultaneous']
-const getDefaultModifierForButton = (button: string, modifierOptions: ModifierSelectOption[]) => {
-  const upper = button.toUpperCase()
-  const fallback = modifierOptions[0]?.value ?? 'L3'
-  const candidate = modifierOptions.find(option => option.value !== upper && !option.disabled)
-  return candidate?.value ?? fallback
-}
-
-type CaptureTarget = { button: string; slot: BindingSlot; modifier?: string }
-
-const KEY_CODE_MAP: Record<string, string> = {
-  Escape: 'ESC',
-  Tab: 'TAB',
-  Backspace: 'BACKSPACE',
-  Enter: 'ENTER',
-  Space: 'SPACE',
-  ArrowUp: 'UP',
-  ArrowDown: 'DOWN',
-  ArrowLeft: 'LEFT',
-  ArrowRight: 'RIGHT',
-  Insert: 'INSERT',
-  Delete: 'DELETE',
-  Home: 'HOME',
-  End: 'END',
-  PageUp: 'PAGEUP',
-  PageDown: 'PAGEDOWN',
-  CapsLock: 'CAPS_LOCK',
-  ScrollLock: 'SCROLL_LOCK',
-  NumLock: 'NUM_LOCK',
-  Pause: 'PAUSE',
-  PrintScreen: 'SCREENSHOT',
-  ContextMenu: 'CONTEXT',
-}
-
-const PUNCTUATION_MAP: Record<string, string> = {
-  Minus: '-',
-  Equal: '=',
-  BracketLeft: '[',
-  BracketRight: ']',
-  Backslash: '\\',
-  IntlBackslash: '\\',
-  Semicolon: ';',
-  Quote: "'",
-  Comma: ',',
-  Period: '.',
-  Slash: '/',
-  Backquote: '`',
-}
-
-const FUNCTION_KEYS = new Set(Array.from({ length: 29 }, (_, index) => `F${index + 1}`))
-
-function keyboardEventToBinding(event: KeyboardEvent): string | null {
-  const { code, key } = event
-  if (/^Key[A-Z]$/.test(code)) {
-    return code.slice(3)
-  }
-  if (/^Digit[0-9]$/.test(code)) {
-    return code.slice(5)
-  }
-  if (/^Numpad[0-9]$/.test(code)) {
-    return `N${code.slice(6)}`
-  }
-  if (code.startsWith('Shift')) {
-    return code === 'ShiftRight' ? 'RSHIFT' : 'LSHIFT'
-  }
-  if (code.startsWith('Control')) {
-    return code === 'ControlRight' ? 'RCONTROL' : 'LCONTROL'
-  }
-  if (code.startsWith('Alt')) {
-    return code === 'AltRight' ? 'RALT' : 'LALT'
-  }
-  if (code === 'MetaLeft') {
-    return 'LWINDOWS'
-  }
-  if (code === 'MetaRight') {
-    return 'RWINDOWS'
-  }
-  if (FUNCTION_KEYS.has(code)) {
-    return code
-  }
-  if (PUNCTUATION_MAP[code]) {
-    return PUNCTUATION_MAP[code]
-  }
-  if (KEY_CODE_MAP[key]) {
-    return KEY_CODE_MAP[key]
-  }
-  if (key && key.length === 1) {
-    if (key === ' ') return 'SPACE'
-    return key.toUpperCase()
-  }
-  return null
-}
-
-function mouseButtonToBinding(button: number): string | null {
-  switch (button) {
-    case 0:
-      return 'LMOUSE'
-    case 1:
-      return 'MMOUSE'
-    case 2:
-      return 'RMOUSE'
-    case 3:
-      return 'BMOUSE'
-    case 4:
-      return 'FMOUSE'
-    default:
-      return null
-  }
-}
-
-function wheelEventToBinding(deltaY: number): string | null {
-  if (deltaY < 0) return 'SCROLLUP'
-  if (deltaY > 0) return 'SCROLLDOWN'
-  return null
-}
-
-const shouldIgnoreCapture = (event: Event) => {
-  const target = event.target as HTMLElement | null
-  if (!target) return false
-  return Boolean(target.closest('[data-capture-ignore="true"]'))
-}
-
-const TRACKBALL_SPECIALS = new Set(['GYRO_TRACKBALL', 'GYRO_TRACK_X', 'GYRO_TRACK_Y'])
-
 export function KeymapControls({
   configText,
   hasPendingChanges,
@@ -584,10 +367,9 @@ export function KeymapControls({
 }: KeymapControlsProps) {
   const [layout, setLayout] = useState<ControllerLayout>('playstation')
   const [stickView, setStickView] = useState<'bindings' | 'modes'>('bindings')
-  const [captureTarget, setCaptureTarget] = useState<CaptureTarget | null>(null)
-  const [suppressKey, setSuppressKey] = useState<string | null>(null)
   const [manualRows, setManualRows] = useState<Record<string, ManualRowState>>({})
   const [stickShiftDisplayModes, setStickShiftDisplayModes] = useState<Record<string, 'tap' | 'extra'>>({})
+  const { captureLabel, beginCapture, cancelCapture, isCapturing } = useBindingCapture(onBindingChange)
   const currentStickView = stickForcedView ?? stickView
   const stickToggleVisible = view === 'sticks' && showStickViewToggle && !stickForcedView
   useEffect(() => {
@@ -661,7 +443,6 @@ export function KeymapControls({
     return assignments
   }, [configText])
 
-  const [captureLabel, setCaptureLabel] = useState<string>('')
   const showFullLayout = view === 'full'
   const showStickLayout = view === 'sticks'
   const deadzoneDefaults = stickDeadzoneSettings?.defaults ?? {
@@ -690,71 +471,6 @@ export function KeymapControls({
       return next
     })
   }, [stickModeShiftAssignments])
-
-  useEffect(() => {
-    if (!captureTarget) return
-    const handleBinding = (value: string | null, suppress: boolean) => {
-      if (value) {
-        onBindingChange(captureTarget.button, captureTarget.slot, value, { modifier: captureTarget.modifier })
-        if (suppress) {
-          setSuppressKey(`${captureTarget.button}-${captureTarget.slot}`)
-        } else {
-          setSuppressKey(null)
-        }
-        setCaptureTarget(null)
-      }
-    }
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (shouldIgnoreCapture(event)) return
-      event.preventDefault()
-      event.stopPropagation()
-      const binding = keyboardEventToBinding(event)
-      handleBinding(binding, false)
-    }
-
-    const handleMouseDown = (event: MouseEvent) => {
-      if (shouldIgnoreCapture(event)) return
-      event.preventDefault()
-      event.stopPropagation()
-      const binding = mouseButtonToBinding(event.button)
-      handleBinding(binding, true)
-    }
-
-    const handleWheel = (event: WheelEvent) => {
-      if (shouldIgnoreCapture(event)) return
-      event.preventDefault()
-      event.stopPropagation()
-      const binding = wheelEventToBinding(event.deltaY)
-      handleBinding(binding, false)
-    }
-
-    window.addEventListener('keydown', handleKeyDown, true)
-    window.addEventListener('mousedown', handleMouseDown, true)
-    const wheelListenerOptions: AddEventListenerOptions = { passive: false, capture: true }
-    window.addEventListener('wheel', handleWheel, wheelListenerOptions)
-
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown, true)
-      window.removeEventListener('mousedown', handleMouseDown, true)
-      window.removeEventListener('wheel', handleWheel, wheelListenerOptions)
-    }
-  }, [captureTarget, onBindingChange])
-
-  const beginCapture = (button: string, slot: BindingSlot, modifier?: string) => {
-    const key = `${button}-${slot}`
-    if (suppressKey === key) {
-      setSuppressKey(null)
-      return
-    }
-    setCaptureLabel(slot === 'hold' ? 'Press and hold binding…' : 'Press any key or mouse button…')
-    setCaptureTarget({ button, slot, modifier })
-  }
-
-  const cancelCapture = () => {
-    setCaptureTarget(null)
-    setSuppressKey(null)
-  }
 
   const ensureManualRow = (button: string, slot: BindingSlot, defaults?: ManualRowInfo) => {
     setManualRows(prev => {
@@ -857,7 +573,7 @@ export function KeymapControls({
         </div>
         <div className="keymap-binding-controls">
           {rows.map(row => {
-            const isCapturing = captureTarget?.button === button.command && captureTarget.slot === row.slot
+            const rowCapturing = isCapturing(button.command, row.slot)
             const hasExtraRows = rows.length > 1
             const isSpecialValue = Boolean(row.binding && SPECIAL_LABELS[row.binding])
             const displayValue = (() => {
@@ -936,9 +652,16 @@ export function KeymapControls({
                   showHeader={showHeader}
                   displayValue={displayValue}
                   isManual={row.isManual}
-                isCapturing={isCapturing}
+                isCapturing={rowCapturing}
                 captureLabel={captureLabel}
-                onBeginCapture={() => beginCapture(button.command, row.slot, needsModifier ? modifierValue : undefined)}
+                onBeginCapture={() =>
+                  beginCapture(
+                    button.command,
+                    row.slot,
+                    row.slot === 'hold' ? 'Press and hold binding…' : 'Press any key or mouse button…',
+                    needsModifier ? modifierValue : undefined
+                  )
+                }
                 onCancelCapture={cancelCapture}
                 onClear={() => {
                   if (row.slot === 'tap') {

@@ -1,7 +1,7 @@
 {
   "name": "jsm-gui-app",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "JoyShockMapper Custom Curve GUI with bundled JSM and custom accel curves",
   "author": "Evan McLean",
   "type": "module",
