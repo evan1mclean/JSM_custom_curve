@@ -2,6 +2,12 @@ import { useCallback, useEffect, useState } from 'react'
 import { getKeymapValue, removeKeymapEntry, updateKeymapEntry } from '../utils/keymap'
 import { upsertFlagCommand } from '../utils/config'
 import { keyName } from '../constants/configKeys'
+import {
+  CALIBRATION_NO_RESPONSE,
+  CALIBRATION_PRESET_FAILED,
+  CALIBRATION_PRESET_LOADED,
+  formatCalibrationRunFailed,
+} from '../constants/messages'
 
 type UseCalibrationParams = {
   configText: string
@@ -43,7 +49,7 @@ export function useCalibration({ configText, counterOsMouseSpeedEnabled, sensiti
       if (result?.activeProfile) {
         setCalibrationRestorePath(result.activeProfile)
       }
-      setCalibrationLoadMessage(result?.success ? 'Calibration preset loaded.' : 'Failed to load calibration preset.')
+      setCalibrationLoadMessage(result?.success ? CALIBRATION_PRESET_LOADED : CALIBRATION_PRESET_FAILED)
       const preset = await window.electronAPI?.readCalibrationPreset?.()
       if (preset?.success && preset.content !== undefined) {
         setCalibrationText(preset.content)
@@ -104,10 +110,10 @@ export function useCalibration({ configText, counterOsMouseSpeedEnabled, sensiti
       if (output.length > 0) {
         setCalibrationOutput(output)
       } else {
-        setCalibrationOutput('No response captured.')
+        setCalibrationOutput(CALIBRATION_NO_RESPONSE)
       }
     } catch (err) {
-      setCalibrationOutput(`Failed to run calculation: ${String(err)}`)
+      setCalibrationOutput(formatCalibrationRunFailed(err))
     }
   }, [])
 

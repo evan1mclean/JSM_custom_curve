@@ -1,5 +1,18 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ensureHeaderLines, sanitizeImportedConfig } from '../utils/config'
+import {
+  APPLY_KEYMAP_FAILED,
+  CREATE_PROFILE_FAILED,
+  DELETE_PROFILE_FAILED,
+  EMPTY_PROFILE_NAME,
+  IMPORT_PROFILE_FAILED,
+  LOAD_PROFILE_FAILED,
+  RENAME_PROFILE_FAILED,
+  formatAppliedProfileMessage,
+  formatDeletedProfileMessage,
+  formatImportedProfileMessage,
+  formatLoadedProfileMessage,
+} from '../constants/messages'
 
 type ApplyConfigOptions = {
   profileNameOverride?: string
@@ -93,16 +106,12 @@ export function useProfileLibrary({
           setActiveProfilePath(result.path)
         }
         const profileName = options?.profileNameOverride ?? currentLibraryProfile ?? 'Unsaved profile'
-        setStatusMessage(
-          result?.restarted
-            ? `Applied ${profileName} to JoyShockMapper (restarted).`
-            : `Applied ${profileName} to JoyShockMapper.`
-        )
+        setStatusMessage(formatAppliedProfileMessage(profileName, Boolean(result?.restarted)))
         setAppliedConfig(sanitizedConfig)
         setTimeout(() => setStatusMessage(null), 3000)
       } catch (err) {
         console.error(err)
-        setStatusMessage('Failed to apply keymap.')
+        setStatusMessage(APPLY_KEYMAP_FAILED)
       }
     },
     [activeProfilePath, configText, currentLibraryProfile, setAppliedConfig, setConfigText, setStatusMessage]
@@ -126,13 +135,13 @@ export function useProfileLibrary({
             textOverride: profileContent,
             profilePathOverride: profilePath,
           })
-          setStatusMessage(`Loaded "${profileName}" from library and applied it to JoyShockMapper.`)
+          setStatusMessage(formatLoadedProfileMessage(profileName))
           setTimeout(() => setStatusMessage(null), 3000)
           return result.content
         }
       } catch (err) {
         console.error('Failed to load profile from library', err)
-        setStatusMessage('Failed to load profile from library.')
+        setStatusMessage(LOAD_PROFILE_FAILED)
         setTimeout(() => setStatusMessage(null), 3000)
         refreshLibraryProfiles()
       }
@@ -173,7 +182,7 @@ export function useProfileLibrary({
       }
     } catch (err) {
       console.error('Failed to create profile', err)
-      setStatusMessage('Failed to create profile.')
+      setStatusMessage(CREATE_PROFILE_FAILED)
       setTimeout(() => setStatusMessage(null), 3000)
     }
   }, [applyConfig, refreshLibraryProfiles, setAppliedConfig, setConfigText, setStatusMessage])
@@ -183,7 +192,7 @@ export function useProfileLibrary({
       if (!window.electronAPI?.renameLibraryProfile) return
       const pendingName = (editedLibraryNames[originalName] ?? originalName).trim()
       if (!pendingName) {
-        setStatusMessage('Profile name cannot be empty.')
+        setStatusMessage(EMPTY_PROFILE_NAME)
         setTimeout(() => setStatusMessage(null), 3000)
         return
       }
@@ -208,7 +217,7 @@ export function useProfileLibrary({
         }
       } catch (err) {
         console.error('Failed to rename profile', err)
-        setStatusMessage('Failed to rename profile.')
+        setStatusMessage(RENAME_PROFILE_FAILED)
         setTimeout(() => setStatusMessage(null), 3000)
       }
     },
@@ -270,11 +279,11 @@ export function useProfileLibrary({
             await applyConfig({ profileNameOverride: 'Unsaved profile', textOverride: '', profilePathOverride: '' })
           }
         }
-        setStatusMessage(`Deleted "${name}" from library.`)
+        setStatusMessage(formatDeletedProfileMessage(name))
         setTimeout(() => setStatusMessage(null), 3000)
       } catch (err) {
         console.error('Failed to delete profile', err)
-        setStatusMessage('Failed to delete profile.')
+        setStatusMessage(DELETE_PROFILE_FAILED)
         setTimeout(() => setStatusMessage(null), 3000)
       }
     },
@@ -298,12 +307,12 @@ export function useProfileLibrary({
         const result = await window.electronAPI?.saveLibraryProfile?.(baseName, sanitized)
         const savedName = result?.name ?? baseName
         await handleLoadProfileFromLibrary(savedName)
-        setStatusMessage(`Imported "${savedName}" into the editor. Click Apply to use it.`)
+        setStatusMessage(formatImportedProfileMessage(savedName))
         setTimeout(() => setStatusMessage(null), 3000)
         refreshLibraryProfiles()
       } catch (err) {
         console.error('Failed to import profile', err)
-        setStatusMessage('Failed to import profile.')
+        setStatusMessage(IMPORT_PROFILE_FAILED)
         setTimeout(() => setStatusMessage(null), 3000)
       }
     },
