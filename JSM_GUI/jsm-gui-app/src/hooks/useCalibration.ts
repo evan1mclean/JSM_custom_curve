@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { getKeymapValue, removeKeymapEntry, updateKeymapEntry } from '../utils/keymap'
 import { upsertFlagCommand } from '../utils/config'
+import { keyName } from '../constants/configKeys'
 
 type UseCalibrationParams = {
   configText: string
@@ -25,8 +26,8 @@ export function useCalibration({ configText, counterOsMouseSpeedEnabled, sensiti
   }, [calibrationLoadMessage])
 
   const resetCalibrationInputs = useCallback(() => {
-    const sens = getKeymapValue(calibrationText, 'IN_GAME_SENS') ?? ''
-    const counter = Boolean(calibrationText && /(^|\s)COUNTER_OS_MOUSE_SPEED\b/i.test(calibrationText))
+    const sens = getKeymapValue(calibrationText, keyName.IN_GAME_SENS) ?? ''
+    const counter = Boolean(calibrationText && new RegExp(`(^|\\s)${keyName.COUNTER_OS_MOUSE_SPEED}\\b`, 'i').test(calibrationText))
     setCalibrationInGameSens(sens)
     setCalibrationCounterOs(counter)
     setCalibrationDirty(false)
@@ -46,8 +47,8 @@ export function useCalibration({ configText, counterOsMouseSpeedEnabled, sensiti
       const preset = await window.electronAPI?.readCalibrationPreset?.()
       if (preset?.success && preset.content !== undefined) {
         setCalibrationText(preset.content)
-        const presetSens = getKeymapValue(preset.content, 'IN_GAME_SENS') ?? sensitivityInGame?.toString() ?? ''
-        const presetCounter = /(^|\s)COUNTER_OS_MOUSE_SPEED\b/i.test(preset.content)
+        const presetSens = getKeymapValue(preset.content, keyName.IN_GAME_SENS) ?? sensitivityInGame?.toString() ?? ''
+        const presetCounter = new RegExp(`(^|\\s)${keyName.COUNTER_OS_MOUSE_SPEED}\\b`, 'i').test(preset.content)
         setCalibrationInGameSens(presetSens)
         setCalibrationCounterOs(presetCounter)
         setCalibrationDirty(false)
@@ -76,14 +77,14 @@ export function useCalibration({ configText, counterOsMouseSpeedEnabled, sensiti
 
   const buildCalibrationPreset = useCallback(() => {
     let next = calibrationText || ''
-    next = upsertFlagCommand(next, 'COUNTER_OS_MOUSE_SPEED', calibrationCounterOs)
+    next = upsertFlagCommand(next, keyName.COUNTER_OS_MOUSE_SPEED, calibrationCounterOs)
     const trimmed = calibrationInGameSens.trim()
     if (!trimmed) {
-      next = removeKeymapEntry(next, 'IN_GAME_SENS')
+      next = removeKeymapEntry(next, keyName.IN_GAME_SENS)
     } else {
       const parsed = Number(trimmed)
       if (Number.isFinite(parsed)) {
-        next = updateKeymapEntry(next, 'IN_GAME_SENS', [parsed])
+        next = updateKeymapEntry(next, keyName.IN_GAME_SENS, [parsed])
       }
     }
     return next

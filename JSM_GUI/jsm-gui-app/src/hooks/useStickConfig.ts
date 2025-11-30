@@ -2,6 +2,7 @@ import { useCallback, useMemo } from 'react'
 import { getKeymapValue, removeKeymapEntry, updateKeymapEntry } from '../utils/keymap'
 import { DEFAULT_STICK_DEADZONE_INNER, DEFAULT_STICK_DEADZONE_OUTER } from '../constants/defaults'
 import { formatVidPid } from '../utils/controllers'
+import { keyName } from '../constants/configKeys'
 
 type StickArgs = {
   configText: string
@@ -79,9 +80,9 @@ export function useStickConfig({ configText, setConfigText }: StickArgs) {
     setConfigText(prev => {
       const trimmed = value.trim().toUpperCase()
       if (!trimmed || trimmed === 'ON') {
-        return removeKeymapEntry(prev, 'ADAPTIVE_TRIGGER')
+        return removeKeymapEntry(prev, keyName.ADAPTIVE_TRIGGER)
       }
-      return updateKeymapEntry(prev, 'ADAPTIVE_TRIGGER', [trimmed === 'OFF' ? 'OFF' : trimmed])
+      return updateKeymapEntry(prev, keyName.ADAPTIVE_TRIGGER, [trimmed === 'OFF' ? 'OFF' : trimmed])
     })
   }, [setConfigText])
 
@@ -89,7 +90,7 @@ export function useStickConfig({ configText, setConfigText }: StickArgs) {
     (axis: 'X' | 'Y') => (value: string) => {
       const trimmed = value.trim()
       setConfigText(prev => {
-        const raw = getKeymapValue(prev, 'STICK_SENS')
+        const raw = getKeymapValue(prev, keyName.STICK_SENS)
         const tokens = raw ? raw.trim().split(/\s+/).filter(Boolean) : []
         const parseNum = (input: string | undefined) => {
           if (!input || !input.trim()) return null
@@ -100,29 +101,29 @@ export function useStickConfig({ configText, setConfigText }: StickArgs) {
         const currentY = parseNum(tokens[1])
         if (axis === 'X') {
           if (!trimmed) {
-            return removeKeymapEntry(prev, 'STICK_SENS')
+            return removeKeymapEntry(prev, keyName.STICK_SENS)
           }
           const nextX = parseNum(trimmed)
           if (nextX === null) return prev
           if (currentY === null) {
-            return updateKeymapEntry(prev, 'STICK_SENS', [nextX])
+            return updateKeymapEntry(prev, keyName.STICK_SENS, [nextX])
           }
-          return updateKeymapEntry(prev, 'STICK_SENS', [nextX, currentY])
+          return updateKeymapEntry(prev, keyName.STICK_SENS, [nextX, currentY])
         }
         if (currentX === null) {
           if (!trimmed) {
-            return removeKeymapEntry(prev, 'STICK_SENS')
+            return removeKeymapEntry(prev, keyName.STICK_SENS)
           }
           const inferred = parseNum(trimmed)
           if (inferred === null) return prev
-          return updateKeymapEntry(prev, 'STICK_SENS', [inferred])
+          return updateKeymapEntry(prev, keyName.STICK_SENS, [inferred])
         }
         if (!trimmed) {
-          return updateKeymapEntry(prev, 'STICK_SENS', [currentX])
+          return updateKeymapEntry(prev, keyName.STICK_SENS, [currentX])
         }
         const nextY = parseNum(trimmed)
         if (nextY === null) return prev
-        return updateKeymapEntry(prev, 'STICK_SENS', [currentX, nextY])
+        return updateKeymapEntry(prev, keyName.STICK_SENS, [currentX, nextY])
       })
     },
     [setConfigText]
@@ -132,11 +133,11 @@ export function useStickConfig({ configText, setConfigText }: StickArgs) {
     const trimmed = value.trim()
     setConfigText(prev => {
       if (!trimmed) {
-        return removeKeymapEntry(prev, 'STICK_POWER')
+        return removeKeymapEntry(prev, keyName.STICK_POWER)
       }
       const parsed = Number(trimmed)
       if (!Number.isFinite(parsed)) return prev
-      return updateKeymapEntry(prev, 'STICK_POWER', [parsed])
+      return updateKeymapEntry(prev, keyName.STICK_POWER, [parsed])
     })
   }, [setConfigText])
 
@@ -144,11 +145,11 @@ export function useStickConfig({ configText, setConfigText }: StickArgs) {
     const trimmed = value.trim()
     setConfigText(prev => {
       if (!trimmed) {
-        return removeKeymapEntry(prev, 'STICK_ACCELERATION_RATE')
+        return removeKeymapEntry(prev, keyName.STICK_ACCELERATION_RATE)
       }
       const parsed = Number(trimmed)
       if (!Number.isFinite(parsed)) return prev
-      return updateKeymapEntry(prev, 'STICK_ACCELERATION_RATE', [parsed])
+      return updateKeymapEntry(prev, keyName.STICK_ACCELERATION_RATE, [parsed])
     })
   }, [setConfigText])
 
@@ -156,11 +157,11 @@ export function useStickConfig({ configText, setConfigText }: StickArgs) {
     const trimmed = value.trim()
     setConfigText(prev => {
       if (!trimmed) {
-        return removeKeymapEntry(prev, 'STICK_ACCELERATION_CAP')
+        return removeKeymapEntry(prev, keyName.STICK_ACCELERATION_CAP)
       }
       const parsed = Number(trimmed)
       if (!Number.isFinite(parsed)) return prev
-      return updateKeymapEntry(prev, 'STICK_ACCELERATION_CAP', [parsed])
+      return updateKeymapEntry(prev, keyName.STICK_ACCELERATION_CAP, [parsed])
     })
   }, [setConfigText])
 
@@ -188,11 +189,11 @@ export function useStickConfig({ configText, setConfigText }: StickArgs) {
       return Number.isFinite(parsed) ? raw.trim() : fallback
     }
     return {
-      flickTime: formatNumber(getRaw('FLICK_TIME'), ''),
-      flickTimeExponent: formatNumber(getRaw('FLICK_TIME_EXPONENT'), ''),
-      snapMode: getRaw('FLICK_SNAP_MODE').toUpperCase(),
-      snapStrength: formatNumber(getRaw('FLICK_SNAP_STRENGTH'), ''),
-      deadzoneAngle: formatNumber(getRaw('FLICK_DEADZONE_ANGLE'), ''),
+      flickTime: formatNumber(getRaw(keyName.FLICK_TIME), ''),
+      flickTimeExponent: formatNumber(getRaw(keyName.FLICK_TIME_EXPONENT), ''),
+      snapMode: getRaw(keyName.FLICK_SNAP_MODE).toUpperCase(),
+      snapStrength: formatNumber(getRaw(keyName.FLICK_SNAP_STRENGTH), ''),
+      deadzoneAngle: formatNumber(getRaw(keyName.FLICK_DEADZONE_ANGLE), ''),
     }
   }, [configText])
 
@@ -202,7 +203,7 @@ export function useStickConfig({ configText, setConfigText }: StickArgs) {
       if (!trimmed) {
         return removeKeymapEntry(prev, key)
       }
-      if (key === 'FLICK_SNAP_MODE') {
+      if (key === keyName.FLICK_SNAP_MODE) {
         return updateKeymapEntry(prev, key, [trimmed.toUpperCase()])
       }
       const parsed = Number(trimmed)
@@ -213,17 +214,17 @@ export function useStickConfig({ configText, setConfigText }: StickArgs) {
 
   const stickFlickHandlers = useMemo(
     () => ({
-      onFlickTimeChange: (value: string) => handleFlickSettingChange('FLICK_TIME', value),
-      onFlickTimeExponentChange: (value: string) => handleFlickSettingChange('FLICK_TIME_EXPONENT', value),
-      onSnapModeChange: (value: string) => handleFlickSettingChange('FLICK_SNAP_MODE', value),
-      onSnapStrengthChange: (value: string) => handleFlickSettingChange('FLICK_SNAP_STRENGTH', value),
-      onDeadzoneAngleChange: (value: string) => handleFlickSettingChange('FLICK_DEADZONE_ANGLE', value),
+      onFlickTimeChange: (value: string) => handleFlickSettingChange(keyName.FLICK_TIME, value),
+      onFlickTimeExponentChange: (value: string) => handleFlickSettingChange(keyName.FLICK_TIME_EXPONENT, value),
+      onSnapModeChange: (value: string) => handleFlickSettingChange(keyName.FLICK_SNAP_MODE, value),
+      onSnapStrengthChange: (value: string) => handleFlickSettingChange(keyName.FLICK_SNAP_STRENGTH, value),
+      onDeadzoneAngleChange: (value: string) => handleFlickSettingChange(keyName.FLICK_DEADZONE_ANGLE, value),
     }),
     [handleFlickSettingChange]
   )
 
   const mouseRingRadiusValue = useMemo(() => {
-    const raw = getKeymapValue(configText, 'MOUSE_RING_RADIUS')
+    const raw = getKeymapValue(configText, keyName.MOUSE_RING_RADIUS)
     if (!raw) return ''
     return raw.trim()
   }, [configText])
@@ -232,49 +233,49 @@ export function useStickConfig({ configText, setConfigText }: StickArgs) {
     const trimmed = value.trim()
     setConfigText(prev => {
       if (!trimmed) {
-        return removeKeymapEntry(prev, 'MOUSE_RING_RADIUS')
+        return removeKeymapEntry(prev, keyName.MOUSE_RING_RADIUS)
       }
       const parsed = Number(trimmed)
       if (!Number.isFinite(parsed) || parsed < 0) {
         return prev
       }
-      return updateKeymapEntry(prev, 'MOUSE_RING_RADIUS', [parsed])
+      return updateKeymapEntry(prev, keyName.MOUSE_RING_RADIUS, [parsed])
     })
   }, [setConfigText])
 
-  const counterOsMouseSpeedEnabled = useMemo(() => hasFlagCommand(configText, 'COUNTER_OS_MOUSE_SPEED'), [configText])
+  const counterOsMouseSpeedEnabled = useMemo(() => hasFlagCommand(configText, keyName.COUNTER_OS_MOUSE_SPEED), [configText])
 
   const handleCounterOsMouseSpeedChange = useCallback((enabled: boolean) => {
-    setConfigText(prev => upsertFlagCommand(prev, 'COUNTER_OS_MOUSE_SPEED', enabled))
+    setConfigText(prev => upsertFlagCommand(prev, keyName.COUNTER_OS_MOUSE_SPEED, enabled))
   }, [setConfigText])
 
   const stickDeadzoneDefaults = useMemo(() => {
     return {
-      inner: getKeymapValue(configText, 'STICK_DEADZONE_INNER') ?? DEFAULT_STICK_DEADZONE_INNER,
-      outer: getKeymapValue(configText, 'STICK_DEADZONE_OUTER') ?? DEFAULT_STICK_DEADZONE_OUTER,
+      inner: getKeymapValue(configText, keyName.STICK_DEADZONE_INNER) ?? DEFAULT_STICK_DEADZONE_INNER,
+      outer: getKeymapValue(configText, keyName.STICK_DEADZONE_OUTER) ?? DEFAULT_STICK_DEADZONE_OUTER,
     }
   }, [configText])
   const leftStickDeadzone = useMemo(() => {
     return {
-      inner: getKeymapValue(configText, 'LEFT_STICK_DEADZONE_INNER') ?? '',
-      outer: getKeymapValue(configText, 'LEFT_STICK_DEADZONE_OUTER') ?? '',
+      inner: getKeymapValue(configText, keyName.LEFT_STICK_DEADZONE_INNER) ?? '',
+      outer: getKeymapValue(configText, keyName.LEFT_STICK_DEADZONE_OUTER) ?? '',
     }
   }, [configText])
   const rightStickDeadzone = useMemo(() => {
     return {
-      inner: getKeymapValue(configText, 'RIGHT_STICK_DEADZONE_INNER') ?? '',
-      outer: getKeymapValue(configText, 'RIGHT_STICK_DEADZONE_OUTER') ?? '',
+      inner: getKeymapValue(configText, keyName.RIGHT_STICK_DEADZONE_INNER) ?? '',
+      outer: getKeymapValue(configText, keyName.RIGHT_STICK_DEADZONE_OUTER) ?? '',
     }
   }, [configText])
   const stickModes = useMemo(() => {
     return {
       left: {
-        mode: getKeymapValue(configText, 'LEFT_STICK_MODE') ?? '',
-        ring: getKeymapValue(configText, 'LEFT_RING_MODE') ?? '',
+        mode: getKeymapValue(configText, keyName.LEFT_STICK_MODE) ?? '',
+        ring: getKeymapValue(configText, keyName.LEFT_RING_MODE) ?? '',
       },
       right: {
-        mode: getKeymapValue(configText, 'RIGHT_STICK_MODE') ?? '',
-        ring: getKeymapValue(configText, 'RIGHT_RING_MODE') ?? '',
+        mode: getKeymapValue(configText, keyName.RIGHT_STICK_MODE) ?? '',
+        ring: getKeymapValue(configText, keyName.RIGHT_RING_MODE) ?? '',
       },
     }
   }, [configText])
@@ -295,7 +296,7 @@ export function useStickConfig({ configText, setConfigText }: StickArgs) {
     return result
   }, [configText])
   const stickAimSettings = useMemo(() => {
-    const rawSens = getKeymapValue(configText, 'STICK_SENS')
+    const rawSens = getKeymapValue(configText, keyName.STICK_SENS)
     const tokens = rawSens ? rawSens.trim().split(/\s+/).filter(Boolean) : []
     const sensX = tokens[0] ?? ''
     const sensY = tokens[1] ?? ''
@@ -315,14 +316,14 @@ export function useStickConfig({ configText, setConfigText }: StickArgs) {
       displaySensY,
       sensXNumber,
       sensYNumber,
-      power: getKeymapValue(configText, 'STICK_POWER') ?? '',
-      accelerationRate: getKeymapValue(configText, 'STICK_ACCELERATION_RATE') ?? '',
-      accelerationCap: getKeymapValue(configText, 'STICK_ACCELERATION_CAP') ?? '',
+      power: getKeymapValue(configText, keyName.STICK_POWER) ?? '',
+      accelerationRate: getKeymapValue(configText, keyName.STICK_ACCELERATION_RATE) ?? '',
+      accelerationCap: getKeymapValue(configText, keyName.STICK_ACCELERATION_CAP) ?? '',
     }
   }, [configText])
 
   const adaptiveTriggerValue = useMemo(() => {
-    const value = getKeymapValue(configText, 'ADAPTIVE_TRIGGER')
+    const value = getKeymapValue(configText, keyName.ADAPTIVE_TRIGGER)
     if (!value) return ''
     return value.trim().toUpperCase() === 'OFF' ? 'OFF' : 'ON'
   }, [configText])
@@ -331,7 +332,7 @@ export function useStickConfig({ configText, setConfigText }: StickArgs) {
     const id = formatVidPid(vid, pid).toLowerCase()
     if (!id) return
     setConfigText(prev => {
-      const current = (getKeymapValue(prev, 'IGNORE_GYRO_DEVICES') ?? '')
+      const current = (getKeymapValue(prev, keyName.IGNORE_GYRO_DEVICES) ?? '')
         .split(/\s+/)
         .map(token => token.trim())
         .filter(Boolean)
@@ -344,14 +345,14 @@ export function useStickConfig({ configText, setConfigText }: StickArgs) {
       }
       const nextList = Array.from(set)
       if (nextList.length === 0) {
-        return removeKeymapEntry(prev, 'IGNORE_GYRO_DEVICES')
+        return removeKeymapEntry(prev, keyName.IGNORE_GYRO_DEVICES)
       }
-      return updateKeymapEntry(prev, 'IGNORE_GYRO_DEVICES', nextList)
+      return updateKeymapEntry(prev, keyName.IGNORE_GYRO_DEVICES, nextList)
     })
   }, [setConfigText])
 
   const scrollSensValue = useMemo(() => {
-    const raw = getKeymapValue(configText, 'SCROLL_SENS')
+    const raw = getKeymapValue(configText, keyName.SCROLL_SENS)
     if (!raw) return ''
     return raw.trim()
   }, [configText])
@@ -360,13 +361,13 @@ export function useStickConfig({ configText, setConfigText }: StickArgs) {
     const trimmed = value.trim()
     setConfigText(prev => {
       if (!trimmed) {
-        return removeKeymapEntry(prev, 'SCROLL_SENS')
+        return removeKeymapEntry(prev, keyName.SCROLL_SENS)
       }
       const parsed = Number(trimmed)
       if (!Number.isFinite(parsed) || parsed < 0) {
         return prev
       }
-      return updateKeymapEntry(prev, 'SCROLL_SENS', [parsed])
+      return updateKeymapEntry(prev, keyName.SCROLL_SENS, [parsed])
     })
   }, [setConfigText])
 

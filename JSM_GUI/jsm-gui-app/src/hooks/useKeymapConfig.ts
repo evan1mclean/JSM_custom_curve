@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { getKeymapValue } from '../utils/keymap'
+import { keyName } from '../constants/configKeys'
 import { useSensitivityConfig } from './useSensitivityConfig'
 import { useTouchpadConfig } from './useTouchpadConfig'
 import { useStickConfig } from './useStickConfig'
@@ -15,7 +16,7 @@ export function useKeymapConfig() {
   const bindingsConfig = useBindingsConfig({ configText, setConfigText })
 
   const ignoredGyroDevices = useMemo(() => {
-    const raw = getKeymapValue(configText, 'IGNORE_GYRO_DEVICES') ?? ''
+    const raw = getKeymapValue(configText, keyName.IGNORE_GYRO_DEVICES) ?? ''
     return raw
       .split(/\s+/)
       .map(token => token.trim())

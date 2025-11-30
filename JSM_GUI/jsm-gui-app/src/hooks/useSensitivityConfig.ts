@@ -1,20 +1,21 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { getKeymapValue, parseSensitivityValues, removeKeymapEntry, updateKeymapEntry } from '../utils/keymap'
 import { DEFAULT_HOLD_PRESS_TIME, DEFAULT_WINDOW_SECONDS } from '../constants/defaults'
+import { keyName } from '../constants/configKeys'
 
 const SENS_MODE_KEYS = [
-  'MIN_GYRO_THRESHOLD',
-  'MAX_GYRO_THRESHOLD',
-  'MIN_GYRO_SENS',
-  'MAX_GYRO_SENS',
-  'GYRO_SENS',
-  'ACCEL_CURVE',
-  'ACCEL_NATURAL_VHALF',
-  'ACCEL_POWER_VREF',
-  'ACCEL_POWER_EXPONENT',
-  'ACCEL_SIGMOID_MID',
-  'ACCEL_SIGMOID_WIDTH',
-  'ACCEL_JUMP_TAU',
+  keyName.MIN_GYRO_THRESHOLD,
+  keyName.MAX_GYRO_THRESHOLD,
+  keyName.MIN_GYRO_SENS,
+  keyName.MAX_GYRO_SENS,
+  keyName.GYRO_SENS,
+  keyName.ACCEL_CURVE,
+  keyName.ACCEL_NATURAL_VHALF,
+  keyName.ACCEL_POWER_VREF,
+  keyName.ACCEL_POWER_EXPONENT,
+  keyName.ACCEL_SIGMOID_MID,
+  keyName.ACCEL_SIGMOID_WIDTH,
+  keyName.ACCEL_JUMP_TAU,
 ] as const
 
 const prefixedKey = (key: string, prefix?: string) => (prefix ? `${prefix}${key}` : key)
@@ -28,11 +29,24 @@ export function useSensitivityConfig({ configText, setConfigText }: SensitivityA
   const [sensitivityView, setSensitivityView] = useState<'base' | 'modeshift'>('base')
 
   const sensitivity = useMemo(() => parseSensitivityValues(configText), [configText])
+  const SENS_MODE_REGEX = useMemo(
+    () =>
+      new RegExp(
+        `^\\s*([A-Z0-9+\\-_]+)\\s*,\\s*(${[
+          keyName.GYRO_SENS,
+          keyName.MIN_GYRO_SENS,
+          keyName.MAX_GYRO_SENS,
+          keyName.MIN_GYRO_THRESHOLD,
+          keyName.MAX_GYRO_THRESHOLD,
+        ].join('|')})\\s*=`,
+        'im'
+      ),
+    []
+  )
   const sensitivityModeshiftButton = useMemo(() => {
-    const regex = /^\s*([A-Z0-9+\-_]+)\s*,\s*(GYRO_SENS|MIN_GYRO_SENS|MAX_GYRO_SENS|MIN_GYRO_THRESHOLD|MAX_GYRO_THRESHOLD)\s*=/im
-    const match = configText.match(regex)
+    const match = configText.match(SENS_MODE_REGEX)
     return match ? match[1].toUpperCase() : null
-  }, [configText])
+  }, [SENS_MODE_REGEX, configText])
 
   useEffect(() => {
     if (!sensitivityModeshiftButton && sensitivityView === 'modeshift') {
@@ -72,49 +86,49 @@ export function useSensitivityConfig({ configText, setConfigText }: SensitivityA
         if (nextButton) {
           const base = parseSensitivityValues(next)
           if (base.gyroSensX !== undefined) {
-            next = updateKeymapEntry(next, `${nextButton},GYRO_SENS`, [
+            next = updateKeymapEntry(next, `${nextButton},${keyName.GYRO_SENS}`, [
               base.gyroSensX,
               base.gyroSensY ?? base.gyroSensX,
             ])
           } else {
             if (base.minSensX !== undefined || base.minSensY !== undefined) {
-              next = updateKeymapEntry(next, `${nextButton},MIN_GYRO_SENS`, [
+              next = updateKeymapEntry(next, `${nextButton},${keyName.MIN_GYRO_SENS}`, [
                 base.minSensX ?? 0,
                 base.minSensY ?? base.minSensX ?? 0,
               ])
             }
             if (base.maxSensX !== undefined || base.maxSensY !== undefined) {
-              next = updateKeymapEntry(next, `${nextButton},MAX_GYRO_SENS`, [
+              next = updateKeymapEntry(next, `${nextButton},${keyName.MAX_GYRO_SENS}`, [
                 base.maxSensX ?? 0,
                 base.maxSensY ?? base.maxSensX ?? 0,
               ])
             }
             if (base.minThreshold !== undefined) {
-              next = updateKeymapEntry(next, `${nextButton},MIN_GYRO_THRESHOLD`, [base.minThreshold])
+              next = updateKeymapEntry(next, `${nextButton},${keyName.MIN_GYRO_THRESHOLD}`, [base.minThreshold])
             }
             if (base.maxThreshold !== undefined) {
-              next = updateKeymapEntry(next, `${nextButton},MAX_GYRO_THRESHOLD`, [base.maxThreshold])
+              next = updateKeymapEntry(next, `${nextButton},${keyName.MAX_GYRO_THRESHOLD}`, [base.maxThreshold])
             }
             if (base.accelCurve) {
-              next = updateKeymapEntry(next, `${nextButton},ACCEL_CURVE`, [base.accelCurve])
+              next = updateKeymapEntry(next, `${nextButton},${keyName.ACCEL_CURVE}`, [base.accelCurve])
             }
             if (base.naturalVHalf !== undefined) {
-              next = updateKeymapEntry(next, `${nextButton},ACCEL_NATURAL_VHALF`, [base.naturalVHalf])
+              next = updateKeymapEntry(next, `${nextButton},${keyName.ACCEL_NATURAL_VHALF}`, [base.naturalVHalf])
             }
             if (base.powerVRef !== undefined) {
-              next = updateKeymapEntry(next, `${nextButton},ACCEL_POWER_VREF`, [base.powerVRef])
+              next = updateKeymapEntry(next, `${nextButton},${keyName.ACCEL_POWER_VREF}`, [base.powerVRef])
             }
             if (base.powerExponent !== undefined) {
-              next = updateKeymapEntry(next, `${nextButton},ACCEL_POWER_EXPONENT`, [base.powerExponent])
+              next = updateKeymapEntry(next, `${nextButton},${keyName.ACCEL_POWER_EXPONENT}`, [base.powerExponent])
             }
             if (base.sigmoidMid !== undefined) {
-              next = updateKeymapEntry(next, `${nextButton},ACCEL_SIGMOID_MID`, [base.sigmoidMid])
+              next = updateKeymapEntry(next, `${nextButton},${keyName.ACCEL_SIGMOID_MID}`, [base.sigmoidMid])
             }
             if (base.sigmoidWidth !== undefined) {
-              next = updateKeymapEntry(next, `${nextButton},ACCEL_SIGMOID_WIDTH`, [base.sigmoidWidth])
+              next = updateKeymapEntry(next, `${nextButton},${keyName.ACCEL_SIGMOID_WIDTH}`, [base.sigmoidWidth])
             }
             if (base.jumpTau !== undefined) {
-              next = updateKeymapEntry(next, `${nextButton},ACCEL_JUMP_TAU`, [base.jumpTau])
+              next = updateKeymapEntry(next, `${nextButton},${keyName.ACCEL_JUMP_TAU}`, [base.jumpTau])
             }
           }
         }
@@ -130,7 +144,7 @@ export function useSensitivityConfig({ configText, setConfigText }: SensitivityA
     [sensitivityModeshiftButton, setConfigText]
   )
 
-  const handleThresholdChange = (key: 'MIN_GYRO_THRESHOLD' | 'MAX_GYRO_THRESHOLD') => (value: string) => {
+  const handleThresholdChange = (key: typeof keyName.MIN_GYRO_THRESHOLD | typeof keyName.MAX_GYRO_THRESHOLD) => (value: string) => {
     if (value === '') {
       setConfigText(prev => removeKeymapEntry(prev, resolveSensitivityKey(key)))
       return
@@ -150,13 +164,13 @@ export function useSensitivityConfig({ configText, setConfigText }: SensitivityA
     setConfigText(prev => updateKeymapEntry(prev, key, [next]))
   }
 
-  const handleCutoffSpeedChange = makeScalarHandler('GYRO_CUTOFF_SPEED')
-  const handleCutoffRecoveryChange = makeScalarHandler('GYRO_CUTOFF_RECOVERY')
-  const handleSmoothTimeChange = makeScalarHandler('GYRO_SMOOTH_TIME')
-  const handleSmoothThresholdChange = makeScalarHandler('GYRO_SMOOTH_THRESHOLD')
-  const handleTickTimeChange = makeScalarHandler('TICK_TIME')
-  const handleHoldPressTimeChange = makeScalarHandler('HOLD_PRESS_TIME')
-  const makeWindowHandler = (key: 'DBL_PRESS_WINDOW' | 'SIM_PRESS_WINDOW') => (value: string) => {
+  const handleCutoffSpeedChange = makeScalarHandler(keyName.GYRO_CUTOFF_SPEED)
+  const handleCutoffRecoveryChange = makeScalarHandler(keyName.GYRO_CUTOFF_RECOVERY)
+  const handleSmoothTimeChange = makeScalarHandler(keyName.GYRO_SMOOTH_TIME)
+  const handleSmoothThresholdChange = makeScalarHandler(keyName.GYRO_SMOOTH_THRESHOLD)
+  const handleTickTimeChange = makeScalarHandler(keyName.TICK_TIME)
+  const handleHoldPressTimeChange = makeScalarHandler(keyName.HOLD_PRESS_TIME)
+  const makeWindowHandler = (key: typeof keyName.DBL_PRESS_WINDOW | typeof keyName.SIM_PRESS_WINDOW) => (value: string) => {
     if (value === '') {
       setConfigText(prev => removeKeymapEntry(prev, key))
       return
@@ -166,18 +180,18 @@ export function useSensitivityConfig({ configText, setConfigText }: SensitivityA
     const millis = Math.max(0, Math.round(seconds * 1000))
     setConfigText(prev => updateKeymapEntry(prev, key, [millis]))
   }
-  const handleDoublePressWindowChange = makeWindowHandler('DBL_PRESS_WINDOW')
-  const handleSimPressWindowChange = makeWindowHandler('SIM_PRESS_WINDOW')
+  const handleDoublePressWindowChange = makeWindowHandler(keyName.DBL_PRESS_WINDOW)
+  const handleSimPressWindowChange = makeWindowHandler(keyName.SIM_PRESS_WINDOW)
 
   const handleTriggerThresholdChange = useCallback((value: string) => {
     if (value === '') {
-      setConfigText(prev => removeKeymapEntry(prev, 'TRIGGER_THRESHOLD'))
+      setConfigText(prev => removeKeymapEntry(prev, keyName.TRIGGER_THRESHOLD))
       return
     }
     const next = parseFloat(value)
     if (Number.isNaN(next)) return
     const clamped = Math.min(1, Math.max(0, next))
-    setConfigText(prev => updateKeymapEntry(prev, 'TRIGGER_THRESHOLD', [clamped]))
+    setConfigText(prev => updateKeymapEntry(prev, keyName.TRIGGER_THRESHOLD, [clamped]))
   }, [setConfigText])
 
   const makeStringHandler = (key: string) => (value: string) => {
@@ -188,23 +202,23 @@ export function useSensitivityConfig({ configText, setConfigText }: SensitivityA
     setConfigText(prev => updateKeymapEntry(prev, key, [value]))
   }
 
-  const handleGyroSpaceChange = makeStringHandler('GYRO_SPACE')
+  const handleGyroSpaceChange = makeStringHandler(keyName.GYRO_SPACE)
   const handleGyroAxisXChange = (value: string) => {
     if (!value) {
-      setConfigText(prev => removeKeymapEntry(prev, 'GYRO_AXIS_X'))
+      setConfigText(prev => removeKeymapEntry(prev, keyName.GYRO_AXIS_X))
       return
     }
-    setConfigText(prev => updateKeymapEntry(prev, 'GYRO_AXIS_X', [value]))
+    setConfigText(prev => updateKeymapEntry(prev, keyName.GYRO_AXIS_X, [value]))
   }
   const handleGyroAxisYChange = (value: string) => {
     if (!value) {
-      setConfigText(prev => removeKeymapEntry(prev, 'GYRO_AXIS_Y'))
+      setConfigText(prev => removeKeymapEntry(prev, keyName.GYRO_AXIS_Y))
       return
     }
-    setConfigText(prev => updateKeymapEntry(prev, 'GYRO_AXIS_Y', [value]))
+    setConfigText(prev => updateKeymapEntry(prev, keyName.GYRO_AXIS_Y, [value]))
   }
 
-  const handleDualSensChange = (key: 'MIN_GYRO_SENS' | 'MAX_GYRO_SENS', index: 0 | 1) => (value: string) => {
+  const handleDualSensChange = (key: typeof keyName.MIN_GYRO_SENS | typeof keyName.MAX_GYRO_SENS, index: 0 | 1) => (value: string) => {
     if (value === '') {
       setConfigText(prev => removeKeymapEntry(prev, resolveSensitivityKey(key)))
       return
@@ -214,7 +228,7 @@ export function useSensitivityConfig({ configText, setConfigText }: SensitivityA
     setConfigText(prev => {
       const parsed = parseSensitivityValues(prev, activeSensitivityPrefix ? { prefix: activeSensitivityPrefix } : undefined)
       const current =
-        key === 'MIN_GYRO_SENS'
+        key === keyName.MIN_GYRO_SENS
           ? [parsed.minSensX ?? 0, parsed.minSensY ?? parsed.minSensX ?? 0]
           : [parsed.maxSensX ?? 0, parsed.maxSensY ?? parsed.maxSensX ?? 0]
       current[index] = next
@@ -224,7 +238,7 @@ export function useSensitivityConfig({ configText, setConfigText }: SensitivityA
 
   const handleStaticSensChange = (index: 0 | 1) => (value: string) => {
     if (value === '') {
-      setConfigText(prev => removeKeymapEntry(prev, resolveSensitivityKey('GYRO_SENS')))
+      setConfigText(prev => removeKeymapEntry(prev, resolveSensitivityKey(keyName.GYRO_SENS)))
       return
     }
     const next = parseFloat(value)
@@ -242,28 +256,28 @@ export function useSensitivityConfig({ configText, setConfigText }: SensitivityA
           1,
       ]
       current[index] = next
-      return updateKeymapEntry(prev, resolveSensitivityKey('GYRO_SENS'), current)
+      return updateKeymapEntry(prev, resolveSensitivityKey(keyName.GYRO_SENS), current)
     })
   }
 
   const handleInGameSensChange = (value: string) => {
     if (value === '') {
-      setConfigText(prev => removeKeymapEntry(prev, 'IN_GAME_SENS'))
+      setConfigText(prev => removeKeymapEntry(prev, keyName.IN_GAME_SENS))
       return
     }
     const next = parseFloat(value)
     if (Number.isNaN(next)) return
-    setConfigText(prev => updateKeymapEntry(prev, 'IN_GAME_SENS', [next]))
+    setConfigText(prev => updateKeymapEntry(prev, keyName.IN_GAME_SENS, [next]))
   }
 
   const handleRealWorldCalibrationChange = (value: string) => {
     if (value === '') {
-      setConfigText(prev => removeKeymapEntry(prev, 'REAL_WORLD_CALIBRATION'))
+      setConfigText(prev => removeKeymapEntry(prev, keyName.REAL_WORLD_CALIBRATION))
       return
     }
     const next = parseFloat(value)
     if (Number.isNaN(next)) return
-    setConfigText(prev => updateKeymapEntry(prev, 'REAL_WORLD_CALIBRATION', [next]))
+    setConfigText(prev => updateKeymapEntry(prev, keyName.REAL_WORLD_CALIBRATION, [next]))
   }
 
   const switchToStaticMode = (prefix?: string) => {
@@ -274,19 +288,19 @@ export function useSensitivityConfig({ configText, setConfigText }: SensitivityA
       }
       const defaultX = values.minSensX ?? values.maxSensX ?? 1
       const defaultY = values.minSensY ?? values.minSensX ?? values.maxSensY ?? values.maxSensX ?? defaultX
-      let next = updateKeymapEntry(prev, prefixedKey('GYRO_SENS', prefix), [defaultX, defaultY])
+      let next = updateKeymapEntry(prev, prefixedKey(keyName.GYRO_SENS, prefix), [defaultX, defaultY])
       ;[
-        'MIN_GYRO_SENS',
-        'MAX_GYRO_SENS',
-        'MIN_GYRO_THRESHOLD',
-        'MAX_GYRO_THRESHOLD',
-        'ACCEL_CURVE',
-        'ACCEL_NATURAL_VHALF',
-        'ACCEL_POWER_VREF',
-        'ACCEL_POWER_EXPONENT',
-        'ACCEL_SIGMOID_MID',
-        'ACCEL_SIGMOID_WIDTH',
-        'ACCEL_JUMP_TAU',
+        keyName.MIN_GYRO_SENS,
+        keyName.MAX_GYRO_SENS,
+        keyName.MIN_GYRO_THRESHOLD,
+        keyName.MAX_GYRO_THRESHOLD,
+        keyName.ACCEL_CURVE,
+        keyName.ACCEL_NATURAL_VHALF,
+        keyName.ACCEL_POWER_VREF,
+        keyName.ACCEL_POWER_EXPONENT,
+        keyName.ACCEL_SIGMOID_MID,
+        keyName.ACCEL_SIGMOID_WIDTH,
+        keyName.ACCEL_JUMP_TAU,
       ].forEach(key => {
         next = removeKeymapEntry(next, prefixedKey(key, prefix))
       })
@@ -300,46 +314,46 @@ export function useSensitivityConfig({ configText, setConfigText }: SensitivityA
       setConfigText(prev => {
         let next = prev
         if (!upper || upper === 'LINEAR') {
-          next = removeKeymapEntry(next, resolveSensitivityKey('ACCEL_CURVE'))
-          next = removeKeymapEntry(next, resolveSensitivityKey('ACCEL_NATURAL_VHALF'))
-          next = removeKeymapEntry(next, resolveSensitivityKey('ACCEL_POWER_VREF'))
-          next = removeKeymapEntry(next, resolveSensitivityKey('ACCEL_POWER_EXPONENT'))
-          next = removeKeymapEntry(next, resolveSensitivityKey('ACCEL_SIGMOID_MID'))
-          next = removeKeymapEntry(next, resolveSensitivityKey('ACCEL_SIGMOID_WIDTH'))
-          next = removeKeymapEntry(next, resolveSensitivityKey('ACCEL_JUMP_TAU'))
+          next = removeKeymapEntry(next, resolveSensitivityKey(keyName.ACCEL_CURVE))
+          next = removeKeymapEntry(next, resolveSensitivityKey(keyName.ACCEL_NATURAL_VHALF))
+          next = removeKeymapEntry(next, resolveSensitivityKey(keyName.ACCEL_POWER_VREF))
+          next = removeKeymapEntry(next, resolveSensitivityKey(keyName.ACCEL_POWER_EXPONENT))
+          next = removeKeymapEntry(next, resolveSensitivityKey(keyName.ACCEL_SIGMOID_MID))
+          next = removeKeymapEntry(next, resolveSensitivityKey(keyName.ACCEL_SIGMOID_WIDTH))
+          next = removeKeymapEntry(next, resolveSensitivityKey(keyName.ACCEL_JUMP_TAU))
           return next
         }
         if (upper === 'NATURAL' || upper === 'POWER' || upper === 'QUADRATIC' || upper === 'SIGMOID' || upper === 'JUMP') {
-          next = updateKeymapEntry(next, resolveSensitivityKey('ACCEL_CURVE'), [upper])
+          next = updateKeymapEntry(next, resolveSensitivityKey(keyName.ACCEL_CURVE), [upper])
           if (upper === 'NATURAL') {
-            next = removeKeymapEntry(next, resolveSensitivityKey('ACCEL_POWER_VREF'))
-            next = removeKeymapEntry(next, resolveSensitivityKey('ACCEL_POWER_EXPONENT'))
-            next = removeKeymapEntry(next, resolveSensitivityKey('ACCEL_SIGMOID_MID'))
-            next = removeKeymapEntry(next, resolveSensitivityKey('ACCEL_SIGMOID_WIDTH'))
-            next = removeKeymapEntry(next, resolveSensitivityKey('ACCEL_JUMP_TAU'))
+            next = removeKeymapEntry(next, resolveSensitivityKey(keyName.ACCEL_POWER_VREF))
+            next = removeKeymapEntry(next, resolveSensitivityKey(keyName.ACCEL_POWER_EXPONENT))
+            next = removeKeymapEntry(next, resolveSensitivityKey(keyName.ACCEL_SIGMOID_MID))
+            next = removeKeymapEntry(next, resolveSensitivityKey(keyName.ACCEL_SIGMOID_WIDTH))
+            next = removeKeymapEntry(next, resolveSensitivityKey(keyName.ACCEL_JUMP_TAU))
           } else if (upper === 'POWER') {
-            next = removeKeymapEntry(next, resolveSensitivityKey('ACCEL_NATURAL_VHALF'))
-            next = removeKeymapEntry(next, resolveSensitivityKey('ACCEL_SIGMOID_MID'))
-            next = removeKeymapEntry(next, resolveSensitivityKey('ACCEL_SIGMOID_WIDTH'))
-            next = removeKeymapEntry(next, resolveSensitivityKey('ACCEL_JUMP_TAU'))
+            next = removeKeymapEntry(next, resolveSensitivityKey(keyName.ACCEL_NATURAL_VHALF))
+            next = removeKeymapEntry(next, resolveSensitivityKey(keyName.ACCEL_SIGMOID_MID))
+            next = removeKeymapEntry(next, resolveSensitivityKey(keyName.ACCEL_SIGMOID_WIDTH))
+            next = removeKeymapEntry(next, resolveSensitivityKey(keyName.ACCEL_JUMP_TAU))
           } else if (upper === 'SIGMOID') {
-            next = removeKeymapEntry(next, resolveSensitivityKey('ACCEL_NATURAL_VHALF'))
-            next = removeKeymapEntry(next, resolveSensitivityKey('ACCEL_POWER_VREF'))
-            next = removeKeymapEntry(next, resolveSensitivityKey('ACCEL_POWER_EXPONENT'))
-            next = removeKeymapEntry(next, resolveSensitivityKey('ACCEL_JUMP_TAU'))
+            next = removeKeymapEntry(next, resolveSensitivityKey(keyName.ACCEL_NATURAL_VHALF))
+            next = removeKeymapEntry(next, resolveSensitivityKey(keyName.ACCEL_POWER_VREF))
+            next = removeKeymapEntry(next, resolveSensitivityKey(keyName.ACCEL_POWER_EXPONENT))
+            next = removeKeymapEntry(next, resolveSensitivityKey(keyName.ACCEL_JUMP_TAU))
           } else if (upper === 'JUMP') {
-            next = removeKeymapEntry(next, resolveSensitivityKey('ACCEL_NATURAL_VHALF'))
-            next = removeKeymapEntry(next, resolveSensitivityKey('ACCEL_POWER_VREF'))
-            next = removeKeymapEntry(next, resolveSensitivityKey('ACCEL_POWER_EXPONENT'))
-            next = removeKeymapEntry(next, resolveSensitivityKey('ACCEL_SIGMOID_MID'))
-            next = removeKeymapEntry(next, resolveSensitivityKey('ACCEL_SIGMOID_WIDTH'))
+            next = removeKeymapEntry(next, resolveSensitivityKey(keyName.ACCEL_NATURAL_VHALF))
+            next = removeKeymapEntry(next, resolveSensitivityKey(keyName.ACCEL_POWER_VREF))
+            next = removeKeymapEntry(next, resolveSensitivityKey(keyName.ACCEL_POWER_EXPONENT))
+            next = removeKeymapEntry(next, resolveSensitivityKey(keyName.ACCEL_SIGMOID_MID))
+            next = removeKeymapEntry(next, resolveSensitivityKey(keyName.ACCEL_SIGMOID_WIDTH))
           } else {
-            next = removeKeymapEntry(next, resolveSensitivityKey('ACCEL_NATURAL_VHALF'))
-            next = removeKeymapEntry(next, resolveSensitivityKey('ACCEL_POWER_VREF'))
-            next = removeKeymapEntry(next, resolveSensitivityKey('ACCEL_POWER_EXPONENT'))
-            next = removeKeymapEntry(next, resolveSensitivityKey('ACCEL_SIGMOID_MID'))
-            next = removeKeymapEntry(next, resolveSensitivityKey('ACCEL_SIGMOID_WIDTH'))
-            next = removeKeymapEntry(next, resolveSensitivityKey('ACCEL_JUMP_TAU'))
+            next = removeKeymapEntry(next, resolveSensitivityKey(keyName.ACCEL_NATURAL_VHALF))
+            next = removeKeymapEntry(next, resolveSensitivityKey(keyName.ACCEL_POWER_VREF))
+            next = removeKeymapEntry(next, resolveSensitivityKey(keyName.ACCEL_POWER_EXPONENT))
+            next = removeKeymapEntry(next, resolveSensitivityKey(keyName.ACCEL_SIGMOID_MID))
+            next = removeKeymapEntry(next, resolveSensitivityKey(keyName.ACCEL_SIGMOID_WIDTH))
+            next = removeKeymapEntry(next, resolveSensitivityKey(keyName.ACCEL_JUMP_TAU))
           }
         }
         return next
@@ -351,16 +365,16 @@ export function useSensitivityConfig({ configText, setConfigText }: SensitivityA
   const handleNaturalVHalfChange = useCallback(
     (value: string) => {
       if (value === '') {
-        setConfigText(prev => removeKeymapEntry(prev, resolveSensitivityKey('ACCEL_NATURAL_VHALF')))
+        setConfigText(prev => removeKeymapEntry(prev, resolveSensitivityKey(keyName.ACCEL_NATURAL_VHALF)))
         return
       }
       const parsed = parseFloat(value)
       if (!Number.isFinite(parsed) || parsed <= 0) return
       setConfigText(prev => {
-        let next = updateKeymapEntry(prev, resolveSensitivityKey('ACCEL_NATURAL_VHALF'), [parsed])
-        next = updateKeymapEntry(next, resolveSensitivityKey('ACCEL_CURVE'), ['NATURAL'])
-        next = removeKeymapEntry(next, resolveSensitivityKey('ACCEL_POWER_VREF'))
-        next = removeKeymapEntry(next, resolveSensitivityKey('ACCEL_POWER_EXPONENT'))
+        let next = updateKeymapEntry(prev, resolveSensitivityKey(keyName.ACCEL_NATURAL_VHALF), [parsed])
+        next = updateKeymapEntry(next, resolveSensitivityKey(keyName.ACCEL_CURVE), ['NATURAL'])
+        next = removeKeymapEntry(next, resolveSensitivityKey(keyName.ACCEL_POWER_VREF))
+        next = removeKeymapEntry(next, resolveSensitivityKey(keyName.ACCEL_POWER_EXPONENT))
         return next
       })
     },
@@ -370,15 +384,15 @@ export function useSensitivityConfig({ configText, setConfigText }: SensitivityA
   const handlePowerVRefChange = useCallback(
     (value: string) => {
       if (value === '') {
-        setConfigText(prev => removeKeymapEntry(prev, resolveSensitivityKey('ACCEL_POWER_VREF')))
+        setConfigText(prev => removeKeymapEntry(prev, resolveSensitivityKey(keyName.ACCEL_POWER_VREF)))
         return
       }
       const parsed = parseFloat(value)
       if (!Number.isFinite(parsed) || parsed <= 0) return
       setConfigText(prev => {
-        let next = updateKeymapEntry(prev, resolveSensitivityKey('ACCEL_POWER_VREF'), [parsed])
-        next = updateKeymapEntry(next, resolveSensitivityKey('ACCEL_CURVE'), ['POWER'])
-        next = removeKeymapEntry(next, resolveSensitivityKey('ACCEL_NATURAL_VHALF'))
+        let next = updateKeymapEntry(prev, resolveSensitivityKey(keyName.ACCEL_POWER_VREF), [parsed])
+        next = updateKeymapEntry(next, resolveSensitivityKey(keyName.ACCEL_CURVE), ['POWER'])
+        next = removeKeymapEntry(next, resolveSensitivityKey(keyName.ACCEL_NATURAL_VHALF))
         return next
       })
     },
@@ -388,15 +402,15 @@ export function useSensitivityConfig({ configText, setConfigText }: SensitivityA
   const handlePowerExponentChange = useCallback(
     (value: string) => {
       if (value === '') {
-        setConfigText(prev => removeKeymapEntry(prev, resolveSensitivityKey('ACCEL_POWER_EXPONENT')))
+        setConfigText(prev => removeKeymapEntry(prev, resolveSensitivityKey(keyName.ACCEL_POWER_EXPONENT)))
         return
       }
       const parsed = parseFloat(value)
       if (!Number.isFinite(parsed) || parsed <= 0) return
       setConfigText(prev => {
-        let next = updateKeymapEntry(prev, resolveSensitivityKey('ACCEL_POWER_EXPONENT'), [parsed])
-        next = updateKeymapEntry(next, resolveSensitivityKey('ACCEL_CURVE'), ['POWER'])
-        next = removeKeymapEntry(next, resolveSensitivityKey('ACCEL_NATURAL_VHALF'))
+        let next = updateKeymapEntry(prev, resolveSensitivityKey(keyName.ACCEL_POWER_EXPONENT), [parsed])
+        next = updateKeymapEntry(next, resolveSensitivityKey(keyName.ACCEL_CURVE), ['POWER'])
+        next = removeKeymapEntry(next, resolveSensitivityKey(keyName.ACCEL_NATURAL_VHALF))
         return next
       })
     },
@@ -406,19 +420,19 @@ export function useSensitivityConfig({ configText, setConfigText }: SensitivityA
   const handleJumpTauChange = useCallback(
     (value: string) => {
       if (value === '') {
-        setConfigText(prev => removeKeymapEntry(prev, resolveSensitivityKey('ACCEL_JUMP_TAU')))
+        setConfigText(prev => removeKeymapEntry(prev, resolveSensitivityKey(keyName.ACCEL_JUMP_TAU)))
         return
       }
       const parsed = parseFloat(value)
       if (!Number.isFinite(parsed) || parsed < 0) return
       setConfigText(prev => {
-        let next = updateKeymapEntry(prev, resolveSensitivityKey('ACCEL_JUMP_TAU'), [parsed])
-        next = updateKeymapEntry(next, resolveSensitivityKey('ACCEL_CURVE'), ['JUMP'])
-        next = removeKeymapEntry(next, resolveSensitivityKey('ACCEL_NATURAL_VHALF'))
-        next = removeKeymapEntry(next, resolveSensitivityKey('ACCEL_POWER_VREF'))
-        next = removeKeymapEntry(next, resolveSensitivityKey('ACCEL_POWER_EXPONENT'))
-        next = removeKeymapEntry(next, resolveSensitivityKey('ACCEL_SIGMOID_MID'))
-        next = removeKeymapEntry(next, resolveSensitivityKey('ACCEL_SIGMOID_WIDTH'))
+        let next = updateKeymapEntry(prev, resolveSensitivityKey(keyName.ACCEL_JUMP_TAU), [parsed])
+        next = updateKeymapEntry(next, resolveSensitivityKey(keyName.ACCEL_CURVE), ['JUMP'])
+        next = removeKeymapEntry(next, resolveSensitivityKey(keyName.ACCEL_NATURAL_VHALF))
+        next = removeKeymapEntry(next, resolveSensitivityKey(keyName.ACCEL_POWER_VREF))
+        next = removeKeymapEntry(next, resolveSensitivityKey(keyName.ACCEL_POWER_EXPONENT))
+        next = removeKeymapEntry(next, resolveSensitivityKey(keyName.ACCEL_SIGMOID_MID))
+        next = removeKeymapEntry(next, resolveSensitivityKey(keyName.ACCEL_SIGMOID_WIDTH))
         return next
       })
     },
@@ -428,17 +442,17 @@ export function useSensitivityConfig({ configText, setConfigText }: SensitivityA
   const handleSigmoidMidChange = useCallback(
     (value: string) => {
       if (value === '') {
-        setConfigText(prev => removeKeymapEntry(prev, resolveSensitivityKey('ACCEL_SIGMOID_MID')))
+        setConfigText(prev => removeKeymapEntry(prev, resolveSensitivityKey(keyName.ACCEL_SIGMOID_MID)))
         return
       }
       const parsed = parseFloat(value)
       if (!Number.isFinite(parsed)) return
       setConfigText(prev => {
-        let next = updateKeymapEntry(prev, resolveSensitivityKey('ACCEL_SIGMOID_MID'), [parsed])
-        next = updateKeymapEntry(next, resolveSensitivityKey('ACCEL_CURVE'), ['SIGMOID'])
-        next = removeKeymapEntry(next, resolveSensitivityKey('ACCEL_NATURAL_VHALF'))
-        next = removeKeymapEntry(next, resolveSensitivityKey('ACCEL_POWER_VREF'))
-        next = removeKeymapEntry(next, resolveSensitivityKey('ACCEL_POWER_EXPONENT'))
+        let next = updateKeymapEntry(prev, resolveSensitivityKey(keyName.ACCEL_SIGMOID_MID), [parsed])
+        next = updateKeymapEntry(next, resolveSensitivityKey(keyName.ACCEL_CURVE), ['SIGMOID'])
+        next = removeKeymapEntry(next, resolveSensitivityKey(keyName.ACCEL_NATURAL_VHALF))
+        next = removeKeymapEntry(next, resolveSensitivityKey(keyName.ACCEL_POWER_VREF))
+        next = removeKeymapEntry(next, resolveSensitivityKey(keyName.ACCEL_POWER_EXPONENT))
         return next
       })
     },
@@ -448,17 +462,17 @@ export function useSensitivityConfig({ configText, setConfigText }: SensitivityA
   const handleSigmoidWidthChange = useCallback(
     (value: string) => {
       if (value === '') {
-        setConfigText(prev => removeKeymapEntry(prev, resolveSensitivityKey('ACCEL_SIGMOID_WIDTH')))
+        setConfigText(prev => removeKeymapEntry(prev, resolveSensitivityKey(keyName.ACCEL_SIGMOID_WIDTH)))
         return
       }
       const parsed = parseFloat(value)
       if (!Number.isFinite(parsed) || parsed <= 0) return
       setConfigText(prev => {
-        let next = updateKeymapEntry(prev, resolveSensitivityKey('ACCEL_SIGMOID_WIDTH'), [parsed])
-        next = updateKeymapEntry(next, resolveSensitivityKey('ACCEL_CURVE'), ['SIGMOID'])
-        next = removeKeymapEntry(next, resolveSensitivityKey('ACCEL_NATURAL_VHALF'))
-        next = removeKeymapEntry(next, resolveSensitivityKey('ACCEL_POWER_VREF'))
-        next = removeKeymapEntry(next, resolveSensitivityKey('ACCEL_POWER_EXPONENT'))
+        let next = updateKeymapEntry(prev, resolveSensitivityKey(keyName.ACCEL_SIGMOID_WIDTH), [parsed])
+        next = updateKeymapEntry(next, resolveSensitivityKey(keyName.ACCEL_CURVE), ['SIGMOID'])
+        next = removeKeymapEntry(next, resolveSensitivityKey(keyName.ACCEL_NATURAL_VHALF))
+        next = removeKeymapEntry(next, resolveSensitivityKey(keyName.ACCEL_POWER_VREF))
+        next = removeKeymapEntry(next, resolveSensitivityKey(keyName.ACCEL_POWER_EXPONENT))
         return next
       })
     },
@@ -473,30 +487,30 @@ export function useSensitivityConfig({ configText, setConfigText }: SensitivityA
       }
       const defaultX = values.gyroSensX ?? 1
       const defaultY = values.gyroSensY ?? defaultX
-      let next = removeKeymapEntry(prev, prefixedKey('GYRO_SENS', prefix))
-      next = updateKeymapEntry(next, prefixedKey('MIN_GYRO_SENS', prefix), [
+      let next = removeKeymapEntry(prev, prefixedKey(keyName.GYRO_SENS, prefix))
+      next = updateKeymapEntry(next, prefixedKey(keyName.MIN_GYRO_SENS, prefix), [
         values.minSensX ?? defaultX,
         values.minSensY ?? defaultY,
       ])
-      next = updateKeymapEntry(next, prefixedKey('MAX_GYRO_SENS', prefix), [
+      next = updateKeymapEntry(next, prefixedKey(keyName.MAX_GYRO_SENS, prefix), [
         values.maxSensX ?? defaultX,
         values.maxSensY ?? defaultY,
       ])
-      next = updateKeymapEntry(next, prefixedKey('MIN_GYRO_THRESHOLD', prefix), [values.minThreshold ?? 0])
-      next = updateKeymapEntry(next, prefixedKey('MAX_GYRO_THRESHOLD', prefix), [values.maxThreshold ?? 100])
-      next = updateKeymapEntry(next, prefixedKey('ACCEL_CURVE', prefix), ['LINEAR'])
-      next = removeKeymapEntry(next, prefixedKey('ACCEL_NATURAL_VHALF', prefix))
-      next = removeKeymapEntry(next, prefixedKey('ACCEL_POWER_VREF', prefix))
-      next = removeKeymapEntry(next, prefixedKey('ACCEL_POWER_EXPONENT', prefix))
-      next = removeKeymapEntry(next, prefixedKey('ACCEL_SIGMOID_MID', prefix))
-      next = removeKeymapEntry(next, prefixedKey('ACCEL_SIGMOID_WIDTH', prefix))
-      next = removeKeymapEntry(next, prefixedKey('ACCEL_JUMP_TAU', prefix))
+      next = updateKeymapEntry(next, prefixedKey(keyName.MIN_GYRO_THRESHOLD, prefix), [values.minThreshold ?? 0])
+      next = updateKeymapEntry(next, prefixedKey(keyName.MAX_GYRO_THRESHOLD, prefix), [values.maxThreshold ?? 100])
+      next = updateKeymapEntry(next, prefixedKey(keyName.ACCEL_CURVE, prefix), ['LINEAR'])
+      next = removeKeymapEntry(next, prefixedKey(keyName.ACCEL_NATURAL_VHALF, prefix))
+      next = removeKeymapEntry(next, prefixedKey(keyName.ACCEL_POWER_VREF, prefix))
+      next = removeKeymapEntry(next, prefixedKey(keyName.ACCEL_POWER_EXPONENT, prefix))
+      next = removeKeymapEntry(next, prefixedKey(keyName.ACCEL_SIGMOID_MID, prefix))
+      next = removeKeymapEntry(next, prefixedKey(keyName.ACCEL_SIGMOID_WIDTH, prefix))
+      next = removeKeymapEntry(next, prefixedKey(keyName.ACCEL_JUMP_TAU, prefix))
       return next
     })
   }
 
   const holdPressTimeState = useMemo(() => {
-    const raw = getKeymapValue(configText, 'HOLD_PRESS_TIME')
+    const raw = getKeymapValue(configText, keyName.HOLD_PRESS_TIME)
     if (raw) {
       const parsed = parseFloat(raw)
       if (Number.isFinite(parsed)) {
@@ -508,7 +522,7 @@ export function useSensitivityConfig({ configText, setConfigText }: SensitivityA
   const holdPressTimeSeconds = holdPressTimeState.value
   const holdPressTimeIsCustom = holdPressTimeState.isCustom
   const doublePressWindowState = useMemo(() => {
-    const raw = getKeymapValue(configText, 'DBL_PRESS_WINDOW')
+    const raw = getKeymapValue(configText, keyName.DBL_PRESS_WINDOW)
     if (raw) {
       const parsed = parseFloat(raw)
       if (Number.isFinite(parsed)) {
@@ -520,7 +534,7 @@ export function useSensitivityConfig({ configText, setConfigText }: SensitivityA
   const doublePressWindowSeconds = doublePressWindowState.value
   const doublePressWindowIsCustom = doublePressWindowState.isCustom
   const simPressWindowState = useMemo(() => {
-    const raw = getKeymapValue(configText, 'SIM_PRESS_WINDOW')
+    const raw = getKeymapValue(configText, keyName.SIM_PRESS_WINDOW)
     if (raw) {
       const parsed = parseFloat(raw)
       if (Number.isFinite(parsed)) {
@@ -532,7 +546,7 @@ export function useSensitivityConfig({ configText, setConfigText }: SensitivityA
   const simPressWindowSeconds = simPressWindowState.value
   const simPressWindowIsCustom = simPressWindowState.isCustom
   const triggerThresholdValue = useMemo(() => {
-    const raw = getKeymapValue(configText, 'TRIGGER_THRESHOLD')
+    const raw = getKeymapValue(configText, keyName.TRIGGER_THRESHOLD)
     if (raw) {
       const parsed = parseFloat(raw)
       if (Number.isFinite(parsed)) {

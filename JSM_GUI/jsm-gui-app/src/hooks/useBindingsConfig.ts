@@ -11,18 +11,10 @@ import {
   setTapBinding,
   updateKeymapEntry,
 } from '../utils/keymap'
+import { bindingSpecialKeys, keyName } from '../constants/configKeys'
 
-const TOGGLE_SPECIALS = ['GYRO_ON', 'GYRO_OFF'] as const
-const SPECIAL_COMMANDS = [
-  'GYRO_OFF',
-  'GYRO_ON',
-  'GYRO_INVERT',
-  'GYRO_INV_X',
-  'GYRO_INV_Y',
-  'GYRO_TRACKBALL',
-  'GYRO_TRACK_X',
-  'GYRO_TRACK_Y',
-]
+const TOGGLE_SPECIALS = [keyName.GYRO_ON, keyName.GYRO_OFF] as const
+const SPECIAL_COMMANDS = bindingSpecialKeys.map(key => key.toUpperCase())
 
 const clearToggleAssignments = (text: string, command: string) => {
   let next = text
@@ -42,7 +34,7 @@ const clearToggleAssignments = (text: string, command: string) => {
 }
 
 const removeTrackballDecayIfUnused = (text: string) => {
-  return isTrackballBindingPresent(text) ? text : removeKeymapEntry(text, 'TRACKBALL_DECAY')
+  return isTrackballBindingPresent(text) ? text : removeKeymapEntry(text, keyName.TRACKBALL_DECAY)
 }
 
 const clearSpecialAssignmentsForButton = (text: string, button: string) => {
@@ -165,17 +157,17 @@ export function useBindingsConfig({ configText, setConfigText }: BindingArgs) {
     const nextValue = value.trim()
     setConfigText(prev => {
       if (!nextValue) {
-        return removeKeymapEntry(prev, 'TRACKBALL_DECAY')
+        return removeKeymapEntry(prev, keyName.TRACKBALL_DECAY)
       }
       const numeric = Number(nextValue)
       if (Number.isNaN(numeric)) {
         return prev
       }
-      return updateKeymapEntry(prev, 'TRACKBALL_DECAY', [numeric])
+      return updateKeymapEntry(prev, keyName.TRACKBALL_DECAY, [numeric])
     })
   }
 
-  const trackballDecayValue = useMemo(() => getKeymapValue(configText, 'TRACKBALL_DECAY') ?? '', [configText])
+  const trackballDecayValue = useMemo(() => getKeymapValue(configText, keyName.TRACKBALL_DECAY) ?? '', [configText])
 
   return {
     handleFaceButtonBindingChange,
