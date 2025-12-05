@@ -16,8 +16,7 @@ type ProfileManagerProps = {
   onDeleteProfile: (name: string) => void
   onAddProfile: () => void
   onLoadLibraryProfile: (name: string) => void
-  onApplyProfile?: () => void
-  applyDisabled?: boolean
+  lockMessage?: string
 }
 
 export function ProfileManager({
@@ -35,8 +34,7 @@ export function ProfileManager({
   onDeleteProfile,
   onAddProfile,
   onLoadLibraryProfile,
-  onApplyProfile: _onApplyProfile,
-  applyDisabled: _applyDisabled = false,
+  lockMessage,
 }: ProfileManagerProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [confirmingProfile, setConfirmingProfile] = useState<string | null>(null)
@@ -46,7 +44,7 @@ export function ProfileManager({
   }, [libraryProfiles])
 
   return (
-    <Card className="profile-card" lockable locked={isCalibrating} lockMessage="Profiles locked while JSM calibrates">
+    <Card className="profile-card" lockable locked={isCalibrating} lockMessage={lockMessage}>
       <h2>
         <span>Profiles</span>
         {(hasPendingChanges || statusMessage) && (

@@ -2,6 +2,7 @@ import { Card } from './Card'
 import { SensitivityValues } from '../utils/keymap'
 import { TelemetryBanner } from './TelemetryBanner'
 import { SectionActions } from './SectionActions'
+import { LOCK_MESSAGE } from '../constants/messages'
 
 type NoiseSteadyingControlsProps = {
   sensitivity: SensitivityValues
@@ -10,6 +11,7 @@ type NoiseSteadyingControlsProps = {
   statusMessage?: string | null
   onApply: () => void
   onCancel: () => void
+  lockMessage?: string
   onCutoffSpeedChange: (value: string) => void
   onCutoffRecoveryChange: (value: string) => void
   onSmoothTimeChange: (value: string) => void
@@ -27,6 +29,7 @@ export function NoiseSteadyingControls({
   statusMessage,
   onApply,
   onCancel,
+  lockMessage = LOCK_MESSAGE,
   onCutoffSpeedChange,
   onCutoffRecoveryChange,
   onSmoothTimeChange,
@@ -38,7 +41,7 @@ export function NoiseSteadyingControls({
       className="control-panel"
       lockable
       locked={isCalibrating}
-      lockMessage="Controls locked while JSM calibrates"
+      lockMessage={lockMessage}
     >
       <div className="section-header">
         <h2 className="section-title">Noise & Steadying</h2>

@@ -1,3 +1,5 @@
+import { PENDING_MESSAGE } from '../constants/messages'
+
 type SectionActionsProps = {
   className?: string
   hasPendingChanges: boolean
@@ -19,7 +21,7 @@ export function SectionActions({
   applyDisabled = false,
   applyLabel = 'Apply Changes',
   cancelLabel = 'Cancel',
-  pendingMessage = 'Pending changes — click Apply to send to JoyShockMapper.',
+  pendingMessage = PENDING_MESSAGE,
 }: SectionActionsProps) {
   return (
     <div className={className}>

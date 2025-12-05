@@ -1,6 +1,8 @@
 import { SensitivityValues } from '../utils/keymap'
 import { Card } from './Card'
 import { SectionActions } from './SectionActions'
+import { LOCK_MESSAGE } from '../constants/messages'
+import { controllerLabel, formatVidPid } from '../utils/controllers'
 
 const TICK_TIME_OPTIONS = [
   { value: '1', label: '500 Hz (1 ms)' },
@@ -39,6 +41,7 @@ type GyroBehaviorControlsProps = {
   hasPendingChanges: boolean
   onApply: () => void
   onCancel: () => void
+  lockMessage?: string
 }
 
 export function GyroBehaviorControls({
@@ -60,45 +63,14 @@ export function GyroBehaviorControls({
   hasPendingChanges,
   onApply,
   onCancel,
+  lockMessage = LOCK_MESSAGE,
 }: GyroBehaviorControlsProps) {
-  const controllerLabel = (type?: number) => {
-    switch (type) {
-      case 1:
-        return 'Joy-Con (Left)'
-      case 2:
-        return 'Joy-Con (Right)'
-      case 3:
-        return 'Switch Pro'
-      case 4:
-        return 'DualShock 4'
-      case 5:
-        return 'DualSense'
-      case 6:
-        return 'Xbox One'
-      case 7:
-        return 'Xbox Elite'
-      case 8:
-        return 'Xbox Series'
-      default:
-        return 'Unknown'
-    }
-  }
-  const formatVidPid = (vid?: number, pid?: number) => {
-    const v = typeof vid === 'number' ? vid : undefined
-    const p = typeof pid === 'number' ? pid : undefined
-    if (v === undefined && p === undefined) return ''
-    const toHex = (value: number) => `0x${value.toString(16).padStart(4, '0')}`
-    if (v !== undefined && p !== undefined) return `${toHex(v)}:${toHex(p)}`
-    if (v !== undefined) return toHex(v)
-    return toHex(p!)
-  }
-
   return (
     <Card
       className="control-panel"
       lockable
       locked={isCalibrating}
-      lockMessage="Controls locked while JSM calibrates"
+      lockMessage={lockMessage}
     >
       <h2>Gyro Behavior</h2>
       {onOpenCalibration && (
