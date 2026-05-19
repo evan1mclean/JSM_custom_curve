@@ -13,8 +13,10 @@
   },
   "dependencies": {
     "electron-updater": "^6.8.3",
+    "i18next": "^26.2.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-i18next": "^17.0.8",
     "react-markdown": "^10.1.0"
   },
   "devDependencies": {

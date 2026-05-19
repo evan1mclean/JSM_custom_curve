@@ -1,25 +1,19 @@
-export const controllerLabel = (type?: number) => {
-  switch (type) {
-    case 1:
-      return 'Joy-Con (Left)'
-    case 2:
-      return 'Joy-Con (Right)'
-    case 3:
-      return 'Switch Pro'
-    case 4:
-      return 'DualShock 4'
-    case 5:
-      return 'DualSense'
-    case 6:
-      return 'Xbox One'
-    case 7:
-      return 'Xbox Elite'
-    case 8:
-      return 'Xbox Series'
-    default:
-      return 'Unknown'
-  }
+import type { TFunction } from 'i18next'
+
+const CONTROLLER_LABEL_KEYS: Record<number, string> = {
+  1: 'controllers.joyConLeft',
+  2: 'controllers.joyConRight',
+  3: 'controllers.switchPro',
+  4: 'controllers.dualShock4',
+  5: 'controllers.dualSense',
+  6: 'controllers.xboxOne',
+  7: 'controllers.xboxElite',
+  8: 'controllers.xboxSeries',
 }
+
+export const controllerLabelKey = (type?: number) => CONTROLLER_LABEL_KEYS[type ?? -1] ?? 'controllers.unknown'
+
+export const controllerLabel = (type: number | undefined, t: TFunction) => t(controllerLabelKey(type))
 
 export const formatVidPid = (vid?: number, pid?: number) => {
   const v = typeof vid === 'number' ? vid : undefined

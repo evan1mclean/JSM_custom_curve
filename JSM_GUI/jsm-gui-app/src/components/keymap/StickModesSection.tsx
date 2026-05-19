@@ -1,8 +1,9 @@
 import { ReactNode } from 'react'
-import { StickSettingsCard } from '../StickSettingsCard'
+import { useTranslation } from 'react-i18next'
 import { KeymapSection } from '../KeymapSection'
-import { SectionActions } from '../SectionActions'
 import keymapStyles from '../Keymap.module.css'
+import { SectionActions } from '../SectionActions'
+import { StickSettingsCard } from '../StickSettingsCard'
 
 type StickModesSectionProps = {
   leftExtras?: ReactNode | null
@@ -41,11 +42,13 @@ export function StickModesSection({
   disabled,
   applyDisabled,
 }: StickModesSectionProps) {
+  const { t } = useTranslation()
+
   return (
     <>
-      <KeymapSection title="Left stick" description="Deadzone, mode, and ring settings for the left stick.">
+      <KeymapSection title={t('keymap.leftStickTitle')} description={t('keymap.leftStickModesDescription')}>
         <StickSettingsCard
-          title="Left stick"
+          title={t('keymap.leftStickTitle')}
           innerValue={leftDeadzone.inner}
           outerValue={leftDeadzone.outer}
           defaultInner={deadzoneDefaults.inner}
@@ -68,9 +71,9 @@ export function StickModesSection({
         onCancel={onCancel}
         applyDisabled={applyDisabled}
       />
-      <KeymapSection title="Right stick" description="Deadzone, mode, and ring settings for the right stick.">
+      <KeymapSection title={t('keymap.rightStickTitle')} description={t('keymap.rightStickModesDescription')}>
         <StickSettingsCard
-          title="Right stick"
+          title={t('keymap.rightStickTitle')}
           innerValue={rightDeadzone.inner}
           outerValue={rightDeadzone.outer}
           defaultInner={deadzoneDefaults.inner}

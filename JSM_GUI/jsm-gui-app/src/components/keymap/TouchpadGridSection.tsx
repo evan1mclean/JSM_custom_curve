@@ -1,9 +1,10 @@
 import { ReactNode } from 'react'
-import { KeymapSection } from '../KeymapSection'
-import { SectionActions } from '../SectionActions'
+import { useTranslation } from 'react-i18next'
 import { type ButtonDefinition } from '../../keymap/schema'
-import styles from './Touchpad.module.css'
+import { KeymapSection } from '../KeymapSection'
 import keymapStyles from '../Keymap.module.css'
+import styles from './Touchpad.module.css'
+import { SectionActions } from '../SectionActions'
 
 type TouchpadGridSectionProps = {
   gridColumns: number
@@ -28,12 +29,11 @@ export function TouchpadGridSection({
   onCancel,
   applyDisabled,
 }: TouchpadGridSectionProps) {
+  const { t } = useTranslation()
+
   return (
     <>
-      <KeymapSection
-        title="Touchpad grid"
-        description="This preview mirrors the touchpad. Configure each region using the rows below."
-      >
+      <KeymapSection title={t('keymap.touchpadGridTitle')} description={t('keymap.touchpadGridDescription')}>
         <div className={styles.touchpadGridPreview} style={{ gridTemplateColumns: `repeat(${gridColumns}, 1fr)` }}>
           {Array.from({ length: gridCells }).map((_, index) => {
             const rowIndex = Math.floor(index / gridColumns)
@@ -41,9 +41,7 @@ export function TouchpadGridSection({
             return (
               <div className={styles.touchpadGridCell} key={`cell-${index}`}>
                 <span>T{index + 1}</span>
-                <small>
-                  Row {rowIndex + 1}, Col {colIndex + 1}
-                </small>
+                <small>{t('common.rowCol', { row: rowIndex + 1, col: colIndex + 1 })}</small>
               </div>
             )
           })}

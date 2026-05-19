@@ -1,29 +1,32 @@
 import { Fragment } from 'react'
-import { BindingRow } from '../BindingRow'
+import { useTranslation } from 'react-i18next'
 import {
   BindingSlot,
   ButtonBindingRow,
   ManualRowInfo,
   ManualRowState,
 } from '../../utils/keymap'
+import { formatStickModeLabel } from '../../constants/sticks'
+import { BindingRow } from '../BindingRow'
+import keymapStyles from '../Keymap.module.css'
+import stickStyles from '../Sticks.module.css'
 import {
   EXTRA_BINDING_SLOTS,
   MODIFIER_SLOT_TYPES,
-  SPECIAL_LABELS,
-  SPECIAL_OPTION_LIST,
-  SPECIAL_OPTION_MANUAL_LIST,
-  STICK_SHIFT_HEADER_OPTION,
-  STICK_SHIFT_LEFT_HEADER,
-  STICK_SHIFT_RIGHT_HEADER,
-  STICK_SHIFT_SPECIAL_OPTIONS,
   buildStickShiftValue,
+  getAllSpecialLabelKeys,
+  getButtonDescription,
   getDefaultModifierForButton,
+  getSpecialLabel,
+  getSpecialOptionList,
+  getSpecialOptionManualList,
+  getStickShiftHeaderOption,
+  getStickShiftLeftHeader,
+  getStickShiftRightHeader,
+  getStickShiftSpecialOptions,
   parseStickShiftSelection,
   type ButtonDefinition,
 } from '../../keymap/schema'
-import { formatStickModeLabel } from '../../constants/sticks'
-import stickStyles from '../Sticks.module.css'
-import keymapStyles from '../Keymap.module.css'
 
 type ButtonBindingsCardProps = {
   button: ButtonDefinition
@@ -87,9 +90,18 @@ export const ButtonBindingsCard = ({
   trackballDecay,
   onTrackballDecayChange,
 }: ButtonBindingsCardProps) => {
+  const { t } = useTranslation()
+  const specialLabelKeys = getAllSpecialLabelKeys()
+  const specialOptionList = getSpecialOptionList(t)
+  const specialOptionManualList = getSpecialOptionManualList(t)
+  const stickShiftHeaderOption = getStickShiftHeaderOption(t)
+  const stickShiftLeftHeader = getStickShiftLeftHeader(t)
+  const stickShiftRightHeader = getStickShiftRightHeader(t)
+  const stickShiftSpecialOptions = getStickShiftSpecialOptions(t)
+
   const buttonKey = button.command.toUpperCase()
-  const specialKey = specialsByButton[button.command] as keyof typeof SPECIAL_LABELS | undefined
-  const tapSpecialLabel = specialKey ? SPECIAL_LABELS[specialKey] ?? '' : ''
+  const specialKey = specialsByButton[button.command]
+  const tapSpecialLabel = specialKey ? getSpecialLabel(specialKey, t) : ''
   const stickShiftEntries = stickModeShiftAssignments?.[buttonKey] ?? []
   const shiftDisplayMode = stickShiftDisplayModes[buttonKey] ?? 'tap'
   const tapStickShiftEntry = shiftDisplayMode === 'tap' ? stickShiftEntries[0] : undefined
@@ -109,40 +121,40 @@ export const ButtonBindingsCard = ({
         <span className={keymapStyles.buttonName}>
           {button.playstation === button.xbox ? button.playstation : `${button.playstation} / ${button.xbox}`}
         </span>
-        <span className={keymapStyles.buttonMeta}>{button.description}</span>
+        <span className={keymapStyles.buttonMeta}>{getButtonDescription(button, t)}</span>
       </div>
       <div className={keymapStyles.keymapBindingControls}>
         {rows.map(row => {
-          const rowCapturing = isCapturing(button.command, row.slot, row.id)
+          const isRowCapturing = isCapturing(button.command, row.slot, row.id)
           const hasExtraRows = rows.length > 1
-          const isSpecialValue = Boolean(row.binding && SPECIAL_LABELS[row.binding])
+          const isSpecialValue = Boolean(row.binding && specialLabelKeys[row.binding])
           const displayValue = (() => {
             if (row.slot === 'tap') {
               if (row.binding) return row.binding
               if (tapSpecialLabel) return tapSpecialLabel
               if (tapStickShiftEntry) {
-                return `${tapStickShiftEntry.target === 'LEFT' ? 'Left stick' : 'Right stick'} → ${formatStickModeLabel(tapStickShiftEntry.mode)}`
+                return tapStickShiftEntry.target === 'LEFT'
+                  ? t('keymap.leftStickArrow', { mode: formatStickModeLabel(tapStickShiftEntry.mode, t) })
+                  : t('keymap.rightStickArrow', { mode: formatStickModeLabel(tapStickShiftEntry.mode, t) })
               }
               return ''
             }
             if (isSpecialValue && row.binding) {
-              return SPECIAL_LABELS[row.binding]
+              return getSpecialLabel(row.binding, t)
             }
             return row.binding || ''
           })()
           const showHeader = row.slot !== 'tap' || hasExtraRows
-          const headerLabel = row.slot === 'tap' && hasExtraRows ? 'Regular Press' : row.label
-          let rowSpecialOptions = MODIFIER_SLOT_TYPES.includes(row.slot as BindingSlot)
-            ? SPECIAL_OPTION_MANUAL_LIST
-            : SPECIAL_OPTION_LIST
+          const headerLabel = row.slot === 'tap' && hasExtraRows ? t('keymap.buttonRegularPress') : row.label
+          let rowSpecialOptions = MODIFIER_SLOT_TYPES.includes(row.slot as BindingSlot) ? specialOptionManualList : specialOptionList
           if (row.slot === 'tap' && onStickModeShiftChange) {
             rowSpecialOptions = [
               ...rowSpecialOptions,
-              STICK_SHIFT_HEADER_OPTION,
-              STICK_SHIFT_RIGHT_HEADER,
-              ...STICK_SHIFT_SPECIAL_OPTIONS.filter(o => o.value.includes(':RIGHT:')),
-              STICK_SHIFT_LEFT_HEADER,
-              ...STICK_SHIFT_SPECIAL_OPTIONS.filter(o => o.value.includes(':LEFT:')),
+              stickShiftHeaderOption,
+              stickShiftRightHeader,
+              ...stickShiftSpecialOptions.filter(o => o.value.includes(':RIGHT:')),
+              stickShiftLeftHeader,
+              ...stickShiftSpecialOptions.filter(o => o.value.includes(':LEFT:')),
             ]
           }
           const specialValue = (() => {
@@ -150,7 +162,7 @@ export const ButtonBindingsCard = ({
               if (tapStickShiftEntry) {
                 return buildStickShiftValue(tapStickShiftEntry.target, tapStickShiftEntry.mode)
               }
-              if (row.binding && SPECIAL_LABELS[row.binding]) {
+              if (row.binding && specialLabelKeys[row.binding]) {
                 return row.binding
               }
               return specialKey ?? ''
@@ -162,7 +174,7 @@ export const ButtonBindingsCard = ({
           })()
           const clearTapSpecialBinding = () => {
             if (row.slot !== 'tap') return
-            if (row.binding && SPECIAL_LABELS[row.binding]) {
+            if (row.binding && specialLabelKeys[row.binding]) {
               onBindingChange(button.command, row.slot, row.id, null)
             }
           }
@@ -175,20 +187,20 @@ export const ButtonBindingsCard = ({
           const manualEntries = manualRows[button.command]?.[row.slot] ?? []
           const manualInfo = manualEntries.find(entry => entry.id === row.id)
           const modifierValue = needsModifier
-            ? row.modifierCommand ??
-              manualInfo?.modifierCommand ??
-              getDefaultModifierForButton(button.command, modifierOptions)
+            ? row.modifierCommand ?? manualInfo?.modifierCommand ?? getDefaultModifierForButton(button.command, modifierOptions)
             : undefined
-          const modifierLabel = row.slot === 'simultaneous' ? 'Combine with' : row.slot === 'diagonal' ? 'Diagonal with' : 'Modifier button'
+          const modifierLabel =
+            row.slot === 'simultaneous'
+              ? t('keymap.combineWith')
+              : row.slot === 'diagonal'
+                ? t('keymap.diagonalWith')
+                : t('keymap.modifierButton')
           let rowModifierOptions = modifierOptions
-          if (
-            needsModifier &&
-            modifierValue &&
-            !modifierOptions.some(option => option.value === modifierValue)
-          ) {
+          if (needsModifier && modifierValue && !modifierOptions.some(option => option.value === modifierValue)) {
             rowModifierOptions = [...modifierOptions, { value: modifierValue, label: modifierValue }]
           }
           const isLegacyFileCall = Boolean(row.binding && /"\s*[^"]+\.(txt|cfg|ini)"/i.test(row.binding))
+
           return (
             <Fragment key={`${button.command}-${row.slot}-${row.id}-wrapper`}>
               <BindingRow
@@ -197,14 +209,14 @@ export const ButtonBindingsCard = ({
                 showHeader={showHeader}
                 displayValue={displayValue}
                 isManual={row.isManual}
-                isCapturing={rowCapturing}
+                isCapturing={isRowCapturing}
                 captureLabel={captureLabel}
                 onBeginCapture={() =>
                   beginCapture(
                     button.command,
                     row.slot,
                     row.id,
-                    row.slot === 'hold' ? 'Press and hold binding…' : 'Press any key or mouse button…',
+                    row.slot === 'hold' ? t('keymap.holdBindingPrompt') : t('keymap.anyBindingPrompt'),
                     needsModifier ? modifierValue : undefined
                   )
                 }
@@ -254,7 +266,7 @@ export const ButtonBindingsCard = ({
                           clearTapSpecialBinding()
                           return
                         }
-                        if (selected === STICK_SHIFT_HEADER_OPTION.value) {
+                        if (selected === stickShiftHeaderOption.value) {
                           return
                         }
                         const parsedShift = parseStickShiftSelection(selected)
@@ -279,26 +291,16 @@ export const ButtonBindingsCard = ({
                             const options = needsModifier ? { modifier: modifierValue } : undefined
                             onBindingChange(button.command, row.slot, row.id, null, options)
                           }
-                      return
-                    }
-                    onBindingChange(
-                      button.command,
-                      row.slot,
-                      row.id,
-                      selected,
-                      needsModifier ? { modifier: modifierValue } : undefined
-                    )
-                    if (row.isManual) {
-                      removeManualRow(button.command, row.slot, row.id)
-                    }
-                  }
-            }
-          />
-              {isLegacyFileCall && (
-                <div className="legacy-binding-warning">
-                  Legacy script detected — place the referenced file inside <code>JSM_GUI/bin/</code> or clear this row.
-                </div>
-              )}
+                          return
+                        }
+                        onBindingChange(button.command, row.slot, row.id, selected, needsModifier ? { modifier: modifierValue } : undefined)
+                        if (row.isManual) {
+                          removeManualRow(button.command, row.slot, row.id)
+                        }
+                      }
+                }
+              />
+              {isLegacyFileCall && <div className="legacy-binding-warning">{t('keymap.legacyScriptDetected')}</div>}
             </Fragment>
           )
         })}
@@ -317,7 +319,7 @@ export const ButtonBindingsCard = ({
                 value=""
                 onChange={(event) => {
                   const selectedValue = event.target.value
-                  if (selectedValue === STICK_SHIFT_HEADER_OPTION.value) {
+                  if (selectedValue === stickShiftHeaderOption.value) {
                     event.target.value = ''
                     return
                   }
@@ -342,37 +344,37 @@ export const ButtonBindingsCard = ({
                   event.target.value = ''
                 }}
               >
-                <option value="">Add extra binding</option>
+                <option value="">{t('keymap.addExtraBinding')}</option>
                 {availableSlots.map(slot => (
                   <option key={`${button.command}-${slot}-opt`} value={slot}>
                     {slot === 'hold'
-                      ? 'Hold (press & hold)'
+                      ? t('keymap.holdPressAndHold')
                       : slot === 'double'
-                        ? 'Double press'
+                        ? t('keymap.doublePress')
                         : slot === 'chord'
-                          ? 'Chorded press'
+                          ? t('keymap.chordedPress')
                           : slot === 'simultaneous'
-                            ? 'Simultaneous press'
-                            : 'Diagonal press'}
+                            ? t('keymap.simultaneousPress')
+                            : t('keymap.diagonalPress')}
                   </option>
                 ))}
                 {onStickModeShiftChange && (
                   <>
-                    <option value={STICK_SHIFT_HEADER_OPTION.value} disabled>
-                      Stick mode shifts
+                    <option value={stickShiftHeaderOption.value} disabled>
+                      {t('keymap.stickModeShifts')}
                     </option>
-                    <option value={STICK_SHIFT_RIGHT_HEADER.value} disabled>
-                      {STICK_SHIFT_RIGHT_HEADER.label}
+                    <option value={stickShiftRightHeader.value} disabled>
+                      {stickShiftRightHeader.label}
                     </option>
-                    {STICK_SHIFT_SPECIAL_OPTIONS.filter(o => o.value.includes(':RIGHT:')).map(option => (
+                    {stickShiftSpecialOptions.filter(o => o.value.includes(':RIGHT:')).map(option => (
                       <option key={`${button.command}-${option.value}`} value={option.value}>
                         {option.label}
                       </option>
                     ))}
-                    <option value={STICK_SHIFT_LEFT_HEADER.value} disabled>
-                      {STICK_SHIFT_LEFT_HEADER.label}
+                    <option value={stickShiftLeftHeader.value} disabled>
+                      {stickShiftLeftHeader.label}
                     </option>
-                    {STICK_SHIFT_SPECIAL_OPTIONS.filter(o => o.value.includes(':LEFT:')).map(option => (
+                    {stickShiftSpecialOptions.filter(o => o.value.includes(':LEFT:')).map(option => (
                       <option key={`${button.command}-${option.value}`} value={option.value}>
                         {option.label}
                       </option>
@@ -396,8 +398,11 @@ export const ButtonBindingsCard = ({
               if (tapDisplaysShift) {
                 return null
               }
-              const label = entry.target === 'LEFT' ? 'Left stick mode shift' : 'Right stick mode shift'
-              const buttonLabel = `${entry.target === 'LEFT' ? 'Left stick' : 'Right stick'} → ${formatStickModeLabel(entry.mode)}`
+              const label = entry.target === 'LEFT' ? t('keymap.leftStickModeShift') : t('keymap.rightStickModeShift')
+              const buttonLabel =
+                entry.target === 'LEFT'
+                  ? t('keymap.leftStickArrow', { mode: formatStickModeLabel(entry.mode, t) })
+                  : t('keymap.rightStickArrow', { mode: formatStickModeLabel(entry.mode, t) })
               return (
                 <div className={`${keymapStyles.bindingRow} ${keymapStyles.manualStickShift}`} key={`${button.command}-${entry.target}`}>
                   <div className={keymapStyles.bindingRowHeader}>
@@ -418,7 +423,7 @@ export const ButtonBindingsCard = ({
                       }}
                       data-capture-ignore="true"
                     >
-                      Clear
+                      {t('keymap.clearBinding')}
                     </button>
                   </div>
                 </div>
@@ -429,7 +434,7 @@ export const ButtonBindingsCard = ({
         {buttonHasTrackball && (
           <div className={keymapStyles.trackballInline} data-capture-ignore="true">
             <label>
-              Trackball decay
+              {t('keymap.trackballDecay')}
               <input
                 type="number"
                 min="0"
@@ -437,7 +442,7 @@ export const ButtonBindingsCard = ({
                 step="0.1"
                 value={trackballDecay}
                 onChange={(event) => onTrackballDecayChange(event.target.value)}
-                placeholder="Default (1.0)"
+                placeholder={t('common.defaultValue', { value: '1.0' })}
               />
             </label>
             <input

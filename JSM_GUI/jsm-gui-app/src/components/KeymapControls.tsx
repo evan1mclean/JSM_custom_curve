@@ -1,13 +1,13 @@
 import { Fragment, useEffect, useMemo, useState } from 'react'
-import { Card } from './Card'
+import { useTranslation } from 'react-i18next'
+import { DEFAULT_STICK_DEADZONE_INNER, DEFAULT_STICK_DEADZONE_OUTER } from '../constants/defaults'
 import {
   BindingSlot,
   ButtonBindingRow,
   getButtonBindingRows,
   getKeymapValue,
 } from '../utils/keymap'
-import { buildModifierOptions } from '../utils/modifierOptions'
-import { DEFAULT_STICK_DEADZONE_INNER, DEFAULT_STICK_DEADZONE_OUTER } from '../constants/defaults'
+import { buildModifierOptions, resolveModifierOptionLabel } from '../utils/modifierOptions'
 import {
   BUMPER_BUTTONS,
   CENTER_BUTTONS,
@@ -18,25 +18,27 @@ import {
   MISC_BUTTONS,
   PADDLE_BUTTONS,
   RIGHT_STICK_BUTTONS,
-  SPECIAL_BINDINGS,
   STICK_AIM_DEFAULTS,
   TOUCH_BUTTONS,
   TRIGGER_BUTTONS,
+  buildTouchpadGridButton,
+  getSpecialOptionList,
   type ButtonDefinition,
 } from '../keymap/schema'
 import { useBindingCapture } from '../keymap/useBindingCapture'
 import { useButtonRowState } from '../keymap/useButtonRowState'
-import { KeymapSection } from './KeymapSection'
-import { SectionActions } from './SectionActions'
-import { GlobalControlsSection } from './keymap/GlobalControlsSection'
-import { ButtonGridSection } from './keymap/ButtonGridSection'
-import { StickModesSection } from './keymap/StickModesSection'
-import { TouchpadSettingsSection } from './keymap/TouchpadSettingsSection'
-import { TouchpadGridSection } from './keymap/TouchpadGridSection'
 import { ButtonBindingsCard } from './keymap/ButtonBindingsCard'
-import { TriggerControlsSection } from './keymap/TriggerControlsSection'
-import stickStyles from './Sticks.module.css'
+import { ButtonGridSection } from './keymap/ButtonGridSection'
+import { Card } from './Card'
 import keymapStyles from './Keymap.module.css'
+import { KeymapSection } from './KeymapSection'
+import { GlobalControlsSection } from './keymap/GlobalControlsSection'
+import { StickModesSection } from './keymap/StickModesSection'
+import stickStyles from './Sticks.module.css'
+import { TouchpadGridSection } from './keymap/TouchpadGridSection'
+import { TouchpadSettingsSection } from './keymap/TouchpadSettingsSection'
+import { TriggerControlsSection } from './keymap/TriggerControlsSection'
+import { SectionActions } from './SectionActions'
 
 type KeymapControlsProps = {
   configText: string
@@ -151,18 +153,20 @@ type StickAimSettingsProps = {
 }
 
 const StickAimSettings = ({ values, handlers, disabled }: StickAimSettingsProps) => {
+  const { t } = useTranslation()
   const sensXValue = values.displaySensX
   const sensYValue = values.displaySensY
   const powerValue = values.power ?? ''
   const accelRateValue = values.accelerationRate ?? ''
   const accelCapValue = values.accelerationCap ?? ''
-  const formatDefault = (value: string) => `Default (${value})`
+  const formatDefault = (value: string) => t('common.defaultValue', { value })
+
   return (
     <div className={stickStyles.stickAimSettings} data-capture-ignore="true">
-      <small>Applies to STICK_SENS / POWER / ACCEL settings when Aim mode is active.</small>
+      <small>{t('keymap.stickAimNote')}</small>
       <div className={stickStyles.stickAimGrid}>
         <label>
-          Stick sensitivity (horizontal)
+          {t('keymap.stickSensitivityHorizontal')}
           <input
             type="number"
             step="1"
@@ -173,7 +177,7 @@ const StickAimSettings = ({ values, handlers, disabled }: StickAimSettingsProps)
           />
         </label>
         <label>
-          Stick sensitivity (vertical)
+          {t('keymap.stickSensitivityVertical')}
           <input
             type="number"
             step="1"
@@ -184,7 +188,7 @@ const StickAimSettings = ({ values, handlers, disabled }: StickAimSettingsProps)
           />
         </label>
         <label>
-          Stick power
+          {t('keymap.stickPower')}
           <input
             type="number"
             step="0.1"
@@ -195,7 +199,7 @@ const StickAimSettings = ({ values, handlers, disabled }: StickAimSettingsProps)
           />
         </label>
         <label>
-          Acceleration rate
+          {t('keymap.accelerationRate')}
           <input
             type="number"
             step="0.1"
@@ -206,7 +210,7 @@ const StickAimSettings = ({ values, handlers, disabled }: StickAimSettingsProps)
           />
         </label>
         <label>
-          Acceleration cap
+          {t('keymap.accelerationCap')}
           <input
             type="number"
             step="0.1"
@@ -228,14 +232,16 @@ type StickFlickSettingsProps = {
 }
 
 const StickFlickSettings = ({ values, handlers, disabled }: StickFlickSettingsProps) => {
+  const { t } = useTranslation()
   const snapMode = values.snapMode || ''
-  const formatDefault = (value: string) => `Default (${value})`
+  const formatDefault = (value: string) => t('common.defaultValue', { value })
+
   return (
     <div className="stick-flick-settings" data-capture-ignore="true">
-      <small>Flick stick timing and snapping controls.</small>
+      <small>{t('keymap.stickFlickNote')}</small>
       <div className={stickStyles.stickAimGrid}>
         <label>
-          Flick time (seconds)
+          {t('keymap.flickTime')}
           <input
             type="number"
             step="0.01"
@@ -246,7 +252,7 @@ const StickFlickSettings = ({ values, handlers, disabled }: StickFlickSettingsPr
           />
         </label>
         <label>
-          Flick time exponent
+          {t('keymap.flickTimeExponent')}
           <input
             type="number"
             step="0.1"
@@ -257,20 +263,15 @@ const StickFlickSettings = ({ values, handlers, disabled }: StickFlickSettingsPr
           />
         </label>
         <label>
-          Snap mode
-          <select
-            className="app-select"
-            value={snapMode}
-            onChange={(event) => handlers.onSnapModeChange(event.target.value)}
-            disabled={disabled}
-          >
-            <option value="">Default (NONE)</option>
-            <option value="4">Snap to 4 directions</option>
-            <option value="8">Snap to 8 directions</option>
+          {t('keymap.snapMode')}
+          <select className="app-select" value={snapMode} onChange={(event) => handlers.onSnapModeChange(event.target.value)} disabled={disabled}>
+            <option value="">{t('common.defaultValue', { value: 'NONE' })}</option>
+            <option value="4">{t('keymap.snapToFour')}</option>
+            <option value="8">{t('keymap.snapToEight')}</option>
           </select>
         </label>
         <label>
-          Snap strength
+          {t('keymap.snapStrength')}
           <input
             type="number"
             step="0.05"
@@ -292,7 +293,7 @@ const StickFlickSettings = ({ values, handlers, disabled }: StickFlickSettingsPr
           />
         </label>
         <label>
-          Forward deadzone angle
+          {t('keymap.forwardDeadzoneAngle')}
           <input
             type="number"
             step="1"
@@ -300,7 +301,7 @@ const StickFlickSettings = ({ values, handlers, disabled }: StickFlickSettingsPr
             max="180"
             value={values.deadzoneAngle}
             onChange={(event) => handlers.onDeadzoneAngleChange(event.target.value)}
-            placeholder={formatDefault('0°')}
+            placeholder={formatDefault('0')}
             disabled={disabled}
           />
           <input
@@ -379,6 +380,7 @@ export function KeymapControls({
   onZlModeChange = () => {},
   onZrModeChange = () => {},
 }: KeymapControlsProps) {
+  const { t } = useTranslation()
   const [stickView, setStickView] = useState<'bindings' | 'modes'>('bindings')
   const {
     manualRows,
@@ -396,8 +398,10 @@ export function KeymapControls({
       removeManualRow(button, slot, rowId)
     }
   })
+
   const currentStickView = stickForcedView ?? stickView
   const stickToggleVisible = view === 'sticks' && showStickViewToggle && !stickForcedView
+
   useEffect(() => {
     if (stickForcedView) {
       setStickView(stickForcedView)
@@ -408,30 +412,32 @@ export function KeymapControls({
     if (!visibleSections || visibleSections.length === 0) return true
     return visibleSections.includes(section)
   }
+
   const touchpadMode = useMemo(() => {
     const upper = touchpadModeProp?.toUpperCase()
     if (upper === 'GRID_AND_STICK' || upper === 'MOUSE') return upper
     return ''
   }, [touchpadModeProp])
+
   const gridActive = touchpadMode === 'GRID_AND_STICK'
   const clampedGridCols = Math.max(1, Math.min(5, gridColumns || 1))
   const clampedGridRows = Math.max(1, Math.min(5, gridRows || 1))
   const clampedGridCells = touchpadMode === 'GRID_AND_STICK' ? Math.min(25, clampedGridCols * clampedGridRows) : 0
   const configuredGridButtons = gridActive ? clampedGridCells : 0
+
   const modifierOptions = useMemo(() => {
-    return buildModifierOptions(gridActive, configuredGridButtons)
-  }, [gridActive, configuredGridButtons])
+    return buildModifierOptions(gridActive, configuredGridButtons).map(option => ({
+      value: option.value,
+      label: resolveModifierOptionLabel(option, t),
+      disabled: option.disabled,
+    }))
+  }, [configuredGridButtons, gridActive, t])
 
   const touchpadGridButtons = useMemo<ButtonDefinition[]>(() => {
     return Array.from({ length: clampedGridCells }, (_, index) => {
-      const rowIndex = Math.floor(index / clampedGridCols)
-      const colIndex = index % clampedGridCols
-      return {
-        command: `T${index + 1}`,
-        description: `Row ${rowIndex + 1}, Col ${colIndex + 1}`,
-        playstation: `T${index + 1}`,
-        xbox: `T${index + 1}`,
-      }
+      const rowIndex = Math.floor(index / clampedGridCols) + 1
+      const colIndex = (index % clampedGridCols) + 1
+      return buildTouchpadGridButton(index + 1, rowIndex, colIndex)
     })
   }, [clampedGridCells, clampedGridCols])
 
@@ -458,8 +464,7 @@ export function KeymapControls({
 
   const specialsByButton = useMemo(() => {
     const assignments: Record<string, string | undefined> = {}
-    SPECIAL_BINDINGS.forEach(binding => {
-      if (!binding.value) return
+    getSpecialOptionList(t).forEach(binding => {
       const assignment = getKeymapValue(configText, binding.value)
       if (!assignment) return
       assignment
@@ -470,7 +475,7 @@ export function KeymapControls({
         })
     })
     return assignments
-  }, [configText])
+  }, [configText, t])
 
   const showFullLayout = view === 'full'
   const showStickLayout = view === 'sticks'
@@ -499,7 +504,7 @@ export function KeymapControls({
       })
       return next
     })
-  }, [stickModeShiftAssignments, replaceStickShiftDisplayModes])
+  }, [replaceStickShiftDisplayModes, stickModeShiftAssignments])
 
   const holdPressTimeInputValue = Number.isFinite(holdPressTimeSeconds) ? holdPressTimeSeconds : holdPressTimeDefault
   const doublePressInputValue = Number.isFinite(doublePressWindowSeconds) ? doublePressWindowSeconds : holdPressTimeDefault
@@ -535,7 +540,6 @@ export function KeymapControls({
     )
   }
 
-  const resolvedLockMessage = lockMessage ?? 'Calibrating — place controller on a flat surface'
   const actionsProps = {
     hasPendingChanges,
     statusMessage,
@@ -555,17 +559,17 @@ export function KeymapControls({
     if (mode === 'MOUSE_AREA' && mouseRingRadius !== undefined && onMouseRingRadiusChange) {
       return (
         <div className={stickStyles.stickFlickSettings} data-capture-ignore="true">
-          <small>Mouse area radius (pixels from center).</small>
+          <small>{t('keymap.mouseAreaRadiusNote')}</small>
           <div className={stickStyles.stickAimGrid}>
             <label>
-              Mouse area radius
+              {t('keymap.mouseAreaRadius')}
               <input
                 type="number"
                 min="0"
                 step="10"
                 value={mouseRingRadius}
                 onChange={(event) => onMouseRingRadiusChange(event.target.value)}
-                placeholder="Enter radius"
+                placeholder={t('common.enterRadius')}
                 disabled={isCalibrating}
               />
             </label>
@@ -576,17 +580,17 @@ export function KeymapControls({
     if (mode === 'SCROLL_WHEEL' && scrollSens !== undefined && onScrollSensChange) {
       return (
         <div className={stickStyles.stickFlickSettings} data-capture-ignore="true">
-          <small>Scroll wheel sensitivity (degrees per pulse). Higher values require larger rotations.</small>
+          <small>{t('keymap.scrollSensitivityNote')}</small>
           <div className={stickStyles.stickAimGrid}>
             <label>
-              Scroll sensitivity
+              {t('keymap.scrollSensitivity')}
               <input
                 type="number"
                 min="0"
                 step="1"
                 value={scrollSens}
                 onChange={(event) => onScrollSensChange(event.target.value)}
-                placeholder="Enter degrees"
+                placeholder={t('common.enterDegrees')}
                 disabled={isCalibrating}
               />
             </label>
@@ -598,15 +602,17 @@ export function KeymapControls({
   }
 
   const renderSections = (sections: { key: string; shouldRender: boolean; node: JSX.Element }[]) =>
-    sections
-      .filter(section => section.shouldRender)
-      .map(section => <Fragment key={section.key}>{section.node}</Fragment>)
+    sections.filter(section => section.shouldRender).map(section => <Fragment key={section.key}>{section.node}</Fragment>)
 
   return (
-    <Card className="control-panel" lockable locked={isCalibrating} lockMessage={resolvedLockMessage}>
+    <Card className="control-panel" lockable locked={isCalibrating} lockMessage={lockMessage ?? t('messages.lockMessage')}>
       <div className={keymapStyles.keymapCardHeader}>
         <h2>
-          {view === 'touchpad' ? 'Touchpad Controls' : view === 'sticks' ? 'Stick Bindings' : 'Keymap Controls'}
+          {view === 'touchpad'
+            ? t('keymap.touchpadControlsTitle')
+            : view === 'sticks'
+              ? t('keymap.stickBindingsTitle')
+              : t('keymap.controlsTitle')}
         </h2>
       </div>
 
@@ -638,8 +644,8 @@ export function KeymapControls({
             shouldRender: isVisible('face'),
             node: (
               <ButtonGridSection
-                title="Face Buttons"
-                description="Tap / Hold / Double / Chorded / Simultaneous bindings available via Add Extra Binding."
+                title={t('keymap.faceButtonsTitle')}
+                description={t('keymap.faceButtonsDescription')}
                 buttons={FACE_BUTTONS}
                 renderButton={renderButtonCard}
                 {...actionsProps}
@@ -651,8 +657,8 @@ export function KeymapControls({
             shouldRender: isVisible('dpad'),
             node: (
               <ButtonGridSection
-                title="D-pad"
-                description="Directional pad bindings with the same extra slots and special actions."
+                title={t('keymap.dpadTitle')}
+                description={t('keymap.dpadDescription')}
                 buttons={DPAD_BUTTONS}
                 renderButton={renderButtonCard}
                 {...actionsProps}
@@ -664,15 +670,11 @@ export function KeymapControls({
             shouldRender: isVisible('bumpers'),
             node: (
               <ButtonGridSection
-                title="Bumpers"
-                description="L1/R1 and mini shoulder button bindings."
+                title={t('keymap.bumpersTitle')}
+                description={t('keymap.bumpersDescription')}
                 buttons={[...BUMPER_BUTTONS, ...MINI_BUTTONS]}
                 renderButton={renderButtonCard}
-                extraContent={
-                  <small className={keymapStyles.paddleNote}>
-                    LMINI / RMINI are mini shoulder buttons on supported controllers (e.g. L5/R5 on Razer Wolverine, L4/R4 on Xbox Elite).
-                  </small>
-                }
+                extraContent={<small className={keymapStyles.paddleNote}>{t('keymap.bumpersNote')}</small>}
                 {...actionsProps}
               />
             ),
@@ -699,21 +701,29 @@ export function KeymapControls({
               const modeOptions = ['NO_FULL', 'NO_SKIP', 'NO_SKIP_EXCLUSIVE', 'MUST_SKIP', 'MAY_SKIP', 'MUST_SKIP_R', 'MAY_SKIP_R']
               return (
                 <>
-                  <KeymapSection title="Triggers" description="Soft/full pulls for L2/R2.">
+                  <KeymapSection title={t('keymap.triggersTitle')} description={t('keymap.triggersDescription')}>
                     <div className={keymapStyles.keymapGrid}>
                       {TRIGGER_BUTTONS.filter(b => b.command === 'ZL').map(b => <div key={b.command}>{renderButtonCard(b)}</div>)}
                       <div className={keymapStyles.globalControlRow} data-capture-ignore="true">
-                        <span className={keymapStyles.globalControlTitle}>L2 full pull mode</span>
+                        <span className={keymapStyles.globalControlTitle}>{t('keymap.l2FullPullMode')}</span>
                         <select className="app-select" value={zlModeValue || 'NO_FULL'} onChange={e => onZlModeChange(e.target.value)} disabled={actionsProps.applyDisabled}>
-                          {modeOptions.map(m => <option key={m} value={m}>{m}{m === 'NO_FULL' ? ' (default)' : ''}</option>)}
+                          {modeOptions.map(m => (
+                            <option key={m} value={m}>
+                              {m === 'NO_FULL' ? t('common.defaultValue', { value: m }) : m}
+                            </option>
+                          ))}
                         </select>
                       </div>
                       {zlActive && TRIGGER_BUTTONS.filter(b => b.command === 'ZLF').map(b => <div key={b.command}>{renderButtonCard(b)}</div>)}
                       {TRIGGER_BUTTONS.filter(b => b.command === 'ZR').map(b => <div key={b.command}>{renderButtonCard(b)}</div>)}
                       <div className={keymapStyles.globalControlRow} data-capture-ignore="true">
-                        <span className={keymapStyles.globalControlTitle}>R2 full pull mode</span>
+                        <span className={keymapStyles.globalControlTitle}>{t('keymap.r2FullPullMode')}</span>
                         <select className="app-select" value={zrModeValue || 'NO_FULL'} onChange={e => onZrModeChange(e.target.value)} disabled={actionsProps.applyDisabled}>
-                          {modeOptions.map(m => <option key={m} value={m}>{m}{m === 'NO_FULL' ? ' (default)' : ''}</option>)}
+                          {modeOptions.map(m => (
+                            <option key={m} value={m}>
+                              {m === 'NO_FULL' ? t('common.defaultValue', { value: m }) : m}
+                            </option>
+                          ))}
                         </select>
                       </div>
                       {zrActive && TRIGGER_BUTTONS.filter(b => b.command === 'ZRF').map(b => <div key={b.command}>{renderButtonCard(b)}</div>)}
@@ -729,8 +739,8 @@ export function KeymapControls({
             shouldRender: isVisible('center'),
             node: (
               <ButtonGridSection
-                title="Center buttons"
-                description="Options, Share, and Mic bindings."
+                title={t('keymap.centerButtonsTitle')}
+                description={t('keymap.centerButtonsDescription')}
                 buttons={CENTER_BUTTONS}
                 renderButton={renderButtonCard}
                 {...actionsProps}
@@ -742,15 +752,11 @@ export function KeymapControls({
             shouldRender: isVisible('paddles'),
             node: (
               <ButtonGridSection
-                title="Paddles"
-                description="Back paddle and SL/SR button bindings."
+                title={t('keymap.paddlesTitle')}
+                description={t('keymap.paddlesDescription')}
                 buttons={PADDLE_BUTTONS}
                 renderButton={renderButtonCard}
-                extraContent={
-                  <small className={keymapStyles.paddleNote}>
-                    Back paddle mappings vary by controller. Most controllers use <strong>LSL</strong> and <strong>RSR</strong> for primary paddles. Joy-Con, Xbox Elite, and some third-party controllers support all four.
-                  </small>
-                }
+                extraContent={<small className={keymapStyles.paddleNote}>{t('keymap.paddlesNote')}</small>}
                 {...actionsProps}
               />
             ),
@@ -760,15 +766,11 @@ export function KeymapControls({
             shouldRender: isVisible('extra'),
             node: (
               <ButtonGridSection
-                title="Extra buttons"
-                description="Controller-specific extra buttons. Which MISC slot maps to which button depends on the controller."
+                title={t('keymap.extraButtonsTitle')}
+                description={t('keymap.extraButtonsDescription')}
                 buttons={MISC_BUTTONS}
                 renderButton={renderButtonCard}
-                extraContent={
-                  <small className={keymapStyles.paddleNote}>
-                    Examples: MISC1 = Steam Deck QAM ("..."), Nunchuk C, Joy-Con SR. MISC2 = Nunchuk Z, Joy-Con SL. Mapping varies by controller and firmware.
-                  </small>
-                }
+                extraContent={<small className={keymapStyles.paddleNote}>{t('keymap.extraButtonsNote')}</small>}
                 {...actionsProps}
               />
             ),
@@ -780,10 +782,10 @@ export function KeymapControls({
           {stickToggleVisible && (
             <div className={`mode-toggle ${stickStyles.stickSubtabs}`}>
               <button className={`pill-tab ${currentStickView === 'bindings' ? 'active' : ''}`} onClick={() => setStickView('bindings')}>
-                Bindings
+                {t('keymap.bindings')}
               </button>
               <button className={`pill-tab ${currentStickView === 'modes' ? 'active' : ''}`} onClick={() => setStickView('modes')}>
-                Modes & Settings
+                {t('keymap.modesAndSettings')}
               </button>
             </div>
           )}
@@ -794,8 +796,8 @@ export function KeymapControls({
                 shouldRender: true,
                 node: (
                   <ButtonGridSection
-                    title="Left stick"
-                    description="Bind directions, ring, or stick click with the same extra slots available elsewhere."
+                    title={t('keymap.leftStickTitle')}
+                    description={t('keymap.leftStickDescription')}
                     buttons={LEFT_STICK_BUTTONS}
                     renderButton={renderButtonCard}
                     {...actionsProps}
@@ -807,8 +809,8 @@ export function KeymapControls({
                 shouldRender: true,
                 node: (
                   <ButtonGridSection
-                    title="Right stick"
-                    description="Configure the right stick directions, ring binding, or stick click."
+                    title={t('keymap.rightStickTitle')}
+                    description={t('keymap.rightStickDescription')}
                     buttons={RIGHT_STICK_BUTTONS}
                     renderButton={renderButtonCard}
                     {...actionsProps}
@@ -843,8 +845,8 @@ export function KeymapControls({
               shouldRender: isVisible('touch-bind'),
               node: (
                 <ButtonGridSection
-                  title="Touch and click buttons"
-                  description="Bindings for touch contact and pad click."
+                  title={t('keymap.touchButtonsTitle')}
+                  description={t('keymap.touchButtonsDescription')}
                   buttons={TOUCH_BUTTONS}
                   renderButton={renderButtonCard}
                   {...actionsProps}
@@ -881,7 +883,6 @@ export function KeymapControls({
           ])}
         </>
       )}
-
     </Card>
   )
 }

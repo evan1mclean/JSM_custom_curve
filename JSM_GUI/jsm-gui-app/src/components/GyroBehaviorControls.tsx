@@ -1,10 +1,9 @@
+import { useTranslation } from 'react-i18next'
 import { SensitivityValues } from '../utils/keymap'
 import { Card } from './Card'
 import { SectionActions } from './SectionActions'
-import { LOCK_MESSAGE } from '../constants/messages'
 import { controllerLabel, formatVidPid } from '../utils/controllers'
 import styles from './Gyro.module.css'
-
 
 const TICK_TIME_OPTIONS = [
   { value: '1', label: '1 ms' },
@@ -13,10 +12,10 @@ const TICK_TIME_OPTIONS = [
 ]
 
 const GYRO_SPACE_OPTIONS = [
-  { value: 'LOCAL', label: 'Local' },
-  { value: 'YAW_PLUS_ROLL', label: 'Yaw + Roll' },
-  { value: 'PLAYER_TURN', label: 'Player Turn' },
-  { value: 'WORLD_TURN', label: 'World Turn' },
+  { value: 'LOCAL', labelKey: 'gyro.spaces.local' },
+  { value: 'YAW_PLUS_ROLL', labelKey: 'gyro.spaces.yawPlusRoll' },
+  { value: 'PLAYER_TURN', labelKey: 'gyro.spaces.playerTurn' },
+  { value: 'WORLD_TURN', labelKey: 'gyro.spaces.worldTurn' },
 ]
 
 type GyroBehaviorControlsProps = {
@@ -70,30 +69,32 @@ export function GyroBehaviorControls({
   hasPendingChanges,
   onApply,
   onCancel,
-  lockMessage = LOCK_MESSAGE,
+  lockMessage,
   appliedSampleHz,
   backendChoice = 'SDL',
 }: GyroBehaviorControlsProps) {
+  const { t } = useTranslation()
+
   return (
-    <Card className="control-panel" lockable locked={isCalibrating} lockMessage={lockMessage}>
-      <h2>Gyro Behavior</h2>
+    <Card className="control-panel" lockable locked={isCalibrating} lockMessage={lockMessage ?? t('messages.lockMessage')}>
+      <h2>{t('gyro.title')}</h2>
       {(onOpenCalibration || onOpenRwcGuide) && (
         <div className="flex-inputs">
           {onOpenRwcGuide && (
             <button type="button" className="secondary-btn full-width-btn" onClick={onOpenRwcGuide} disabled={isCalibrating}>
-              Easy real world calibration method
+              {t('gyro.easyCalibrationMethod')}
             </button>
           )}
           {onOpenCalibration && (
             <button type="button" className="secondary-btn full-width-btn" onClick={onOpenCalibration} disabled={isCalibrating}>
-              Calculate real world calibration manually
+              {t('gyro.manualCalibration')}
             </button>
           )}
         </div>
       )}
       <div className="flex-inputs">
         <label>
-          Real World Calibration
+          {t('gyro.realWorldCalibration')}
           <input
             type="number"
             step="0.1"
@@ -102,26 +103,18 @@ export function GyroBehaviorControls({
           />
         </label>
         <label>
-          In-Game Sensitivity
-          <input
-            type="number"
-            step="0.1"
-            value={sensitivity.inGameSens ?? ''}
-            onChange={(e) => onInGameSensChange(e.target.value)}
-          />
+          {t('gyro.inGameSensitivity')}
+          <input type="number" step="0.1" value={sensitivity.inGameSens ?? ''} onChange={(e) => onInGameSensChange(e.target.value)} />
         </label>
       </div>
       <div className="flex-inputs">
         <label>
           <div className="label-row">
-            <span>Polling Tick Time</span>
+            <span>{t('gyro.pollingTickTime')}</span>
             {appliedSampleHz && <span className="field-description inline-helper">{appliedSampleHz} Hz</span>}
           </div>
-          <select
-            value={sensitivity.tickTime?.toString() ?? ''}
-            onChange={(e) => onTickTimeChange(e.target.value)}
-          >
-            <option value="">Use default</option>
+          <select value={sensitivity.tickTime?.toString() ?? ''} onChange={(e) => onTickTimeChange(e.target.value)}>
+            <option value="">{t('common.useDefault')}</option>
             {TICK_TIME_OPTIONS.map(option => (
               <option key={option.value} value={option.value}>
                 {option.label}
@@ -130,15 +123,12 @@ export function GyroBehaviorControls({
           </select>
         </label>
         <label>
-          Gyro Space
-          <select
-            value={sensitivity.gyroSpace ?? ''}
-            onChange={(e) => onGyroSpaceChange(e.target.value)}
-          >
-            <option value="">Use default</option>
+          {t('gyro.gyroSpace')}
+          <select value={sensitivity.gyroSpace ?? ''} onChange={(e) => onGyroSpaceChange(e.target.value)}>
+            <option value="">{t('common.useDefault')}</option>
             {GYRO_SPACE_OPTIONS.map(option => (
               <option key={option.value} value={option.value}>
-                {option.label}
+                {t(option.labelKey)}
               </option>
             ))}
           </select>
@@ -146,46 +136,40 @@ export function GyroBehaviorControls({
       </div>
       <div className="flex-inputs">
         <label>
-          Gyro Axis X
-          <select
-            value={sensitivity.gyroAxisX ?? ''}
-            onChange={(e) => onGyroAxisXChange(e.target.value)}
-          >
-            <option value="">Default</option>
-            <option value="INVERTED">Inverted</option>
+          {t('gyro.gyroAxisX')}
+          <select value={sensitivity.gyroAxisX ?? ''} onChange={(e) => onGyroAxisXChange(e.target.value)}>
+            <option value="">{t('common.default')}</option>
+            <option value="INVERTED">{t('gyro.inverted')}</option>
           </select>
         </label>
         <label>
-          Gyro Axis Y
-          <select
-            value={sensitivity.gyroAxisY ?? ''}
-            onChange={(e) => onGyroAxisYChange(e.target.value)}
-          >
-            <option value="">Default</option>
-            <option value="INVERTED">Inverted</option>
+          {t('gyro.gyroAxisY')}
+          <select value={sensitivity.gyroAxisY ?? ''} onChange={(e) => onGyroAxisYChange(e.target.value)}>
+            <option value="">{t('common.default')}</option>
+            <option value="INVERTED">{t('gyro.inverted')}</option>
           </select>
         </label>
       </div>
       <div className="flex-inputs">
         <label>
-          Counter OS mouse speed
-          <p className="field-description">Enable for non-raw-input games when Windows pointer speed isn’t 6/11.</p>
+          {t('gyro.counterOsMouseSpeed')}
+          <p className="field-description">{t('gyro.counterOsMouseSpeedHint')}</p>
           <select
             className="app-select"
             value={counterOsMouseSpeed ? 'ON' : 'OFF'}
             onChange={(event) => onCounterOsMouseSpeedChange(event.target.value === 'ON')}
             disabled={isCalibrating}
           >
-            <option value="OFF">Off (default)</option>
-            <option value="ON">On</option>
+            <option value="OFF">{t('common.offDefault')}</option>
+            <option value="ON">{t('common.on')}</option>
           </select>
         </label>
       </div>
       {backendChoice !== 'legacy' && devices && devices.length > 0 && (
         <div className="flex-inputs">
           <label>
-            Connected controllers
-            <p className="field-description">Controller type and VID:PID detected by JSM. Toggle to ignore gyro output per device.</p>
+            {t('gyro.connectedControllers')}
+            <p className="field-description">{t('gyro.connectedControllersHint')}</p>
             <div className={styles.controllerList}>
               {devices.map(dev => {
                 const id = formatVidPid(dev.vid, dev.pid)
@@ -194,11 +178,11 @@ export function GyroBehaviorControls({
                 return (
                   <div key={dev.handle} className={styles.controllerCard}>
                     <div className={styles.controllerEntry}>
-                      {controllerLabel(dev.type)}
+                      {controllerLabel(dev.type, t)}
                       {id && <span className={styles.controllerVidpid}>: {id}</span>}
                     </div>
                     <label className={styles.toggleSwitch}>
-                      <span className={styles.toggleLabel}>Ignore gyro output</span>
+                      <span className={styles.toggleLabel}>{t('gyro.ignoreGyroOutput')}</span>
                       <div className={styles.toggleWrapper}>
                         <input
                           type="checkbox"

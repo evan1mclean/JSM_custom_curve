@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import styles from './Misc.module.css'
 
 type UpdateState =
@@ -8,6 +9,7 @@ type UpdateState =
   | { phase: 'ready' }
 
 export function UpdateBanner() {
+  const { t } = useTranslation()
   const [update, setUpdate] = useState<UpdateState>({ phase: 'idle' })
   const [dismissed, setDismissed] = useState(false)
   const [progress, setProgress] = useState(0)
@@ -36,7 +38,7 @@ export function UpdateBanner() {
     <div className={styles.updateBanner}>
       {update.phase === 'available' && (
         <>
-          <span>Update v{update.version} available.</span>
+          <span>{t('update.available', { version: update.version })}</span>
           <div className={styles.updateBannerActions}>
             <button
               type="button"
@@ -46,30 +48,20 @@ export function UpdateBanner() {
                 window.electronAPI?.downloadUpdate?.()
               }}
             >
-              Download Now
+              {t('update.downloadNow')}
             </button>
-            <button
-              type="button"
-              className="secondary-btn"
-              onClick={() => setDismissed(true)}
-            >
-              Later
+            <button type="button" className="secondary-btn" onClick={() => setDismissed(true)}>
+              {t('common.later')}
             </button>
           </div>
         </>
       )}
-      {update.phase === 'downloading' && (
-        <span>Downloading update… {progress}%</span>
-      )}
+      {update.phase === 'downloading' && <span>{t('update.downloading', { percent: progress })}</span>}
       {update.phase === 'ready' && (
         <>
-          <span>Update ready to install.</span>
-          <button
-            type="button"
-            className="secondary-btn"
-            onClick={() => window.electronAPI?.installUpdate?.()}
-          >
-            Restart Now
+          <span>{t('update.ready')}</span>
+          <button type="button" className="secondary-btn" onClick={() => window.electronAPI?.installUpdate?.()}>
+            {t('update.restartNow')}
           </button>
         </>
       )}

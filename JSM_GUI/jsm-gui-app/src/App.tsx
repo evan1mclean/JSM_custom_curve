@@ -4,6 +4,7 @@ import sideNavStyles from './components/SideNav.module.css'
 import topBarStyles from './components/TopBar.module.css'
 import { ThemeToggle } from './components/ThemeToggle'
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useTelemetry } from './hooks/useTelemetry'
 import miscStyles from './components/Misc.module.css'
 import { SensitivityControls } from './components/SensitivityControls'
@@ -13,7 +14,6 @@ import { GyroBehaviorControls } from './components/GyroBehaviorControls'
 import { NoiseSteadyingControls } from './components/NoiseSteadyingControls'
 import { KeymapControls } from './components/KeymapControls'
 import { SectionActions } from './components/SectionActions'
-import { LOCK_MESSAGE } from './constants/messages'
 import { DEFAULT_HOLD_PRESS_TIME } from './constants/defaults'
 import { HelpDocsPage } from './components/HelpDocsPage'
 import { useProfileLibrary } from './hooks/useProfileLibrary'
@@ -24,6 +24,7 @@ import { UpdateBanner } from './components/UpdateBanner'
 import { RwcGuideModal } from './components/RwcGuideModal'
 import { updateKeymapEntry } from './utils/keymap'
 import { showToast } from './utils/toast'
+import { LanguageSelect } from './components/LanguageSelect'
 
 
 type PrimaryTab = 'gyro' | 'keybinds' | 'touchpad' | 'sticks' | 'help'
@@ -42,56 +43,64 @@ type PrimaryNavProps = {
   includeHelp?: boolean
 }
 
-const PrimaryNav = ({ primaryTab, setPrimaryTab, includeHelp = false }: PrimaryNavProps) => (
-  <div className={sideNavStyles.navGroup}>
-    <button
-      className={`${sideNavStyles.navItem} ${primaryTab === 'gyro' ? sideNavStyles.active : ''}`}
-      onClick={() => setPrimaryTab('gyro')}
-    >
-      Gyro & Sensitivity
-    </button>
-    <button
-      className={`${sideNavStyles.navItem} ${primaryTab === 'keybinds' ? sideNavStyles.active : ''}`}
-      onClick={() => setPrimaryTab('keybinds')}
-    >
-      Keybinds
-    </button>
-    <button
-      className={`${sideNavStyles.navItem} ${primaryTab === 'touchpad' ? sideNavStyles.active : ''}`}
-      onClick={() => setPrimaryTab('touchpad')}
-    >
-      Touchpad
-    </button>
-    <button
-      className={`${sideNavStyles.navItem} ${primaryTab === 'sticks' ? sideNavStyles.active : ''}`}
-      onClick={() => setPrimaryTab('sticks')}
-    >
-      Sticks
-    </button>
-    {includeHelp && (
+const PrimaryNav = ({ primaryTab, setPrimaryTab, includeHelp = false }: PrimaryNavProps) => {
+  const { t } = useTranslation()
+
+  return (
+    <div className={sideNavStyles.navGroup}>
       <button
-        className={`${sideNavStyles.navItem} ${primaryTab === 'help' ? sideNavStyles.active : ''}`}
-        onClick={() => setPrimaryTab('help')}
+        className={`${sideNavStyles.navItem} ${primaryTab === 'gyro' ? sideNavStyles.active : ''}`}
+        onClick={() => setPrimaryTab('gyro')}
       >
-        JSM Documentation
+        {t('app.nav.gyroAndSensitivity')}
       </button>
-    )}
-  </div>
-)
+      <button
+        className={`${sideNavStyles.navItem} ${primaryTab === 'keybinds' ? sideNavStyles.active : ''}`}
+        onClick={() => setPrimaryTab('keybinds')}
+      >
+        {t('app.nav.keybinds')}
+      </button>
+      <button
+        className={`${sideNavStyles.navItem} ${primaryTab === 'touchpad' ? sideNavStyles.active : ''}`}
+        onClick={() => setPrimaryTab('touchpad')}
+      >
+        {t('app.nav.touchpad')}
+      </button>
+      <button
+        className={`${sideNavStyles.navItem} ${primaryTab === 'sticks' ? sideNavStyles.active : ''}`}
+        onClick={() => setPrimaryTab('sticks')}
+      >
+        {t('app.nav.sticks')}
+      </button>
+      {includeHelp && (
+        <button
+          className={`${sideNavStyles.navItem} ${primaryTab === 'help' ? sideNavStyles.active : ''}`}
+          onClick={() => setPrimaryTab('help')}
+        >
+          {t('app.nav.documentation')}
+        </button>
+      )}
+    </div>
+  )
+}
 
 type HelpNavButtonProps = {
   primaryTab: PrimaryTab
   setPrimaryTab: (tab: PrimaryTab) => void
 }
 
-const HelpNavButton = ({ primaryTab, setPrimaryTab }: HelpNavButtonProps) => (
-  <button
-    className={`${sideNavStyles.navItem} ${primaryTab === 'help' ? sideNavStyles.active : ''}`}
-    onClick={() => setPrimaryTab('help')}
-  >
-    JSM Documentation
-  </button>
-)
+const HelpNavButton = ({ primaryTab, setPrimaryTab }: HelpNavButtonProps) => {
+  const { t } = useTranslation()
+
+  return (
+    <button
+      className={`${sideNavStyles.navItem} ${primaryTab === 'help' ? sideNavStyles.active : ''}`}
+      onClick={() => setPrimaryTab('help')}
+    >
+      {t('app.nav.documentation')}
+    </button>
+  )
+}
 
 type TopBarContentProps = {
   primaryTab: PrimaryTab
@@ -111,30 +120,37 @@ const TopBarContent = ({
   renderKeybindsNav,
   renderTouchpadNav,
   renderSticksNav,
-}: TopBarContentProps) => (
-  <>
-    <div className={topBarStyles.topBarLeft}>
-      {primaryTab === 'gyro' && renderGyroNav()}
-      {primaryTab === 'keybinds' && renderKeybindsNav()}
-      {primaryTab === 'touchpad' && renderTouchpadNav()}
-      {primaryTab === 'sticks' && renderSticksNav()}
-    </div>
-    <div className={topBarStyles.topBarRight}>
-      <label className={topBarStyles.inlineSelect}>
-        <span>JSM Version</span>
-        <select
-          className="app-select"
-          value={backendChoice}
-          onChange={(e) => onBackendChange(e.target.value as 'SDL' | 'legacy')}
-        >
-          <option value="SDL">SDL</option>
-          <option value="legacy">Legacy</option>
-        </select>
-      </label>
-    </div>
-  </>
-)
+}: TopBarContentProps) => {
+  const { t } = useTranslation()
+
+  return (
+    <>
+      <div className={topBarStyles.topBarLeft}>
+        {primaryTab === 'gyro' && renderGyroNav()}
+        {primaryTab === 'keybinds' && renderKeybindsNav()}
+        {primaryTab === 'touchpad' && renderTouchpadNav()}
+        {primaryTab === 'sticks' && renderSticksNav()}
+      </div>
+      <div className={topBarStyles.topBarRight}>
+        <LanguageSelect className={topBarStyles.inlineSelect} />
+        <label className={topBarStyles.inlineSelect}>
+          <span>{t('app.topBar.jsmVersion')}</span>
+          <select
+            className="app-select"
+            value={backendChoice}
+            onChange={(e) => onBackendChange(e.target.value as 'SDL' | 'legacy')}
+          >
+            <option value="SDL">SDL</option>
+            <option value="legacy">{t('app.topBar.legacy')}</option>
+          </select>
+        </label>
+      </div>
+    </>
+  )
+}
+
 function App() {
+  const { t } = useTranslation()
   const { sample, isCalibrating, countdown } = useTelemetry()
   const [statusMessage, setStatusMessage] = useState<string | null>(null)
   const [recalibrating, setRecalibrating] = useState(false)
@@ -296,13 +312,13 @@ function App() {
     try {
       const result = await window.electronAPI?.recalibrateGyro?.()
       if (result?.success) {
-        setStatusMessage('Recalibration started.')
+        setStatusMessage(t('messages.recalibrationStarted'))
       } else {
-        setStatusMessage('Failed to start recalibration.')
+        setStatusMessage(t('messages.recalibrationFailed'))
       }
     } catch (err) {
       console.error(err)
-      setStatusMessage('Failed to start recalibration.')
+      setStatusMessage(t('messages.recalibrationFailed'))
     } finally {
       setRecalibrating(false)
       setTimeout(() => setStatusMessage(null), 3000)
@@ -321,7 +337,7 @@ function App() {
     if (typeof value === 'string') {
       return value
     }
-    return '—'
+    return '-'
   }
 
   const telemetryValues = {
@@ -333,9 +349,9 @@ function App() {
   }
   const currentMode: 'static' | 'accel' =
     sensitivityView === 'modeshift' && sensitivityModeshiftButton ? selectedModeshiftMode : selectedBaseMode
-  const profileLabel = currentLibraryProfile ?? 'Unsaved profile'
+  const profileLabel = currentLibraryProfile ?? t('app.profileSummary.unsavedProfile')
   const profileFileLabel = `${profileLabel}${profileLabel.endsWith('.txt') ? '' : '.txt'}`
-  const lockMessage = LOCK_MESSAGE
+  const lockMessage = t('messages.lockMessage')
   const [backendChoice, setBackendChoice] = useState<'SDL' | 'legacy'>('SDL')
 
   useEffect(() => {
@@ -409,13 +425,13 @@ function App() {
   const renderGyroNav = () => (
     <div className="subnav">
       <button className={`pill-tab ${gyroSubTab === 'behavior' ? 'active' : ''}`} onClick={() => setGyroSubTab('behavior')}>
-        Gyro Behavior
+        {t('app.tabs.gyroBehavior')}
       </button>
       <button className={`pill-tab ${gyroSubTab === 'sensitivity' ? 'active' : ''}`} onClick={() => setGyroSubTab('sensitivity')}>
-        Sensitivity
+        {t('app.tabs.sensitivity')}
       </button>
       <button className={`pill-tab ${gyroSubTab === 'noise' ? 'active' : ''}`} onClick={() => setGyroSubTab('noise')}>
-        Noise & Steadying
+        {t('app.tabs.noiseAndSteadying')}
       </button>
     </div>
   )
@@ -424,14 +440,14 @@ function App() {
     <div className="subnav">
       {(['global', 'face', 'dpad', 'bumpers', 'triggers', 'center', 'paddles', 'extra'] as KeybindsSubTab[]).map(entry => (
         <button key={entry} className={`pill-tab ${keybindsSubTab === entry ? 'active' : ''}`} onClick={() => setKeybindsSubTab(entry)}>
-          {entry === 'global' && 'Global Settings'}
-          {entry === 'face' && 'Face'}
-          {entry === 'dpad' && 'D-pad'}
-          {entry === 'bumpers' && 'Bumpers'}
-          {entry === 'triggers' && 'Triggers'}
-          {entry === 'center' && 'Center'}
-          {entry === 'paddles' && 'Paddles'}
-          {entry === 'extra' && 'Extra'}
+          {entry === 'global' && t('app.tabs.globalSettings')}
+          {entry === 'face' && t('app.tabs.face')}
+          {entry === 'dpad' && t('app.tabs.dpad')}
+          {entry === 'bumpers' && t('app.tabs.bumpers')}
+          {entry === 'triggers' && t('app.tabs.triggers')}
+          {entry === 'center' && t('app.tabs.center')}
+          {entry === 'paddles' && t('app.tabs.paddles')}
+          {entry === 'extra' && t('app.tabs.extra')}
         </button>
       ))}
     </div>
@@ -440,10 +456,10 @@ function App() {
   const renderTouchpadNav = () => (
     <div className="subnav">
       <button className={`pill-tab ${touchpadSubTab === 'mode' ? 'active' : ''}`} onClick={() => setTouchpadSubTab('mode')}>
-        Mode
+        {t('app.tabs.mode')}
       </button>
       <button className={`pill-tab ${touchpadSubTab === 'bind' ? 'active' : ''}`} onClick={() => setTouchpadSubTab('bind')}>
-        Bindings
+        {t('app.tabs.bindings')}
       </button>
     </div>
   )
@@ -451,10 +467,10 @@ function App() {
   const renderSticksNav = () => (
     <div className="subnav">
       <button className={`pill-tab ${sticksSubTab === 'bindings' ? 'active' : ''}`} onClick={() => setSticksSubTab('bindings')}>
-        Bindings
+        {t('app.tabs.bindings')}
       </button>
       <button className={`pill-tab ${sticksSubTab === 'modes' ? 'active' : ''}`} onClick={() => setSticksSubTab('modes')}>
-        Modes & Settings
+        {t('app.tabs.modesAndSettings')}
       </button>
     </div>
   )
@@ -768,7 +784,7 @@ function App() {
       <UpdateBanner />
       {/* Desktop sidebar */}
       <aside className={sideNavStyles.sideNav}>
-        <div className={sideNavStyles.navBrand}>JSM Custom Curve</div>
+        <div className={sideNavStyles.navBrand}>{t('common.appName')}</div>
         <PrimaryNav primaryTab={primaryTab} setPrimaryTab={setPrimaryTab} />
         <div className={sideNavStyles.navFooter}>
           <HelpNavButton primaryTab={primaryTab} setPrimaryTab={setPrimaryTab} />
@@ -780,7 +796,7 @@ function App() {
       <div className="responsive-header">
         <div className={sideNavStyles.navHeaderRow}>
           <div>
-            <div className={sideNavStyles.navBrand}>JSM Custom Curve</div>
+            <div className={sideNavStyles.navBrand}>{t('common.appName')}</div>
             <PrimaryNav primaryTab={primaryTab} setPrimaryTab={setPrimaryTab} includeHelp />
           </div>
           <div className={sideNavStyles.navToggleFloat}>
@@ -819,21 +835,21 @@ function App() {
               {isCalibrating ? (
                 <div className="recalibrate-row">
                   <span className="calibration-pill calibration-pill-inline">
-                    Calibrating — ({countdown ?? '…'})
+                    {t('app.recalibration.calibratingCountdown', { seconds: countdown ?? '-' })}
                   </span>
                 </div>
               ) : (
                 <button className="secondary-btn rail-button" onClick={handleRecalibrate} disabled={recalibrating}>
-                  {recalibrating ? 'Recalibrating…' : 'Recalibrate gyro'}
+                  {recalibrating ? t('app.recalibration.recalibrating') : t('app.recalibration.recalibrateGyro')}
                 </button>
               )}
             </div>
             <div className="profile-summary-card">
               <div className="profile-summary-header">
-                <div className="profile-summary-title">Profile</div>
+                <div className="profile-summary-title">{t('app.profileSummary.title')}</div>
               </div>
               <label className="profile-summary-select">
-                Quick switch
+                {t('app.profileSummary.quickSwitch')}
                 <select
                   className="app-select"
                   disabled={isCalibrating}
@@ -845,7 +861,7 @@ function App() {
                   }}
                 >
                   <option value="" disabled>
-                    Select profile
+                    {t('app.profileSummary.selectProfile')}
                   </option>
                   {(libraryProfiles ?? []).map(name => (
                     <option key={name} value={name}>
@@ -856,7 +872,7 @@ function App() {
               </label>
               <div className="profile-summary-actions">
                 <button className="secondary-btn" onClick={() => setProfileModalOpen(true)}>
-                  Manage profiles
+                  {t('app.profileSummary.manageProfiles')}
                 </button>
               </div>
             </div>
@@ -891,15 +907,15 @@ function App() {
         <div className="modal-overlay">
           <div className="modal-card">
             <div className="modal-header">
-              <h3>Real-world calibration</h3>
+              <h3>{t('app.calibrationModal.title')}</h3>
               {calibrationLoadMessage && <span className="profile-status inline-flag">{calibrationLoadMessage}</span>}
             </div>
             <p className="modal-description">
-              Set your in-game sensitivity and number of turns below, then apply the preset to JSM. In-game, rotate the stick to complete exactly that many full rotations in game. More turns gives a more accurate calculation. Come back here and hit Run Calculation.
+              {t('app.calibrationModal.description')}
             </p>
             <div className="flex-inputs">
               <label>
-                In-Game Sensitivity
+                {t('app.calibrationModal.inGameSensitivity')}
                 <input
                   type="number"
                   step="0.1"
@@ -913,8 +929,8 @@ function App() {
             </div>
             <div className="flex-inputs">
               <label>
-                Counter OS mouse speed
-                <p className="field-description">Enable for non-raw-input games when Windows pointer speed isn’t 6/11.</p>
+                {t('app.calibrationModal.counterOsMouseSpeed')}
+                <p className="field-description">{t('app.calibrationModal.counterOsMouseSpeedHint')}</p>
                 <select
                   className="app-select"
                   value={calibrationCounterOs ? 'ON' : 'OFF'}
@@ -923,14 +939,14 @@ function App() {
                     setCalibrationDirty(true)
                   }}
                 >
-                  <option value="OFF">Off (default)</option>
-                  <option value="ON">On</option>
+                  <option value="OFF">{t('common.offDefault')}</option>
+                  <option value="ON">{t('common.on')}</option>
                 </select>
               </label>
             </div>
             <div className="flex-inputs">
               <label>
-                Number of turns
+                {t('app.calibrationModal.numberOfTurns')}
                 <input
                   type="number"
                   step="0.5"
@@ -956,15 +972,22 @@ function App() {
                 onClick={() => handleRunCalibration(parseFloat(calibrationTurns) || 1)}
                 disabled={isCalibrating}
               >
-                Run calculation
+                {t('app.calibrationModal.runCalculation')}
               </button>
-              <button type="button" className="secondary-btn" onClick={() => { handleCloseCalibration(); showToast(`Active profile: ${profileLabel}`) }}>
-                Close
+              <button
+                type="button"
+                className="secondary-btn"
+                onClick={() => {
+                  handleCloseCalibration()
+                  showToast(t('messages.activeProfileToast', { profileName: profileLabel }))
+                }}
+              >
+                {t('common.close')}
               </button>
             </div>
             {calibrationOutput && (
               <>
-                <div className={miscStyles.calibrationOutputLabel}>Calculation result</div>
+                <div className={miscStyles.calibrationOutputLabel}>{t('app.calibrationModal.calculationResult')}</div>
                 <div className={miscStyles.calibrationOutput} data-capture-ignore="true">
                   <pre>{calibrationOutput}</pre>
                 </div>
@@ -988,9 +1011,9 @@ function App() {
         <div className="modal-overlay">
           <div className="modal-card profile-modal">
             <div className="modal-header">
-              <h3>Profiles</h3>
+              <h3>{t('app.profilesModal.title')}</h3>
               <button className="secondary-btn" onClick={() => setProfileModalOpen(false)}>
-                Close
+                {t('common.close')}
               </button>
             </div>
             <ProfileManager

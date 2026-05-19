@@ -1,5 +1,6 @@
 import { isValidElement, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import ReactMarkdown, { type Components } from 'react-markdown'
+import { useTranslation } from 'react-i18next'
 import { Card } from './Card'
 import styles from './HelpDocsPage.module.css'
 import docsMarkdown from '../assets/docs/JSM-docs.md?raw'
@@ -107,6 +108,7 @@ function collectFindMatches(container: HTMLElement, query: string, baseClassName
 }
 
 export function HelpDocsPage() {
+  const { t } = useTranslation()
   const [search, setSearch] = useState('')
   const [activeSlug, setActiveSlug] = useState<string | null>(null)
   const [matchCount, setMatchCount] = useState(0)
@@ -365,14 +367,14 @@ export function HelpDocsPage() {
     <Card className={`control-panel ${styles.helpCard}`}>
       <div ref={searchBarRef} className={styles.searchBar} style={stickyTopOffset > 0 ? { top: `${stickyTopOffset}px` } : undefined}>
         <div className={styles.headerRow}>
-          <h2>JSM Documentation</h2>
+          <h2>{t('help.title')}</h2>
         </div>
         <label className={styles.searchField}>
-          <span>Search documentation</span>
+          <span>{t('help.searchDocumentation')}</span>
           <input
             ref={searchInputRef}
             type="text"
-            placeholder="Search commands, settings, topics…"
+            placeholder={t('help.searchPlaceholder')}
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             onKeyDown={(event) => {
@@ -392,9 +394,9 @@ export function HelpDocsPage() {
           <div className={styles.findStatus}>
             {normalizedQuery
               ? matchCount > 0
-                ? `${activeMatchIndex + 1} of ${matchCount} match${matchCount === 1 ? '' : 'es'}`
-                : 'No matches'
-              : 'Type to find in documentation'}
+                ? t('help.findStatusMatches', { current: activeMatchIndex + 1, total: matchCount })
+                : t('help.findStatusNoMatches')
+              : t('help.findStatusTypeToFind')}
           </div>
           <div className={styles.findButtons}>
             <button
@@ -406,7 +408,7 @@ export function HelpDocsPage() {
               }}
               disabled={!search}
             >
-              Clear
+              {t('common.clear')}
             </button>
             <button
               type="button"
@@ -414,7 +416,7 @@ export function HelpDocsPage() {
               onClick={() => goToRelativeMatch(-1)}
               disabled={!normalizedQuery || matchCount === 0}
             >
-              Previous
+              {t('common.previous')}
             </button>
             <button
               type="button"
@@ -422,10 +424,10 @@ export function HelpDocsPage() {
               onClick={() => goToRelativeMatch(1)}
               disabled={!normalizedQuery || matchCount === 0}
             >
-              Next
+              {t('common.next')}
             </button>
             <button type="button" className={styles.findNavButton} onClick={scrollToTop}>
-              Top
+              {t('common.top')}
             </button>
           </div>
         </div>

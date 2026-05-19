@@ -1,6 +1,7 @@
+import { useTranslation } from 'react-i18next'
 import { KeymapSection } from '../KeymapSection'
-import { SectionActions } from '../SectionActions'
 import keymapStyles from '../Keymap.module.css'
+import { SectionActions } from '../SectionActions'
 
 type GlobalControlsSectionProps = {
   holdPressTimeSeconds: number
@@ -41,12 +42,9 @@ export function GlobalControlsSection({
   onCancel,
   applyDisabled,
 }: GlobalControlsSectionProps) {
-  const renderRow = (
-    title: string,
-    caption: string,
-    value: number,
-    onChange: (value: string) => void
-  ) => (
+  const { t } = useTranslation()
+
+  const renderRow = (title: string, caption: string, value: number, onChange: (value: string) => void) => (
     <div className={keymapStyles.globalControlRow} data-capture-ignore="true">
       <div className={keymapStyles.globalControlText}>
         <span className={keymapStyles.globalControlTitle}>{title}</span>
@@ -54,38 +52,38 @@ export function GlobalControlsSection({
       </div>
       <div className={keymapStyles.globalControlInputGroup}>
         <input type="number" min="0" max="1" step="0.01" value={value} onChange={(event) => onChange(event.target.value)} />
-        <span className={keymapStyles.globalControlUnit}>seconds</span>
+        <span className={keymapStyles.globalControlUnit}>{t('common.seconds')}</span>
       </div>
     </div>
   )
 
   return (
     <>
-      <KeymapSection title="Global controls" description="Timing windows that apply whenever those binding types are in use.">
+      <KeymapSection title={t('keymap.globalControlsTitle')} description={t('keymap.globalControlsDescription')}>
         <div className={keymapStyles.globalControls}>
           {renderRow(
-            'Tap vs hold press threshold',
-            holdPressTimeIsCustom ? 'Custom HOLD_PRESS_TIME saved' : `Using default (${Math.round(holdPressTimeDefault * 1000)} ms)`,
+            t('keymap.tapVsHoldPressThreshold'),
+            holdPressTimeIsCustom ? t('keymap.customHoldPressTimeSaved') : t('keymap.usingDefaultMs', { ms: Math.round(holdPressTimeDefault * 1000) }),
             holdPressTimeSeconds,
             onHoldPressTimeChange
           )}
           {renderRow(
-            'Double press window',
-            doublePressWindowIsCustom ? 'Custom DBL_PRESS_WINDOW saved' : `Using default (${Math.round(holdPressTimeDefault * 1000)} ms)`,
+            t('keymap.doublePressWindow'),
+            doublePressWindowIsCustom ? t('keymap.customDoublePressWindowSaved') : t('keymap.usingDefaultMs', { ms: Math.round(holdPressTimeDefault * 1000) }),
             doublePressWindowSeconds,
             onDoublePressWindowChange
           )}
           {renderRow(
-            'Simultaneous press window',
-            simPressWindowIsCustom ? 'Custom SIM_PRESS_WINDOW saved' : `Using default (${Math.round(holdPressTimeDefault * 1000)} ms)`,
+            t('keymap.simultaneousPressWindow'),
+            simPressWindowIsCustom ? t('keymap.customSimPressWindowSaved') : t('keymap.usingDefaultMs', { ms: Math.round(holdPressTimeDefault * 1000) }),
             simPressWindowSeconds,
             onSimPressWindowChange
           )}
           <div className={keymapStyles.globalControlRow} data-capture-ignore="true">
             <div className={keymapStyles.globalControlText}>
-              <span className={keymapStyles.globalControlTitle}>Light bar color</span>
+              <span className={keymapStyles.globalControlTitle}>{t('keymap.lightBarColor')}</span>
               <span className={keymapStyles.globalControlCaption}>
-                {lightBarColor ? `LIGHT_BAR = x${lightBarColor.slice(1).toLowerCase()}` : 'Not set (using default)'}
+                {lightBarColor ? t('keymap.lightBarColorSet', { value: lightBarColor.slice(1).toLowerCase() }) : t('keymap.lightBarColorDefault')}
               </span>
             </div>
             <div className={keymapStyles.globalControlInputGroup}>
@@ -96,12 +94,8 @@ export function GlobalControlsSection({
                 className={keymapStyles.lightBarColorPicker}
               />
               {lightBarColor && (
-                <button
-                  type="button"
-                  className={keymapStyles.lightBarClearBtn}
-                  onClick={() => onLightBarChange(null)}
-                >
-                  Clear
+                <button type="button" className={keymapStyles.lightBarClearBtn} onClick={() => onLightBarChange(null)}>
+                  {t('common.clear')}
                 </button>
               )}
             </div>

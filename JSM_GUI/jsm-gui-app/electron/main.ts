@@ -122,8 +122,8 @@ async function ensureLibraryDir() {
 
 const sanitizeProfileName = (rawName: string) => {
   const trimmed = rawName?.trim() ?? ''
-  // Allow letters, numbers, spaces, dashes/underscores, parentheses, apostrophes, commas, and periods.
-  const cleaned = trimmed.replace(/[^a-zA-Z0-9-_.(),' ]/g, '').substring(0, 80)
+  // Allow Unicode letters/numbers plus common punctuation used in profile names.
+  const cleaned = trimmed.replace(/[^\p{L}\p{N}\-_.(),' ]/gu, '').substring(0, 80)
   const withoutTrailing = cleaned.replace(/[. ]+$/g, '')
   return withoutTrailing.length > 0 ? withoutTrailing : 'Profile'
 }
@@ -792,9 +792,9 @@ ipcMain.handle('library-list-profiles', async () => {
   return listLibraryProfiles()
 })
 
-ipcMain.handle('library-create-profile', async () => {
+ipcMain.handle('library-create-profile', async (_event, preferredBaseName?: string) => {
   await ensureRequiredFiles()
-  const name = await generateUniqueProfileName()
+  const name = await generateUniqueProfileName(preferredBaseName)
   const relative = relativeProfilePathFromName(name)
   const absolute = absoluteProfilePath(relative)
   await fs.writeFile(absolute, `${PROFILE_TEMPLATE_LINES.join('\n')}\n`, 'utf8')

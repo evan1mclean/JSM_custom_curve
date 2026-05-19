@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import styles from './Keymap.module.css'
 
 type SpecialOption = { value: string; label: string; disabled?: boolean }
@@ -49,14 +50,17 @@ export function BindingRow({
   modifierValue,
   onModifierChange,
 }: BindingRowProps) {
-  const buttonLabel = isCapturing ? captureLabel : displayValue || 'Click to set binding'
-  const clearLabel = isManual ? 'Remove Row' : 'Clear'
+  const { t } = useTranslation()
+  const buttonLabel = isCapturing ? captureLabel : displayValue || t('keymap.clickToSetBinding')
+  const clearLabel = isManual ? t('keymap.removeRow') : t('keymap.clearBinding')
+
   const handleClear = () => {
     onClear()
     if (isManual) {
       onRemoveRow?.()
     }
   }
+
   return (
     <div className={styles.bindingRow}>
       {showHeader && (
@@ -66,7 +70,7 @@ export function BindingRow({
       )}
       {modifierOptions && modifierOptions.length > 0 && (
         <div className={styles.rowModifierSelect} data-capture-ignore="true">
-          <label>{modifierLabel ?? 'Modifier button'}</label>
+          <label>{modifierLabel ?? t('keymap.modifierButton')}</label>
           <select className="app-select" value={modifierValue ?? ''} onChange={(event) => onModifierChange?.(event.target.value)}>
             {modifierOptions.map(option => (
               <option key={option.value} value={option.value} disabled={option.disabled}>
@@ -83,7 +87,7 @@ export function BindingRow({
             value={specialValue ?? ''}
             onChange={(event) => onSpecialChange?.(event.target.value)}
           >
-            <option value="">Special Binds</option>
+            <option value="">{t('keymap.specialBinds')}</option>
             {specialOptions.map(option => (
               <option key={option.value || 'placeholder'} value={option.value} disabled={option.disabled}>
                 {option.label}
@@ -111,7 +115,7 @@ export function BindingRow({
         </button>
         {isCapturing && (
           <button type="button" className="link-btn" onClick={onCancelCapture} data-capture-ignore="true">
-            Cancel
+            {t('common.cancel')}
           </button>
         )}
       </div>

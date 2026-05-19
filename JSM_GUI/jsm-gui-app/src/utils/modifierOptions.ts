@@ -1,56 +1,63 @@
-export type ModifierSelectOption = { value: string; label: string; disabled?: boolean }
+import type { TFunction } from 'i18next'
+
+export type ModifierSelectOption = {
+  value: string
+  labelKey: string
+  labelParams?: Record<string, number | string>
+  disabled?: boolean
+}
 
 const BASE_MODIFIER_OPTIONS: ModifierSelectOption[] = [
-  { value: 'UP', label: 'UP – D-pad up' },
-  { value: 'DOWN', label: 'DOWN – D-pad down' },
-  { value: 'LEFT', label: 'LEFT – D-pad left' },
-  { value: 'RIGHT', label: 'RIGHT – D-pad right' },
-  { value: 'L', label: 'L – top-left bumper (L1 / LB)' },
-  { value: 'ZL', label: 'ZL – left trigger soft pull (L2 / LT)' },
-  { value: 'ZLF', label: 'ZLF – left trigger full pull' },
-  { value: 'R', label: 'R – top-right bumper (R1 / RB)' },
-  { value: 'ZR', label: 'ZR – right trigger soft pull (R2 / RT)' },
-  { value: 'ZRF', label: 'ZRF – right trigger full pull' },
-  { value: '-', label: '- – Minus / Share button' },
-  { value: '+', label: '+ – Options / Menu button' },
-  { value: 'HOME', label: 'HOME – PS / Guide button' },
-  { value: 'CAPTURE', label: 'CAPTURE – Touchpad click / Capture' },
-  { value: 'LSL', label: 'LSL – primary left back paddle' },
-  { value: 'RSR', label: 'RSR – primary right back paddle' },
-  { value: 'LSR', label: 'LSR – secondary left back paddle' },
-  { value: 'RSL', label: 'RSL – secondary right back paddle' },
-  { value: 'L3', label: 'L3 – left stick click' },
-  { value: 'R3', label: 'R3 – right stick click' },
-  { value: 'N', label: 'N – North face button (Triangle / Y)' },
-  { value: 'E', label: 'E – East face button (Circle / B)' },
-  { value: 'S', label: 'S – South face button (Cross / A)' },
-  { value: 'W', label: 'W – West face button (Square / X)' },
-  { value: 'LUP', label: 'LUP – left stick up' },
-  { value: 'LDOWN', label: 'LDOWN – left stick down' },
-  { value: 'LLEFT', label: 'LLEFT – left stick left' },
-  { value: 'LRIGHT', label: 'LRIGHT – left stick right' },
-  { value: 'LRING', label: 'LRING – left stick ring binding' },
-  { value: 'RUP', label: 'RUP – right stick up' },
-  { value: 'RDOWN', label: 'RDOWN – right stick down' },
-  { value: 'RLEFT', label: 'RLEFT – right stick left' },
-  { value: 'RRIGHT', label: 'RRIGHT – right stick right' },
-  { value: 'RRING', label: 'RRING – right stick ring binding' },
-  { value: 'LEAN_LEFT', label: 'LEAN_LEFT – tilt controller left' },
-  { value: 'LEAN_RIGHT', label: 'LEAN_RIGHT – tilt controller right' },
-  { value: 'MIC', label: 'MIC – DualSense microphone button' },
-  { value: 'LMINI', label: 'LMINI – left mini shoulder button' },
-  { value: 'RMINI', label: 'RMINI – right mini shoulder button' },
-  { value: 'LTOUCH', label: 'LTOUCH – left stick capacitive touch' },
-  { value: 'RTOUCH', label: 'RTOUCH – right stick capacitive touch' },
-  { value: 'MISC1', label: 'MISC1 – extra button 1' },
-  { value: 'MISC2', label: 'MISC2 – extra button 2' },
-  { value: 'MISC3', label: 'MISC3 – extra button 3' },
-  { value: 'MISC4', label: 'MISC4 – extra button 4' },
-  { value: 'MISC5', label: 'MISC5 – extra button 5' },
-  { value: 'MISC6', label: 'MISC6 – extra button 6' },
+  { value: 'UP', labelKey: 'modifiers.up' },
+  { value: 'DOWN', labelKey: 'modifiers.down' },
+  { value: 'LEFT', labelKey: 'modifiers.left' },
+  { value: 'RIGHT', labelKey: 'modifiers.right' },
+  { value: 'L', labelKey: 'modifiers.l' },
+  { value: 'ZL', labelKey: 'modifiers.zl' },
+  { value: 'ZLF', labelKey: 'modifiers.zlf' },
+  { value: 'R', labelKey: 'modifiers.r' },
+  { value: 'ZR', labelKey: 'modifiers.zr' },
+  { value: 'ZRF', labelKey: 'modifiers.zrf' },
+  { value: '-', labelKey: 'modifiers.minus' },
+  { value: '+', labelKey: 'modifiers.plus' },
+  { value: 'HOME', labelKey: 'modifiers.home' },
+  { value: 'CAPTURE', labelKey: 'modifiers.capture' },
+  { value: 'LSL', labelKey: 'modifiers.lsl' },
+  { value: 'RSR', labelKey: 'modifiers.rsr' },
+  { value: 'LSR', labelKey: 'modifiers.lsr' },
+  { value: 'RSL', labelKey: 'modifiers.rsl' },
+  { value: 'L3', labelKey: 'modifiers.l3' },
+  { value: 'R3', labelKey: 'modifiers.r3' },
+  { value: 'N', labelKey: 'modifiers.n' },
+  { value: 'E', labelKey: 'modifiers.e' },
+  { value: 'S', labelKey: 'modifiers.s' },
+  { value: 'W', labelKey: 'modifiers.w' },
+  { value: 'LUP', labelKey: 'modifiers.lup' },
+  { value: 'LDOWN', labelKey: 'modifiers.ldown' },
+  { value: 'LLEFT', labelKey: 'modifiers.lleft' },
+  { value: 'LRIGHT', labelKey: 'modifiers.lright' },
+  { value: 'LRING', labelKey: 'modifiers.lring' },
+  { value: 'RUP', labelKey: 'modifiers.rup' },
+  { value: 'RDOWN', labelKey: 'modifiers.rdown' },
+  { value: 'RLEFT', labelKey: 'modifiers.rleft' },
+  { value: 'RRIGHT', labelKey: 'modifiers.rright' },
+  { value: 'RRING', labelKey: 'modifiers.rring' },
+  { value: 'LEAN_LEFT', labelKey: 'modifiers.leanLeft' },
+  { value: 'LEAN_RIGHT', labelKey: 'modifiers.leanRight' },
+  { value: 'MIC', labelKey: 'modifiers.mic' },
+  { value: 'LMINI', labelKey: 'modifiers.lmini' },
+  { value: 'RMINI', labelKey: 'modifiers.rmini' },
+  { value: 'LTOUCH', labelKey: 'modifiers.ltouch' },
+  { value: 'RTOUCH', labelKey: 'modifiers.rtouch' },
+  { value: 'MISC1', labelKey: 'modifiers.misc1' },
+  { value: 'MISC2', labelKey: 'modifiers.misc2' },
+  { value: 'MISC3', labelKey: 'modifiers.misc3' },
+  { value: 'MISC4', labelKey: 'modifiers.misc4' },
+  { value: 'MISC5', labelKey: 'modifiers.misc5' },
+  { value: 'MISC6', labelKey: 'modifiers.misc6' },
 ]
 
-const TOUCHPAD_CORE_OPTIONS: ModifierSelectOption[] = [{ value: 'TOUCH', label: 'TOUCH – touchpad touch' }]
+const TOUCHPAD_CORE_OPTIONS: ModifierSelectOption[] = [{ value: 'TOUCH', labelKey: 'modifiers.touch' }]
 
 const TOUCHPAD_GRID_PREVIEW_COUNT = 6
 
@@ -59,22 +66,27 @@ const clampGridButtons = (value: number) => {
   return Math.min(Math.max(Math.floor(value), 1), 25)
 }
 
-export const buildModifierOptions = (
-  gridActive: boolean,
-  configuredGridButtons: number
-) => {
+export const resolveModifierOptionLabel = (option: ModifierSelectOption, t: TFunction) =>
+  t(option.labelKey, option.labelParams)
+
+export const buildModifierOptions = (gridActive: boolean, configuredGridButtons: number) => {
   const options: ModifierSelectOption[] = [...BASE_MODIFIER_OPTIONS, ...TOUCHPAD_CORE_OPTIONS]
   if (gridActive) {
     const count = clampGridButtons(configuredGridButtons || 1)
     for (let index = 1; index <= count; index += 1) {
-      options.push({ value: `T${index}`, label: `T${index} – touch grid region ${index}` })
+      options.push({
+        value: `T${index}`,
+        labelKey: 'modifiers.touchGridRegion',
+        labelParams: { index },
+      })
     }
   } else {
     const previewCount = Math.min(TOUCHPAD_GRID_PREVIEW_COUNT, Math.max(configuredGridButtons, 2) || 2)
     for (let index = 1; index <= previewCount; index += 1) {
       options.push({
         value: `T${index}`,
-        label: `T${index} – touch grid region ${index} (enable GRID_AND_STICK to use)`,
+        labelKey: 'modifiers.touchGridRegionDisabled',
+        labelParams: { index },
         disabled: true,
       })
     }

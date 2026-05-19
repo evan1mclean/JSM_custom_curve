@@ -1,13 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
-import { getKeymapValue, removeKeymapEntry, updateKeymapEntry } from '../utils/keymap'
-import { upsertFlagCommand } from '../utils/config'
+import { useTranslation } from 'react-i18next'
 import { keyName } from '../constants/configKeys'
-import {
-  CALIBRATION_NO_RESPONSE,
-  CALIBRATION_PRESET_FAILED,
-  CALIBRATION_PRESET_LOADED,
-  formatCalibrationRunFailed,
-} from '../constants/messages'
+import { upsertFlagCommand } from '../utils/config'
+import { getKeymapValue, removeKeymapEntry, updateKeymapEntry } from '../utils/keymap'
 
 type UseCalibrationParams = {
   configText: string
@@ -16,6 +11,7 @@ type UseCalibrationParams = {
 }
 
 export function useCalibration({ configText, counterOsMouseSpeedEnabled, sensitivityInGame }: UseCalibrationParams) {
+  const { t } = useTranslation()
   const [isCalibrationModalOpen, setCalibrationModalOpen] = useState(false)
   const [calibrationRestorePath, setCalibrationRestorePath] = useState<string | null>(null)
   const [calibrationCounterOs, setCalibrationCounterOs] = useState<boolean>(false)
@@ -42,7 +38,7 @@ export function useCalibration({ configText, counterOsMouseSpeedEnabled, sensiti
 
   const handleOpenCalibration = useCallback(async () => {
     setCalibrationOutput('')
-    setCalibrationCounterOs(false)
+    setCalibrationCounterOs(counterOsMouseSpeedEnabled)
     setCalibrationInGameSens(sensitivityInGame?.toString() ?? '')
     setCalibrationModalOpen(true)
     try {
@@ -50,7 +46,7 @@ export function useCalibration({ configText, counterOsMouseSpeedEnabled, sensiti
       if (result?.activeProfile) {
         setCalibrationRestorePath(result.activeProfile)
       }
-      setCalibrationLoadMessage(result?.success ? CALIBRATION_PRESET_LOADED : CALIBRATION_PRESET_FAILED)
+      setCalibrationLoadMessage(result?.success ? t('messages.calibrationPresetLoaded') : t('messages.calibrationPresetFailed'))
       const preset = await window.electronAPI?.readCalibrationPreset?.()
       if (preset?.success && preset.content !== undefined) {
         setCalibrationText(preset.content)
@@ -63,25 +59,23 @@ export function useCalibration({ configText, counterOsMouseSpeedEnabled, sensiti
       }
     } catch (err) {
       console.error('Failed to load calibration preset', err)
+      setCalibrationLoadMessage(t('messages.calibrationPresetFailed'))
     }
-  }, [counterOsMouseSpeedEnabled, sensitivityInGame])
+  }, [counterOsMouseSpeedEnabled, sensitivityInGame, t])
 
-  const handleCloseCalibration = useCallback(
-    async () => {
-      setCalibrationModalOpen(false)
-      setCalibrationOutput('')
-      if (calibrationRestorePath) {
-        try {
-          await window.electronAPI?.applyProfile?.(calibrationRestorePath, configText)
-        } catch (err) {
-          console.error('Failed to restore profile after calibration', err)
-        } finally {
-          setCalibrationRestorePath(null)
-        }
+  const handleCloseCalibration = useCallback(async () => {
+    setCalibrationModalOpen(false)
+    setCalibrationOutput('')
+    if (calibrationRestorePath) {
+      try {
+        await window.electronAPI?.applyProfile?.(calibrationRestorePath, configText)
+      } catch (err) {
+        console.error('Failed to restore profile after calibration', err)
+      } finally {
+        setCalibrationRestorePath(null)
       }
-    },
-    [calibrationRestorePath, configText]
-  )
+    }
+  }, [calibrationRestorePath, configText])
 
   const buildCalibrationPreset = useCallback(() => {
     let next = calibrationText || ''
@@ -105,20 +99,23 @@ export function useCalibration({ configText, counterOsMouseSpeedEnabled, sensiti
     await window.electronAPI?.saveCalibrationPreset?.(nextText)
   }, [buildCalibrationPreset])
 
-  const handleRunCalibration = useCallback(async (turns: number) => {
-    try {
-      const command = turns !== 1 ? `CALCULATE_REAL_WORLD_CALIBRATION ${turns}` : 'CALCULATE_REAL_WORLD_CALIBRATION'
-      const result = await window.electronAPI?.runCalibrationCommand?.(command)
-      const output = result && typeof result.output === 'string' ? result.output : ''
-      if (output.length > 0) {
-        setCalibrationOutput(output)
-      } else {
-        setCalibrationOutput(CALIBRATION_NO_RESPONSE)
+  const handleRunCalibration = useCallback(
+    async (turns: number) => {
+      try {
+        const command = turns !== 1 ? `CALCULATE_REAL_WORLD_CALIBRATION ${turns}` : 'CALCULATE_REAL_WORLD_CALIBRATION'
+        const result = await window.electronAPI?.runCalibrationCommand?.(command)
+        const output = result && typeof result.output === 'string' ? result.output : ''
+        if (output.length > 0) {
+          setCalibrationOutput(output)
+        } else {
+          setCalibrationOutput(t('messages.calibrationNoResponse'))
+        }
+      } catch (err) {
+        setCalibrationOutput(t('messages.calibrationRunFailed', { error: String(err) }))
       }
-    } catch (err) {
-      setCalibrationOutput(formatCalibrationRunFailed(err))
-    }
-  }, [])
+    },
+    [t]
+  )
 
   return {
     isCalibrationModalOpen,

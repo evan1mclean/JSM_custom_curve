@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import styles from './ThemeToggle.module.css'
 import { useTheme } from '../hooks/useTheme'
 
@@ -7,10 +8,11 @@ type ThemeToggleProps = {
 }
 
 export function ThemeToggle({ compact = false, className = '' }: ThemeToggleProps) {
+  const { t } = useTranslation()
   const { theme, toggle } = useTheme()
   const isLight = theme === 'light'
-  const label = isLight ? 'Switch to dark mode' : 'Switch to light mode'
-  const iconChar = isLight ? '☀︎' : '☾'
+  const label = isLight ? t('theme.switchToDarkMode') : t('theme.switchToLightMode')
+  const iconChar = isLight ? '☀' : '☾'
 
   return (
     <button
@@ -24,7 +26,7 @@ export function ThemeToggle({ compact = false, className = '' }: ThemeToggleProp
         <span className={styles.icon} aria-hidden="true">
           {iconChar}
         </span>
-        {!compact && <span className={styles.text}>{isLight ? 'Light' : 'Dark'}</span>}
+        {!compact && <span className={styles.text}>{isLight ? t('theme.light') : t('theme.dark')}</span>}
       </span>
       <span className={styles.switch} aria-hidden="true">
         <span className={styles.thumb} />

@@ -1,3 +1,7 @@
+import { Card } from './Card'
+import { SectionActions } from './SectionActions'
+import styles from './ConfigEditor.module.css'
+
 type ConfigEditorProps = {
   value: string
   label: string
@@ -8,10 +12,6 @@ type ConfigEditorProps = {
   onApply: () => void
   onCancel: () => void
 }
-
-import { Card } from './Card'
-import { SectionActions } from './SectionActions'
-import styles from './ConfigEditor.module.css'
 
 export function ConfigEditor({
   value,
@@ -36,7 +36,6 @@ export function ConfigEditor({
         onApply={onApply}
         onCancel={onCancel}
         applyDisabled={disabled}
-        pendingMessage="Pending changes — click Apply to send to JoyShockMapper."
       />
     </Card>
   )

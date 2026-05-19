@@ -1,7 +1,8 @@
-import { SensitivityValues } from '../utils/keymap'
-import { SensitivityGraph } from './SensitivityGraph'
-import graphStyles from './Graph.module.css'
+import { useTranslation } from 'react-i18next'
 import { TelemetrySample } from '../hooks/useTelemetry'
+import { SensitivityValues } from '../utils/keymap'
+import graphStyles from './Graph.module.css'
+import { SensitivityGraph } from './SensitivityGraph'
 
 type CurvePreviewProps = {
   sensitivity: SensitivityValues
@@ -16,13 +17,26 @@ type CurvePreviewProps = {
 }
 
 export function CurvePreview({ sensitivity, sample, hasPendingChanges, telemetry }: CurvePreviewProps) {
+  const { t } = useTranslation()
   const asNumber = (value: unknown) => (typeof value === 'number' ? value : undefined)
-  const curveType = (sensitivity.accelCurve ?? 'LINEAR').toUpperCase() as 'LINEAR' | 'NATURAL' | 'POWER' | 'QUADRATIC' | 'SIGMOID' | 'JUMP'
+  const curveType = (sensitivity.accelCurve ?? 'LINEAR').toUpperCase() as
+    | 'LINEAR'
+    | 'NATURAL'
+    | 'POWER'
+    | 'QUADRATIC'
+    | 'SIGMOID'
+    | 'JUMP'
+
   return (
     <div className={graphStyles.graphPanel}>
       <div className={graphStyles.graphLegend}>
-        <span><span className={`${graphStyles.legendDot} ${graphStyles.legendDotSensitivity}`} /> Sensitivity</span>
-        <span><span className={`${graphStyles.legendDot} ${graphStyles.legendDotVelocity}`} /> Normalized output velocity</span>
+        <span>
+          <span className={`${graphStyles.legendDot} ${graphStyles.legendDotSensitivity}`} /> {t('curvePreview.sensitivity')}
+        </span>
+        <span>
+          <span className={`${graphStyles.legendDot} ${graphStyles.legendDotVelocity}`} />{' '}
+          {t('curvePreview.normalizedOutputVelocity')}
+        </span>
       </div>
       <SensitivityGraph
         minThreshold={sensitivity.minThreshold}
@@ -44,8 +58,12 @@ export function CurvePreview({ sensitivity, sample, hasPendingChanges, telemetry
         disableLiveDot={hasPendingChanges}
       />
       <div className={graphStyles.graphLiveReadout}>
-        <span>Gyro Speed: <strong>{telemetry.omega}°/s</strong></span>
-        <span>Active Sens: <strong>{telemetry.sensX}/{telemetry.sensY}</strong></span>
+        <span>
+          {t('curvePreview.gyroSpeed')}: <strong>{telemetry.omega} deg/s</strong>
+        </span>
+        <span>
+          {t('curvePreview.activeSensitivity')}: <strong>{telemetry.sensX}/{telemetry.sensY}</strong>
+        </span>
       </div>
     </div>
   )

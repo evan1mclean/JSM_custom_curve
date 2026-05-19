@@ -1,6 +1,7 @@
+import { useTranslation } from 'react-i18next'
 import { KeymapSection } from '../KeymapSection'
-import { SectionActions } from '../SectionActions'
 import keymapStyles from '../Keymap.module.css'
+import { SectionActions } from '../SectionActions'
 
 type TriggerControlsSectionProps = {
   adaptiveTriggerValue: string
@@ -25,13 +26,15 @@ export function TriggerControlsSection({
   onCancel,
   applyDisabled,
 }: TriggerControlsSectionProps) {
+  const { t } = useTranslation()
+
   return (
     <>
-      <KeymapSection title="Trigger controls" description="Adaptive trigger mode and soft-pull threshold for L2/R2.">
+      <KeymapSection title={t('keymap.triggerControlsTitle')} description={t('keymap.triggerControlsDescription')}>
         <div className={keymapStyles.globalControls} data-capture-ignore="true">
           <div className={keymapStyles.globalControlRow}>
             <div className={keymapStyles.globalControlText}>
-              <span className={keymapStyles.globalControlTitle}>Adaptive triggers (DualSense)</span>
+              <span className={keymapStyles.globalControlTitle}>{t('keymap.adaptiveTriggers')}</span>
             </div>
             <div className={keymapStyles.globalControlInputGroup}>
               <select
@@ -40,16 +43,18 @@ export function TriggerControlsSection({
                 onChange={(event) => onAdaptiveTriggerChange(event.target.value)}
                 disabled={applyDisabled}
               >
-                <option value="">Default (ON)</option>
-                <option value="OFF">Off</option>
+                <option value="">{t('common.defaultValue', { value: 'ON' })}</option>
+                <option value="OFF">{t('common.off')}</option>
               </select>
             </div>
           </div>
           <div className={keymapStyles.globalControlRow}>
             <div className={keymapStyles.globalControlText}>
-              <span className={keymapStyles.globalControlTitle}>Trigger threshold</span>
+              <span className={keymapStyles.globalControlTitle}>{t('keymap.triggerThreshold')}</span>
               <span className={keymapStyles.globalControlCaption}>
-                {triggerThreshold > 0 ? `Custom TRIGGER_THRESHOLD = ${triggerThreshold.toFixed(2)}` : 'Default (0.00)'}
+                {triggerThreshold > 0
+                  ? t('keymap.triggerThresholdCustom', { value: triggerThreshold.toFixed(2) })
+                  : t('keymap.triggerThresholdDefault')}
               </span>
             </div>
             <div className={keymapStyles.globalControlInputGroup}>

@@ -1,12 +1,13 @@
-import { SensitivityValues } from '../utils/keymap'
-import { buildModifierOptions } from '../utils/modifierOptions'
+import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
+import { buildModifierOptions, resolveModifierOptionLabel } from '../utils/modifierOptions'
 import { StaticSensForm } from './StaticSensForm'
 import { AccelSensForm } from './AccelSensForm'
 import { Card } from './Card'
 import { TelemetrySample } from '../hooks/useTelemetry'
 import { CurvePreview } from './CurvePreview'
 import { SectionActions } from './SectionActions'
-import { LOCK_MESSAGE } from '../constants/messages'
+import { SensitivityValues } from '../utils/keymap'
 
 type SensitivityControlsProps = {
   sensitivity: SensitivityValues
@@ -59,7 +60,6 @@ type SensitivityControlsProps = {
 
 export function SensitivityControls({
   sensitivity,
-
   isCalibrating,
   statusMessage,
   mode,
@@ -91,37 +91,39 @@ export function SensitivityControls({
   onRollContributionChange,
   modeshiftButton,
   onModeshiftButtonChange,
-  lockMessage = LOCK_MESSAGE,
+  lockMessage,
 }: SensitivityControlsProps) {
+  const { t } = useTranslation()
   const displaySensitivity = sensitivity
 
   const isTouchpadGridActive = touchpadMode === 'GRID_AND_STICK'
-  const modifierOptions = buildModifierOptions(isTouchpadGridActive, isTouchpadGridActive ? touchpadGridCells : 0)
-  const modeshiftOptions = [{ value: '', label: 'No mode shift' }, ...modifierOptions]
+  const modifierOptions = useMemo(() => {
+    return buildModifierOptions(isTouchpadGridActive, isTouchpadGridActive ? touchpadGridCells : 0).map(option => ({
+      value: option.value,
+      label: resolveModifierOptionLabel(option, t),
+      disabled: option.disabled,
+    }))
+  }, [isTouchpadGridActive, t, touchpadGridCells])
+
+  const modeshiftOptions = useMemo(
+    () => [{ value: '', label: t('common.noModeShift'), disabled: false }, ...modifierOptions],
+    [modifierOptions, t]
+  )
 
   return (
-    <Card
-      className="control-panel"
-      lockable
-      locked={isCalibrating}
-      lockMessage={lockMessage}
-    >
-      <h2>Gyro Sensitivity Controls</h2>
+    <Card className="control-panel" lockable locked={isCalibrating} lockMessage={lockMessage ?? t('messages.lockMessage')}>
+      <h2>{t('sensitivity.title')}</h2>
       <div className="mode-toggle">
         <button className={`pill-tab ${mode === 'static' ? 'active' : ''}`} onClick={() => onModeChange('static')}>
-          Static Sensitivity
+          {t('sensitivity.staticSensitivity')}
         </button>
         <button className={`pill-tab ${mode === 'accel' ? 'active' : ''}`} onClick={() => onModeChange('accel')}>
-          Acceleration Curve
+          {t('sensitivity.accelerationCurve')}
         </button>
       </div>
       <div className="sensitivity-shift-row">
-        <label>Mode shift button</label>
-        <select
-          value={modeshiftButton ?? ''}
-          onChange={(event) => onModeshiftButtonChange(event.target.value)}
-          data-testid="sensitivity-shift-select"
-        >
+        <label>{t('sensitivity.modeShiftButton')}</label>
+        <select value={modeshiftButton ?? ''} onChange={(event) => onModeshiftButtonChange(event.target.value)} data-testid="sensitivity-shift-select">
           {modeshiftOptions.map(option => (
             <option key={option.value || 'none'} value={option.value} disabled={option.disabled}>
               {option.label}
@@ -131,17 +133,11 @@ export function SensitivityControls({
       </div>
       {modeshiftButton && (
         <div className="mode-toggle secondary">
-          <button
-            className={`pill-tab ${sensitivityView === 'base' ? 'active' : ''}`}
-            onClick={() => onSensitivityViewChange('base')}
-          >
-            Base values
+          <button className={`pill-tab ${sensitivityView === 'base' ? 'active' : ''}`} onClick={() => onSensitivityViewChange('base')}>
+            {t('sensitivity.baseValues')}
           </button>
-          <button
-            className={`pill-tab ${sensitivityView === 'modeshift' ? 'active' : ''}`}
-            onClick={() => onSensitivityViewChange('modeshift')}
-          >
-            Mode shift
+          <button className={`pill-tab ${sensitivityView === 'modeshift' ? 'active' : ''}`} onClick={() => onSensitivityViewChange('modeshift')}>
+            {t('sensitivity.modeShift')}
           </button>
         </div>
       )}

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Card } from './Card'
 import styles from './ProfileManager.module.css'
 
@@ -37,6 +38,7 @@ export function ProfileManager({
   lockMessage,
   onCopyActiveProfile,
 }: ProfileManagerProps) {
+  const { t } = useTranslation()
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [confirmingProfile, setConfirmingProfile] = useState<string | null>(null)
 
@@ -48,20 +50,20 @@ export function ProfileManager({
     <Card className={`${styles.profileCard} profile-card`} lockable locked={isCalibrating} lockMessage={lockMessage}>
       {hasPendingChanges && (
         <div className={styles.profileFlags}>
-          <span className={styles.profileWarning}>Unsaved changes on current profile</span>
+          <span className={styles.profileWarning}>{t('profiles.unsavedChangesWarning')}</span>
         </div>
       )}
 
       <section className="profile-library">
         <div className={styles.profileLibraryHeader}>
           <div>
-            <h3>Library</h3>
-            <p>Select a profile to load it into the editor, or rename/delete existing ones.</p>
+            <h3>{t('profiles.libraryTitle')}</h3>
+            <p>{t('profiles.libraryDescription')}</p>
           </div>
-          {libraryLoading && <span className={styles.profileLibraryLoading}>Refreshing…</span>}
+          {libraryLoading && <span className={styles.profileLibraryLoading}>{t('common.refreshing')}</span>}
         </div>
         {libraryProfiles.length === 0 ? (
-          <p className={styles.profileLibraryEmpty}>No saved profiles yet. Click Add profile to get started.</p>
+          <p className={styles.profileLibraryEmpty}>{t('profiles.empty')}</p>
         ) : (
           <ul className={styles.profileLibraryList}>
             {libraryProfiles.map(profileName => (
@@ -76,7 +78,7 @@ export function ProfileManager({
                     value={editedProfileNames[profileName] ?? profileName}
                     onChange={(event) => onProfileNameChange(profileName, event.target.value)}
                   />
-                  {currentProfileName === profileName && <span className={styles.profileLibraryActiveBadge}>Active</span>}
+                  {currentProfileName === profileName && <span className={styles.profileLibraryActiveBadge}>{t('profiles.active')}</span>}
                 </div>
                 <div className={styles.profileLibraryButtons}>
                   <button
@@ -87,24 +89,24 @@ export function ProfileManager({
                       (editedProfileNames[profileName] ?? profileName).trim() === profileName
                     }
                   >
-                    Save
+                    {t('common.save')}
                   </button>
                   {confirmingProfile === profileName ? (
                     <>
                       <button className="danger-btn" onClick={() => onDeleteProfile(profileName)}>
-                        Confirm delete
+                        {t('profiles.confirmDelete')}
                       </button>
                       <button className="secondary-btn" onClick={() => setConfirmingProfile(null)}>
-                        Cancel
+                        {t('common.cancel')}
                       </button>
                     </>
                   ) : (
                     <>
                       <button className="secondary-btn" onClick={() => onLoadLibraryProfile(profileName)}>
-                        Load
+                        {t('common.load')}
                       </button>
                       <button className="danger-btn" onClick={() => setConfirmingProfile(profileName)}>
-                        Delete
+                        {t('common.delete')}
                       </button>
                     </>
                   )}
@@ -133,22 +135,22 @@ export function ProfileManager({
             />
             {onImportProfile && (
               <button className="secondary-btn" onClick={() => fileInputRef.current?.click()}>
-                Add Existing Config
+                {t('profiles.addExistingConfig')}
               </button>
             )}
           </div>
           {onCopyActiveProfile && (
             <button className="secondary-btn" onClick={onCopyActiveProfile}>
-              Copy Active Profile
+              {t('profiles.copyActiveProfile')}
             </button>
           )}
           <button className="secondary-btn" onClick={onAddProfile}>
-            Add Profile
+            {t('profiles.addProfile')}
           </button>
         </div>
       </section>
 
-      {!profileApplied && <span className={styles.profileNotApplied}>Not running in JoyShockMapper yet</span>}
+      {!profileApplied && <span className={styles.profileNotApplied}>{t('profiles.notRunningYet')}</span>}
     </Card>
   )
 }

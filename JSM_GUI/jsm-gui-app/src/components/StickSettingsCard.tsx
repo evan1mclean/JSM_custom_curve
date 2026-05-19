@@ -1,5 +1,6 @@
 import { ReactNode, useEffect, useRef, useState } from 'react'
-import { STICK_MODE_VALUES, formatStickModeLabel } from '../constants/sticks'
+import { useTranslation } from 'react-i18next'
+import { formatStickModeLabel, STICK_MODE_VALUES } from '../constants/sticks'
 import styles from './Sticks.module.css'
 
 type StickSettingsCardProps = {
@@ -38,14 +39,12 @@ function useDeadzoneDraft(propValue: string, onChange: (value: string) => void, 
       onChange('')
       return
     }
-    // Allow partial decimals while typing without flushing to config
     if (trimmed.endsWith('.') || trimmed.endsWith('-')) {
       setDraft(raw)
       return
     }
     const numeric = Number(trimmed)
     if (!Number.isNaN(numeric)) {
-      // Clamp here so the draft always matches what gets written to config
       const clamped = String(Math.max(min, Math.min(max, numeric)))
       setDraft(clamped)
       onChange(clamped)
@@ -59,14 +58,20 @@ function useDeadzoneDraft(propValue: string, onChange: (value: string) => void, 
       onChange('')
       setDraft('')
     } else if (trimmed.endsWith('.') || Number.isNaN(Number(trimmed))) {
-      // Revert incomplete/invalid input to the last known prop value
       setDraft(propValue)
     } else {
       onChange(draft)
     }
   }
 
-  return { draft, handleChange, handleFocus: () => { focused.current = true }, handleBlur }
+  return {
+    draft,
+    handleChange,
+    handleFocus: () => {
+      focused.current = true
+    },
+    handleBlur,
+  }
 }
 
 export function StickSettingsCard({
@@ -84,6 +89,7 @@ export function StickSettingsCard({
   onOuterChange,
   modeExtras,
 }: StickSettingsCardProps) {
+  const { t } = useTranslation()
   const inner = useDeadzoneDraft(innerValue, onInnerChange)
   const outer = useDeadzoneDraft(outerValue, onOuterChange)
 
@@ -96,36 +102,26 @@ export function StickSettingsCard({
     <div className={styles.stickModeCard} data-capture-ignore="true">
       <h3>{title}</h3>
       <label>
-        Stick mode
-        <select
-          className="app-select"
-          value={modeValue}
-          onChange={(event) => onModeChange(event.target.value)}
-          disabled={disabled}
-        >
-          <option value="">Default ({formatStickModeLabel('NO_MOUSE')})</option>
+        {t('stickModes.stickMode')}
+        <select className="app-select" value={modeValue} onChange={(event) => onModeChange(event.target.value)} disabled={disabled}>
+          <option value="">{t('common.defaultValue', { value: formatStickModeLabel('NO_MOUSE', t) })}</option>
           {selectableStickModes.map(mode => (
             <option key={mode} value={mode}>
-              {formatStickModeLabel(mode)}
+              {formatStickModeLabel(mode, t)}
             </option>
           ))}
         </select>
       </label>
       <label>
-        Ring mode
-        <select
-          className="app-select"
-          value={ringValue}
-          onChange={(event) => onRingChange(event.target.value)}
-          disabled={disabled}
-        >
-          <option value="">Default (OUTER)</option>
-          <option value="INNER">Inner</option>
-          <option value="OUTER">Outer</option>
+        {t('stickModes.ringMode')}
+        <select className="app-select" value={ringValue} onChange={(event) => onRingChange(event.target.value)} disabled={disabled}>
+          <option value="">{t('common.defaultValue', { value: t('stickModes.outer') })}</option>
+          <option value="INNER">{t('stickModes.inner')}</option>
+          <option value="OUTER">{t('stickModes.outer')}</option>
         </select>
       </label>
       <label>
-        Inner deadzone {innerValue ? '' : `(default ${defaultInner})`}
+        {innerValue ? t('stickModes.innerDeadzone') : `${t('stickModes.innerDeadzone')} (${t('common.defaultValue', { value: defaultInner })})`}
         <input
           type="number"
           step="0.01"
@@ -149,7 +145,7 @@ export function StickSettingsCard({
         />
       </label>
       <label>
-        Outer deadzone {outerValue ? '' : `(default ${defaultOuter})`}
+        {outerValue ? t('stickModes.outerDeadzone') : `${t('stickModes.outerDeadzone')} (${t('common.defaultValue', { value: defaultOuter })})`}
         <input
           type="number"
           step="0.01"

@@ -1,4 +1,4 @@
-import { PENDING_MESSAGE } from '../constants/messages'
+import { useTranslation } from 'react-i18next'
 
 type SectionActionsProps = {
   className?: string
@@ -19,23 +19,25 @@ export function SectionActions({
   onApply,
   onCancel,
   applyDisabled = false,
-  applyLabel = 'Apply Changes',
-  cancelLabel = 'Cancel',
-  pendingMessage = PENDING_MESSAGE,
+  applyLabel,
+  cancelLabel,
+  pendingMessage,
 }: SectionActionsProps) {
+  const { t } = useTranslation()
+
   return (
     <div className={className}>
       <button className="secondary-btn" onClick={onApply} disabled={applyDisabled}>
-        {applyLabel}
+        {applyLabel ?? t('common.applyChanges')}
       </button>
       {hasPendingChanges ? (
         <>
           {onCancel && (
             <button className="secondary-btn" onClick={onCancel}>
-              {cancelLabel}
+              {cancelLabel ?? t('common.cancel')}
             </button>
           )}
-          <span className="pill pill--warning">{pendingMessage}</span>
+          <span className="pill pill--warning">{pendingMessage ?? t('messages.pendingChanges')}</span>
         </>
       ) : statusMessage ? (
         <span className="pill pill--success">{statusMessage}</span>

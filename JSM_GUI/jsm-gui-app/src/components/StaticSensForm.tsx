@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { SensitivityValues } from '../utils/keymap'
 
 type StaticSensFormProps = {
@@ -8,16 +9,19 @@ type StaticSensFormProps = {
 }
 
 export function StaticSensForm({ sensitivity, onChangeX, onChangeY, onRollContributionChange }: StaticSensFormProps) {
+  const { t } = useTranslation()
+
   const selectAllOnFocus = (event: React.FocusEvent<HTMLInputElement>) => {
     event.target.select()
   }
+
   const showRollContribution = sensitivity.gyroSpace?.trim().toUpperCase() === 'YAW_PLUS_ROLL'
 
   return (
     <>
       <div className="flex-inputs">
         <label>
-          Static Sens (X)
+          {t('sensitivity.staticSensX')}
           <input
             type="number"
             step="0.1"
@@ -29,7 +33,7 @@ export function StaticSensForm({ sensitivity, onChangeX, onChangeY, onRollContri
           <input type="range" min="0" max="30" step="0.1" value={sensitivity.gyroSensX ?? 0} onChange={(e) => onChangeX(e.target.value)} />
         </label>
         <label>
-          Static Sens (Y)
+          {t('sensitivity.staticSensY')}
           <input
             type="number"
             step="0.1"
@@ -44,7 +48,7 @@ export function StaticSensForm({ sensitivity, onChangeX, onChangeY, onRollContri
       {showRollContribution && (
         <div className="flex-inputs">
           <label>
-            Roll Contribution (%)
+            {t('sensitivity.rollContribution')}
             <input
               type="number"
               step="1"

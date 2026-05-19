@@ -1,7 +1,8 @@
+import { useTranslation } from 'react-i18next'
 import { KeymapSection } from '../KeymapSection'
-import { SectionActions } from '../SectionActions'
-import styles from './Touchpad.module.css'
 import keymapStyles from '../Keymap.module.css'
+import styles from './Touchpad.module.css'
+import { SectionActions } from '../SectionActions'
 
 type TouchpadSettingsSectionProps = {
   touchpadMode: string
@@ -32,23 +33,25 @@ export function TouchpadSettingsSection({
   onCancel,
   applyDisabled,
 }: TouchpadSettingsSectionProps) {
+  const { t } = useTranslation()
+
   return (
     <>
-      <KeymapSection title="Touchpad mode and grid" description="Adjust mode, grid size, and sensitivity for the touchpad.">
+      <KeymapSection title={t('keymap.touchpadSettingsTitle')} description={t('keymap.touchpadSettingsDescription')}>
         <div className={styles.touchpadSettings}>
           <label>
-            Mode
+            {t('keymap.mode')}
             <select className="app-select" value={touchpadMode} onChange={(event) => onTouchpadModeChange?.(event.target.value)}>
-              <option value="">None selected</option>
-              <option value="GRID_AND_STICK">Grid and Stick</option>
-              <option value="MOUSE">Mouse</option>
+              <option value="">{t('common.noneSelected')}</option>
+              <option value="GRID_AND_STICK">{t('keymap.gridAndStick')}</option>
+              <option value="MOUSE">{t('keymap.mouse')}</option>
             </select>
           </label>
           {touchpadMode === 'GRID_AND_STICK' && (
             <>
               <div className={styles.gridSizeInputs}>
                 <label>
-                  Columns
+                  {t('keymap.columns')}
                   <input
                     type="number"
                     min={1}
@@ -58,7 +61,7 @@ export function TouchpadSettingsSection({
                   />
                 </label>
                 <label>
-                  Rows
+                  {t('keymap.rows')}
                   <input
                     type="number"
                     min={1}
@@ -68,18 +71,18 @@ export function TouchpadSettingsSection({
                   />
                 </label>
               </div>
-              <small className={styles.gridLimitHint}>Columns × Rows cannot exceed 25 total regions.</small>
+              <small className={styles.gridLimitHint}>{t('common.rowsColsCannotExceed')}</small>
             </>
           )}
           {touchpadMode === 'MOUSE' && (
             <label>
-              Touchpad sensitivity
+              {t('keymap.touchpadSensitivity')}
               <input
                 type="number"
                 step="0.1"
                 value={touchpadSensitivity ?? ''}
                 onChange={(event) => onTouchpadSensitivityChange?.(event.target.value)}
-                placeholder="Default"
+                placeholder={t('common.defaultPlaceholder')}
               />
             </label>
           )}
