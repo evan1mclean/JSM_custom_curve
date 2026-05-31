@@ -1218,7 +1218,8 @@ public:
 	{
 		auto prop = SDL_GetGamepadProperties(_controllerMap[deviceId]->_sdlController);
 		
-		if (SDL_GetStringProperty(prop, SDL_PROP_GAMEPAD_CAP_RGB_LED_BOOLEAN, nullptr) != nullptr)
+		if (SDL_GetBooleanProperty(prop, SDL_PROP_GAMEPAD_CAP_RGB_LED_BOOLEAN, false) ||
+		    SDL_GetBooleanProperty(prop, SDL_PROP_GAMEPAD_CAP_MONO_LED_BOOLEAN, false))
 		{
 			union
 			{
