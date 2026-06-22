@@ -211,7 +211,7 @@ if(SDL OR NOT DEFINED SDL)
 		NAME SDL3
         GITHUB_REPOSITORY libsdl-org/SDL
         #GIT_TAG release-3.6.0
-        GIT_TAG e7b238a6ed9d64bcc92f8ffc75fecc10f0153b73
+        GIT_TAG 0bb539314d17209eaa4e06029a89345899bcdd84
 	)
 	set_target_properties(SDL_uclibc PROPERTIES FOLDER "SDL")
     set_target_properties(SDL3-shared PROPERTIES FOLDER "SDL")

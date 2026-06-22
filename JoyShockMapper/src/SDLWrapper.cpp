@@ -985,6 +985,18 @@ public:
 			// Only the back grip buttons are exposed by SDL3.
 			buttons |= SDL_GetGamepadButton(_controllerMap[deviceId]->_sdlController, SDL_GAMEPAD_BUTTON_RIGHT_PADDLE1) ? 1ULL << JSOFFSET_SR : 0;   // Right back grip button
 			buttons |= SDL_GetGamepadButton(_controllerMap[deviceId]->_sdlController, SDL_GAMEPAD_BUTTON_LEFT_PADDLE1) ? 1ULL << JSOFFSET_SL : 0;    // Left back grip button
+			// SDL3 doesn't expose trackpad clicks, so find them indirectly.
+			{
+				float pressure = 0.0f;
+				if (SDL_GetGamepadTouchpadFinger(_controllerMap[deviceId]->_sdlController, 0, 0, nullptr, nullptr, nullptr, &pressure) && pressure > 0.9f)
+				{
+					buttons |= 1ULL << JSOFFSET_LTP_CAPTURE; // Left trackpad click
+				}
+				if (SDL_GetGamepadTouchpadFinger(_controllerMap[deviceId]->_sdlController, 1, 0, nullptr, nullptr, nullptr, &pressure) && pressure > 0.9f)
+				{
+					buttons |= 1ULL << JSOFFSET_RTP_CAPTURE; // Right trackpad click
+				}
+			}
 			break;
 		case JS_TYPE_STEAM_CONTROLLER_TRITON:
 			buttons |= SDL_GetGamepadCapSense(_controllerMap[deviceId]->_sdlController, SDL_GAMEPAD_CAPSENSE_LEFT_GRIP) ? 1ULL << JSOFFSET_LGRIP : 0;    // Left grip sense
