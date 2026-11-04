@@ -317,7 +317,7 @@ struct ControllerDevice
 		memset(&_rightTriggerEffect, 0, sizeof(_rightTriggerEffect));
 		_big_rumble = 0;
 		_small_rumble = 0;
-		SendEffect();
+		SendEffect(true);
 		SDL_CloseGamepad(_sdlController);
 	}
 
@@ -367,7 +367,11 @@ private:
 	}
 
 public:
-	void SendEffect()
+	// Only send the parts of the DualSense effect state that changed since the last send.
+	// The controller keeps trigger effects, motor values and the mic light until told otherwise,
+	// so resending them every poll only overwrites what a game sets directly on the controller
+	// (e.g. Cyberpunk's adaptive triggers and audio haptics). force = true sends everything.
+	void SendEffect(bool force = false)
 	{
 		if (_ctrlr_type == JS_TYPE_DS)
 		{
@@ -375,21 +379,42 @@ public:
 			memset(&effectPacket, 0, sizeof(effectPacket));
 
 			// Add adaptive trigger data
-			effectPacket.ucEnableBits1 |= 0x08 | 0x04; // Enable left and right trigger effect respectively
-			LoadTriggerEffect(effectPacket.rgucLeftTriggerEffect, &_leftTriggerEffect);
-			LoadTriggerEffect(effectPacket.rgucRightTriggerEffect, &_rightTriggerEffect);
+			if (force || !_effectSent || _leftTriggerEffect != _sentLeftTriggerEffect || _rightTriggerEffect != _sentRightTriggerEffect)
+			{
+				effectPacket.ucEnableBits1 |= 0x08 | 0x04; // Enable left and right trigger effect respectively
+				LoadTriggerEffect(effectPacket.rgucLeftTriggerEffect, &_leftTriggerEffect);
+				LoadTriggerEffect(effectPacket.rgucRightTriggerEffect, &_rightTriggerEffect);
+				_sentLeftTriggerEffect = _leftTriggerEffect;
+				_sentRightTriggerEffect = _rightTriggerEffect;
+			}
 
 			// Add current rumbling data
-			effectPacket.ucEnableBits1 |= 0x01 | 0x02;
-			effectPacket.ucRumbleLeft = _big_rumble >> 8;
-			effectPacket.ucRumbleRight = _small_rumble >> 8;
+			uint8_t rumbleLeft = _big_rumble >> 8;
+			uint8_t rumbleRight = _small_rumble >> 8;
+			if (force || !_effectSent || rumbleLeft != _sentRumbleLeft || rumbleRight != _sentRumbleRight)
+			{
+				effectPacket.ucEnableBits1 |= 0x01 | 0x02;
+				effectPacket.ucRumbleLeft = rumbleLeft;
+				effectPacket.ucRumbleRight = rumbleRight;
+				_sentRumbleLeft = rumbleLeft;
+				_sentRumbleRight = rumbleRight;
+			}
 
 			// Add current mic light
-			effectPacket.ucEnableBits2 |= 0x01;      /* Enable microphone light */
-			effectPacket.ucMicLightMode = _micLight; /* Bitmask, 0x00 = off, 0x01 = solid, 0x02 = pulse */
+			if (force || !_effectSent || _micLight != _sentMicLight)
+			{
+				effectPacket.ucEnableBits2 |= 0x01;      /* Enable microphone light */
+				effectPacket.ucMicLightMode = _micLight; /* Bitmask, 0x00 = off, 0x01 = solid, 0x02 = pulse */
+				_sentMicLight = _micLight;
+			}
 
-			// Send to controller
-			SDL_SendGamepadEffect(_sdlController, &effectPacket, sizeof(effectPacket));
+			_effectSent = true;
+
+			// Send to controller, only if something changed
+			if (effectPacket.ucEnableBits1 != 0 || effectPacket.ucEnableBits2 != 0)
+			{
+				SDL_SendGamepadEffect(_sdlController, &effectPacket, sizeof(effectPacket));
+			}
 		}
 	}
 
@@ -405,6 +430,13 @@ public:
 	AdaptiveTriggerSetting _leftTriggerEffect;
 	AdaptiveTriggerSetting _rightTriggerEffect;
 	uint8_t _micLight = 0;
+	// Last state actually sent to the controller (see SendEffect)
+	bool _effectSent = false;
+	AdaptiveTriggerSetting _sentLeftTriggerEffect;
+	AdaptiveTriggerSetting _sentRightTriggerEffect;
+	uint8_t _sentRumbleLeft = 0;
+	uint8_t _sentRumbleRight = 0;
+	uint8_t _sentMicLight = 0;
 	SDL_Gamepad *_sdlController = nullptr;
 	bool _has_trackpads;
 	trackpad_state_t _trackpads_state[2];
