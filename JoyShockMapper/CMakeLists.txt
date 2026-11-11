@@ -205,13 +205,13 @@ if(SDL OR NOT DEFINED SDL)
     set(SDL_VIDEO OFF)
     set(SDL_VIRTUAL_JOYSTICK OFF)
 
-    # Set GIT_TAG to a recent main branch commit hash for full Steam Controller,
-    # Steam Deck, and Horipad support. Required until 3.6.0 is released.
+    # Set GIT_TAG to a recent main branch commit hash for GameSir support (no
+    # official SDL release includes it yet).
 	CPMAddPackage (
 		NAME SDL3
         GITHUB_REPOSITORY libsdl-org/SDL
-        #GIT_TAG release-3.6.0
-        GIT_TAG 0bb539314d17209eaa4e06029a89345899bcdd84
+        #GIT_TAG release-3.4.20
+        GIT_TAG 8668451f65f9b3fc63dc8d6ae34d7104cb2d5d1d
 	)
 	set_target_properties(SDL_uclibc PROPERTIES FOLDER "SDL")
     set_target_properties(SDL3-shared PROPERTIES FOLDER "SDL")
